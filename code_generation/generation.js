@@ -268,20 +268,6 @@ let source = [
           },
         ],
       },
-      {
-        pageName: "backend-management",
-        label: "后台管理",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
     ],
   },
 ];
