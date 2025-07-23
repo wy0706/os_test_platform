@@ -81,11 +81,25 @@ export async function getInitialState(): Promise<{
   };
 }
 
-// ProLayout 支持的api https://procomponents.ant.design/components/layout
+// ProLayout 支持的api https://procomponents.ant.design/components/layout 运行时配置
 export const layout: RunTimeLayoutConfig = ({
   initialState,
   setInitialState,
 }) => {
+  // 忽略特定 React warning（如 findDOMNode）
+  if (isDev) {
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+      if (
+        typeof args[0] === "string" &&
+        args[0].includes("Warning: findDOMNode is deprecated")
+      ) {
+        return; // 忽略这个 warning
+      }
+      originalWarn(...args);
+    };
+  }
+
   return {
     // actionsRender: () => [
     //   <Question key="doc" />,
@@ -95,7 +109,7 @@ export const layout: RunTimeLayoutConfig = ({
       src: initialState?.currentUser?.avatar,
       title: <AvatarName />,
       render: (_, avatarChildren) => {
-        return <AvatarDropdown>{avatarChildren}</AvatarDropdown>;
+        return <AvatarDropdown menu={true}>{avatarChildren}</AvatarDropdown>;
       },
     },
     waterMarkProps: {

@@ -1,16 +1,11 @@
-import {
-  LogoutOutlined,
-  SettingOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
-import { history, useModel } from '@umijs/max';
-import type { MenuProps } from 'antd';
-import { Spin } from 'antd';
-import { createStyles } from 'antd-style';
-import React from 'react';
-import { flushSync } from 'react-dom';
-import { outLogin } from '@/services/ant-design-pro/api';
-import HeaderDropdown from '../HeaderDropdown';
+import { LogoutOutlined, SettingOutlined } from "@ant-design/icons";
+import { history, useModel } from "@umijs/max";
+import type { MenuProps } from "antd";
+import { Spin } from "antd";
+import { createStyles } from "antd-style";
+import React from "react";
+import { flushSync } from "react-dom";
+import HeaderDropdown from "../HeaderDropdown";
 
 export type GlobalHeaderRightProps = {
   menu?: boolean;
@@ -18,7 +13,7 @@ export type GlobalHeaderRightProps = {
 };
 
 export const AvatarName = () => {
-  const { initialState } = useModel('@@initialState');
+  const { initialState } = useModel("@@initialState");
   const { currentUser } = initialState || {};
   return <span className="anticon">{currentUser?.name}</span>;
 };
@@ -26,15 +21,15 @@ export const AvatarName = () => {
 const useStyles = createStyles(({ token }) => {
   return {
     action: {
-      display: 'flex',
-      height: '48px',
-      marginLeft: 'auto',
-      overflow: 'hidden',
-      alignItems: 'center',
-      padding: '0 8px',
-      cursor: 'pointer',
+      display: "flex",
+      height: "48px",
+      marginLeft: "auto",
+      overflow: "hidden",
+      alignItems: "center",
+      padding: "0 8px",
+      cursor: "pointer",
       borderRadius: token.borderRadius,
-      '&:hover': {
+      "&:hover": {
         backgroundColor: token.colorBgTextHover,
       },
     },
@@ -56,22 +51,22 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       redirect: pathname + search,
     });
     /** 此方法会跳转到 redirect 参数所在的位置 */
-    const redirect = urlParams.get('redirect');
+    const redirect = urlParams.get("redirect");
     // Note: There may be security issues, please note
-    if (window.location.pathname !== '/user/login' && !redirect) {
+    if (window.location.pathname !== "/user/login" && !redirect) {
       history.replace({
-        pathname: '/user/login',
+        pathname: "/user/login",
         search: searchParams.toString(),
       });
     }
   };
   const { styles } = useStyles();
 
-  const { initialState, setInitialState } = useModel('@@initialState');
+  const { initialState, setInitialState } = useModel("@@initialState");
 
-  const onMenuClick: MenuProps['onClick'] = (event) => {
+  const onMenuClick: MenuProps["onClick"] = (event) => {
     const { key } = event;
-    if (key === 'logout') {
+    if (key === "logout") {
       flushSync(() => {
         setInitialState((s) => ({ ...s, currentUser: undefined }));
       });
@@ -106,25 +101,25 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const menuItems = [
     ...(menu
       ? [
+          // {
+          //   key: 'center',
+          //   icon: <UserOutlined />,
+          //   label: '个人中心',
+          // },
           {
-            key: 'center',
-            icon: <UserOutlined />,
-            label: '个人中心',
-          },
-          {
-            key: 'settings',
+            key: "settings",
             icon: <SettingOutlined />,
-            label: '个人设置',
+            label: "管理后台",
           },
           {
-            type: 'divider' as const,
+            type: "divider" as const,
           },
         ]
       : []),
     {
-      key: 'logout',
+      key: "logout",
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: "退出登录",
     },
   ];
 

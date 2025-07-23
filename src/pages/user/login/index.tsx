@@ -1,5 +1,4 @@
 import { Footer } from "@/components";
-import { getFakeCaptcha } from "@/services/ant-design-pro/login";
 import {
   AlipayCircleOutlined,
   LockOutlined,
@@ -9,7 +8,9 @@ import {
   WeiboCircleOutlined,
 } from "@ant-design/icons";
 import {
+  CaptFieldRef,
   LoginForm,
+  ProForm,
   ProFormCaptcha,
   ProFormCheckbox,
   ProFormText,
@@ -23,7 +24,7 @@ import {
 } from "@umijs/max";
 import { Alert, App, Tabs } from "antd";
 import { createStyles } from "antd-style";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import Settings from "../../../../config/defaultSettings";
 
@@ -115,6 +116,7 @@ const Login: React.FC = () => {
   const { initialState, setInitialState } = useModel("@@initialState");
   const { styles } = useStyles();
   const { message } = App.useApp();
+
   const intl = useIntl();
 
   const fetchUserInfo = async () => {
@@ -128,7 +130,16 @@ const Login: React.FC = () => {
       });
     }
   };
-
+  const [form] = ProForm.useForm();
+  const [attemptsLeft, setAttemptsLeft] = useState(5);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const captchaRef = useRef<CaptFieldRef | null | undefined>();
+  const [captchaExpired, setCaptchaExpired] = useState(false); //倒计时是否结束
+  const [captchaShow, setCaptchaShow] = useState(false);
+  // 验证码错误消息
+  const [captchaerrorMsg, setCaptchaErrorMsg] = useState("");
+  const inputRef = useRef();
   const handleSubmit = async (values: API.LoginParams) => {
     try {
       // 登录
@@ -147,12 +158,55 @@ const Login: React.FC = () => {
       // console.log(msg);
       // 如果失败去设置用户错误信息
       // setUserLoginState(msg);
+      if (attemptsLeft <= 0) {
+        setErrorMsg("账号已锁定，请联系管理员");
+        return;
+      }
+      console.log("value====", values);
+
+      const { username, password, captcha, mobile } = values;
+      // 如果是账号密码登录
+      if (username && password) {
+        if (username !== "user" && username !== "admin") {
+          const newAttempts = attemptsLeft - 1;
+          setAttemptsLeft(newAttempts);
+          setSuccessMsg("");
+          if (newAttempts > 0) {
+            setErrorMsg(`账号或密码错误，你还有 ${newAttempts} 次重试机会`);
+          } else {
+            setErrorMsg("账号已锁定，请联系管理员");
+          }
+          return;
+        }
+      }
+
+      // 验证码
+      if (captcha && mobile) {
+        console.log("验证码是否失效", captchaExpired);
+
+        if (captcha !== "1234") {
+          setCaptchaErrorMsg("验证码输入错误");
+          return;
+        }
+        if (captcha === "1234" && captchaExpired) {
+          //已结束
+          setCaptchaErrorMsg("验证码已过期请重新输入");
+          return;
+        }
+      }
+
       const defaultLoginSuccessMessage = intl.formatMessage({
         id: "pages.login.success",
         defaultMessage: "登录成功！",
       });
       message.success(defaultLoginSuccessMessage);
       await fetchUserInfo();
+      // 重置尝试次数
+      setErrorMsg("");
+      setAttemptsLeft(5);
+      // 验证码提示信息初始化
+      setCaptchaErrorMsg("");
+      setCaptchaShow(false);
       const urlParams = new URL(window.location.href).searchParams;
       window.location.href = urlParams.get("redirect") || "/";
       return;
@@ -165,6 +219,38 @@ const Login: React.FC = () => {
       message.error(defaultLoginFailureMessage);
     }
   };
+
+  const waitTime = (time: number = 100) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(true);
+      }, time);
+    });
+  };
+
+  const forgetPass = () => {
+    message.open({
+      key: "forget-error",
+      type: "error",
+      content: "请联系管理员",
+    });
+  };
+  const onGetCaptcha = async (phone: string) => {
+    if (phone) {
+      // message.success("验证码已发送");
+      // const result = await getFakeCaptcha({
+      //   phone,
+      // });
+      // if (!result) {
+      //   return;
+      // }
+      message.success("获取验证码成功！验证码为：1234");
+    } else {
+      message.error("请输入有效手机号");
+      throw new Error("请输入有效手机号");
+    }
+  };
+
   const { status, type: loginType } = userLoginState;
 
   return (
@@ -178,7 +264,7 @@ const Login: React.FC = () => {
           {Settings.title && ` - ${Settings.title}`}
         </title>
       </Helmet>
-      <Lang />
+      {/* <Lang /> */}
       <div
         style={{
           flex: "1",
@@ -240,6 +326,20 @@ const Login: React.FC = () => {
           )}
           {type === "account" && (
             <>
+              {/* 输入错误次数提示 */}
+
+              {errorMsg && (
+                <Alert
+                  style={{ marginBottom: "10px" }}
+                  message={errorMsg}
+                  type="error"
+                  showIcon
+                />
+              )}
+              {/* {successMsg && (
+                <Alert message={successMsg} type="info" showIcon />
+              )} */}
+
               <ProFormText
                 name="username"
                 fieldProps={{
@@ -292,6 +392,15 @@ const Login: React.FC = () => {
           )}
           {type === "mobile" && (
             <>
+              {/* 验证码错误提示 */}
+              {captchaerrorMsg && (
+                <Alert
+                  style={{ marginBottom: "10px" }}
+                  message={captchaerrorMsg}
+                  type="error"
+                  showIcon
+                />
+              )}
               <ProFormText
                 fieldProps={{
                   size: "large",
@@ -331,6 +440,7 @@ const Login: React.FC = () => {
                 captchaProps={{
                   size: "large",
                 }}
+                fieldRef={captchaRef}
                 placeholder={intl.formatMessage({
                   id: "pages.login.captcha.placeholder",
                   defaultMessage: "请输入验证码",
@@ -347,6 +457,7 @@ const Login: React.FC = () => {
                     defaultMessage: "获取验证码",
                   });
                 }}
+                phoneName="mobile"
                 name="captcha"
                 rules={[
                   {
@@ -359,15 +470,16 @@ const Login: React.FC = () => {
                     ),
                   },
                 ]}
-                onGetCaptcha={async (phone) => {
-                  const result = await getFakeCaptcha({
-                    phone,
-                  });
-                  if (!result) {
-                    return;
+                onGetCaptcha={onGetCaptcha}
+                onTiming={(count) => {
+                  console.log("timing:", count);
+                  if (count === 60) {
+                    setCaptchaExpired(true);
+                  } else {
+                    setCaptchaExpired(false);
                   }
-                  message.success("获取验证码成功！验证码为：1234");
                 }}
+                // onTiming={() => setCaptchaExpired(true)} // 60秒结束时触发
               />
             </>
           )}
@@ -386,6 +498,7 @@ const Login: React.FC = () => {
               style={{
                 float: "right",
               }}
+              onClick={forgetPass}
             >
               <FormattedMessage
                 id="pages.login.forgotPassword"

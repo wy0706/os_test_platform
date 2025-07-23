@@ -85,7 +85,8 @@ export default defineConfig({
    */
   title: "OS 测试平台",
   layout: {
-    locale: true,
+    // locale: true,
+    locale: false,
     ...defaultSettings,
   },
   /**
@@ -177,7 +178,7 @@ export default defineConfig({
    * @doc https://umijs.org/docs/api/config#mako
    */
   mfsu: {
-    strategy: 'normal',
+    strategy: "normal",
   },
   esbuildMinifyIIFE: true,
   requestRecord: {},
