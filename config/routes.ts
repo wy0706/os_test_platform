@@ -181,6 +181,37 @@ export default [
     redirect: "/welcome",
   },
   {
+    path: "/backend-management",
+    name: "后台管理",
+    // access: ["operationLog-preview", "operationLog-edit"],
+    component: "./system-management/backend-management",
+    hideInMenu: true,
+  },
+
+  {
+    path: "/account/center",
+    name: "账号设置",
+    // access: ["userManagement-preview", "userManagement-edit"],
+    component: "./account/center",
+    hideInMenu: true,
+  },
+
+  // {
+  //   path: "/account",
+  //   name: "个人中心",
+  //   icon: "table",
+  //   // access: "systemManagement",
+  //   hideInMenu: true,
+  //   routes: [
+  //     {
+  //       path: "/account/center",
+  //       name: "账号设置",
+  //       // access: ["userManagement-preview", "userManagement-edit"],
+  //       component: "./account/center",
+  //     },
+  //   ],
+  // },
+  {
     path: "*",
     layout: false,
     component: "./404",

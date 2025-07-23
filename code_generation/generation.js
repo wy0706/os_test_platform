@@ -1,228 +1,298 @@
 // const fs = require('fs').promises; // 使用promises API版本
-import fs from 'fs/promises';
+import fs from "fs/promises";
 
 let source = [
-    {
-        moduleName: 'task-management',
-        label: '任务管理',
-        children: [
-            {
-                pageName: "test-requirement",
-                label: "测试需求",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-task",
-                label: "测试任务",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-execution",
-                label: "测试执行",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-execution-result",
-                label: "测试执行结果",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-report",
-                label: "测试报告",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            }
-        ]
-    },
-    {
-        moduleName: 'case-management',
-        label: '用例管理',
-        children: [
-            {
-                pageName: "case-library",
-                label: "用例库",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-case",
-                label: "测试用例",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-sequence",
-                label: "测试序列",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "test-sequence-integration",
-                label: "序列集成",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            }
-        ]
-    },
-    {
-        moduleName: 'equipment-management',
-        label: '设备管理',
-        children: [
-            {
-                pageName: "equipment-library",
-                label: "设备库",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-        ]
-    },
-    {
-        moduleName: 'tool-management',
-        label: '检测工具',
-        children: [
-            {
-                pageName: "ide-tool",
-                label: "集成开发环境",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "deploy-tool",
-                label: "部署工具",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-        ]
-    },
-    {
-        moduleName: 'system-management',
-        label: '系统管理',
-        children: [
-            {
-                pageName: "user-management",
-                label: "用户管理",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "role-management",
-                label: "角色管理",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "permission-management",
-                label: "权限管理",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "operation-log",
-                label: "操作日志",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-            {
-                pageName: "login-log",
-                label: "登录日志",
-                fileds: [{
-                    title: "名称",
-                    dataIndex: "title",
-                }, {
-                    title: "创建时间",
-                    dataIndex: "createTime",
-                }]
-            },
-        ]
-    }
-
-]
-function schemaTemplate(label, pageName, schemasColumns, schemasFormColumns, schemasDescriptions) {
-    return `
+  {
+    moduleName: "task-management",
+    label: "任务管理",
+    children: [
+      {
+        pageName: "test-requirement",
+        label: "测试需求",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-task",
+        label: "测试任务",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-execution",
+        label: "测试执行",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-execution-result",
+        label: "测试执行结果",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-report",
+        label: "测试报告",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    moduleName: "case-management",
+    label: "用例管理",
+    children: [
+      {
+        pageName: "case-library",
+        label: "用例库",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-case",
+        label: "测试用例",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-sequence",
+        label: "测试序列",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "test-sequence-integration",
+        label: "序列集成",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    moduleName: "equipment-management",
+    label: "设备管理",
+    children: [
+      {
+        pageName: "equipment-library",
+        label: "设备库",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    moduleName: "tool-management",
+    label: "检测工具",
+    children: [
+      {
+        pageName: "ide-tool",
+        label: "集成开发环境",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "deploy-tool",
+        label: "部署工具",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    moduleName: "system-management",
+    label: "系统管理",
+    children: [
+      {
+        pageName: "user-management",
+        label: "用户管理",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "role-management",
+        label: "角色管理",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "permission-management",
+        label: "权限管理",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "operation-log",
+        label: "操作日志",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "login-log",
+        label: "登录日志",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "backend-management",
+        label: "后台管理",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+];
+function schemaTemplate(
+  label,
+  pageName,
+  schemasColumns,
+  schemasFormColumns,
+  schemasDescriptions
+) {
+  return `
 export const schemasTitle: any = {
   label: '${label}',
   value: '${pageName}',
@@ -250,10 +320,10 @@ export const schemasDescriptions: any = [
   ${schemasDescriptions}
 ];
 
-`
+`;
 }
 function serviceTemplate(moduleName, pageName) {
-    return `
+  return `
 import { request } from "@umijs/max";
 
 const baseUrl = "/api/${moduleName}/${pageName}";
@@ -311,15 +381,15 @@ export async function deleteBatch(ids: any) {
   });
   return result;
 }
-`
+`;
 }
 
 function kebabToCamel(str) {
-    return str.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+  return str.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
 }
 
 function indexTemplate(moduleName, pageName, testData) {
-    return `
+  return `
 import {
   createOne,
   deleteOne,
@@ -540,7 +610,7 @@ const Page: React.FC = () => {
 
 export default Page;
 
-`
+`;
 }
 
 await fs.mkdir(`./results/others`, { recursive: true });
@@ -548,47 +618,53 @@ await fs.mkdir(`./results/others`, { recursive: true });
 await fs.mkdir(`./results/others/routes`, { recursive: true });
 
 async function generation() {
+  let resourceList = `const resourceList = [`;
 
-    let resourceList = `const resourceList = [`
-
-    const promise = source.map(async (item) => {
-        let routesContent = `const routes = 
+  const promise = source.map(async (item) => {
+    let routesContent = `const routes = 
 {
     path: '/${item.moduleName}',
     name: '${item.label}',
     icon: 'table',
     access: '${kebabToCamel(item.moduleName)}',
     routes: [
-`
-        await fs.mkdir(`./results/services/${item.moduleName}`, { recursive: true });
-        resourceList += `{resourceCode:'${kebabToCamel(item.moduleName)}'},`
+`;
+    await fs.mkdir(`./results/services/${item.moduleName}`, {
+      recursive: true,
+    });
+    resourceList += `{resourceCode:'${kebabToCamel(item.moduleName)}'},`;
 
-        const promiseChildren = item.children.map(async (child) => {
+    const promiseChildren = item.children.map(async (child) => {
+      await fs.mkdir(`./results/pages/${item.moduleName}/${child.pageName}`, {
+        recursive: true,
+      });
+      console.log(`${child.label}页面目录创建成功！`);
 
-            await fs.mkdir(`./results/pages/${item.moduleName}/${child.pageName}`, { recursive: true });
-            console.log(`${child.label}页面目录创建成功！`);
-
-            resourceList += `{resourceCode:'${kebabToCamel(child.pageName)}-edit'},`
-            routesContent += `
+      resourceList += `{resourceCode:'${kebabToCamel(child.pageName)}-edit'},`;
+      routesContent += `
             {
                 path: '/${item.moduleName}/${child.pageName}',
                 name: '${child.label}',
-                access: ['${kebabToCamel(child.pageName)}-preview','${kebabToCamel(child.pageName)}-edit'],
+                access: ['${kebabToCamel(
+                  child.pageName
+                )}-preview','${kebabToCamel(child.pageName)}-edit'],
                 component: './${item.moduleName}/${child.pageName}',
             },
 
-        `
-            try {
-
-                await fs.writeFile(`./results/pages/${item.moduleName}/${child.pageName}/index.less`, ``);
-                console.log(`${child.label}/index.less文件创建成功！`);
-                let testData = `{id: 1,`;
-                let schemasColumns = ``;
-                let schemasDescriptions = ``
-                let schemasFormColumns = ``
-                child.fileds.forEach(filed => {
-                    testData += `${filed.dataIndex}: '测试数据',`
-                    schemasColumns += `
+        `;
+      try {
+        await fs.writeFile(
+          `./results/pages/${item.moduleName}/${child.pageName}/index.less`,
+          ``
+        );
+        console.log(`${child.label}/index.less文件创建成功！`);
+        let testData = `{id: 1,`;
+        let schemasColumns = ``;
+        let schemasDescriptions = ``;
+        let schemasFormColumns = ``;
+        child.fileds.forEach((filed) => {
+          testData += `${filed.dataIndex}: '测试数据',`;
+          schemasColumns += `
   {
     title: "${filed.title}",
     dataIndex: "${filed.dataIndex}",
@@ -596,7 +672,7 @@ async function generation() {
     sorter: true,
   },`;
 
-                    schemasDescriptions += `
+          schemasDescriptions += `
   {
     title: "${filed.title}",
     key: "${filed.dataIndex}",
@@ -604,7 +680,7 @@ async function generation() {
     copyable: true,
     ellipsis: true,
   },`;
-                    schemasFormColumns += `
+          schemasFormColumns += `
     {
       title: "${filed.title}",
       dataIndex: "${filed.dataIndex}",
@@ -618,35 +694,53 @@ async function generation() {
       },
     },
   `;
-                })
-                testData = testData + '}'
-                await fs.writeFile(`./results/pages/${item.moduleName}/${child.pageName}/schemas.ts`, schemaTemplate(child.label, kebabToCamel(child.pageName), schemasColumns, schemasFormColumns, schemasDescriptions));
-                console.log(`${child.label}/schemas.ts文件创建成功！`);
-                await fs.writeFile(`./results/pages/${item.moduleName}/${child.pageName}/index.tsx`, indexTemplate(item.moduleName, child.pageName, testData));
-                console.log(`${child.label}/index.tsx文件创建成功！`);
-                await fs.writeFile(`./results/services/${item.moduleName}/${child.pageName}.service.ts`, serviceTemplate(kebabToCamel(item.moduleName), kebabToCamel(child.pageName)));
-                console.log(`${child.label}/service文件创建成功！`);
-
-            } catch (err) {
-                console.error(err);
-            }
-        })
-        await Promise.all(promiseChildren)
-        routesContent = routesContent + `
+        });
+        testData = testData + "}";
+        await fs.writeFile(
+          `./results/pages/${item.moduleName}/${child.pageName}/schemas.ts`,
+          schemaTemplate(
+            child.label,
+            kebabToCamel(child.pageName),
+            schemasColumns,
+            schemasFormColumns,
+            schemasDescriptions
+          )
+        );
+        console.log(`${child.label}/schemas.ts文件创建成功！`);
+        await fs.writeFile(
+          `./results/pages/${item.moduleName}/${child.pageName}/index.tsx`,
+          indexTemplate(item.moduleName, child.pageName, testData)
+        );
+        console.log(`${child.label}/index.tsx文件创建成功！`);
+        await fs.writeFile(
+          `./results/services/${item.moduleName}/${child.pageName}.service.ts`,
+          serviceTemplate(
+            kebabToCamel(item.moduleName),
+            kebabToCamel(child.pageName)
+          )
+        );
+        console.log(`${child.label}/service文件创建成功！`);
+      } catch (err) {
+        console.error(err);
+      }
+    });
+    await Promise.all(promiseChildren);
+    routesContent =
+      routesContent +
+      `
     ],
-},`
-        await fs.writeFile(`./results/others/routes/${item.moduleName}.ts`, routesContent);
-        console.log(`routes文件创建成功！`);
+},`;
+    await fs.writeFile(
+      `./results/others/routes/${item.moduleName}.ts`,
+      routesContent
+    );
+    console.log(`routes文件创建成功！`);
+  });
+  await Promise.all(promise);
+  resourceList = resourceList + "]";
 
-    })
-    await Promise.all(promise)
-    resourceList = resourceList + ']'
-
-    await fs.writeFile(`./results/others/resourceList.ts`, resourceList);
-    console.log(`resourceList文件创建成功！`);
-
+  await fs.writeFile(`./results/others/resourceList.ts`, resourceList);
+  console.log(`resourceList文件创建成功！`);
 }
 
-await generation()
-
-
+await generation();
