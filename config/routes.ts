@@ -36,6 +36,10 @@ export default [
     access: "taskManagement",
     routes: [
       {
+        path: "/task-management",
+        redirect: "/task-management/test-requirement",
+      },
+      {
         path: "/task-management/test-requirement",
         name: "测试需求",
         access: ["testRequirement-preview", "testRequirement-edit"],
@@ -73,6 +77,7 @@ export default [
     name: "用例管理",
     icon: "table",
     access: "caseManagement",
+    // redirect: "/case-management/case-library",
     routes: [
       {
         path: "/case-management/case-library",
@@ -108,6 +113,7 @@ export default [
     name: "设备管理",
     icon: "table",
     access: "equipmentManagement",
+    // redirect: "/equipment-management/equipment-library",
     routes: [
       {
         path: "/equipment-management/equipment-library",
@@ -122,6 +128,7 @@ export default [
     name: "检测工具",
     icon: "table",
     access: "toolManagement",
+    // redirect: "/tool-management/ide-tool",
     routes: [
       {
         path: "/tool-management/ide-tool",
@@ -143,6 +150,7 @@ export default [
     name: "系统管理",
     icon: "table",
     access: "systemManagement",
+    // redirect: "/system-management/login-log",
     routes: [
       {
         path: "/system-management/login-log",
@@ -170,6 +178,10 @@ export default [
     hideInMenu: true,
     routes: [
       {
+        path: "/backend-management",
+        redirect: "/backend-management/user-management",
+      },
+      {
         path: "/backend-management/user-management",
         name: "用户管理",
         access: ["userManagement-preview", "userManagement-edit"],
@@ -177,14 +189,14 @@ export default [
         hideInMenu: true,
         hideInBreadcrumb: true,
       },
-      {
-        path: "/backend-management/role-management",
-        name: "角色管理",
-        access: ["roleManagement-preview", "roleManagement-edit"],
-        hideInMenu: true,
-        component: "./system-management/role-management",
-        hideInBreadcrumb: true,
-      },
+      // {
+      //   path: "/backend-management/role-management",
+      //   name: "角色管理",
+      //   access: ["roleManagement-preview", "roleManagement-edit"],
+      //   hideInMenu: true,
+      //   component: "./system-management/role-management",
+      //   hideInBreadcrumb: true,
+      // },
       {
         path: "/backend-management/permission-management",
         name: "权限管理",

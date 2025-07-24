@@ -1,11 +1,9 @@
-
 export const schemasTitle: any = {
-  label: '权限管理',
-  value: 'permissionManagement',
+  label: "权限管理",
+  value: "permissionManagement",
 };
 
 export const schemasColumns: any = [
-  
   {
     title: "名称",
     dataIndex: "title",
@@ -30,7 +28,6 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
-    
     {
       title: "名称",
       dataIndex: "title",
@@ -43,7 +40,7 @@ export const schemasForm: any = {
         ],
       },
     },
-  
+
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -56,12 +53,10 @@ export const schemasForm: any = {
         ],
       },
     },
-  
   ],
 };
 
 export const schemasDescriptions: any = [
-  
   {
     title: "名称",
     key: "title",
@@ -77,4 +72,3 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
-

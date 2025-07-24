@@ -1,13 +1,34 @@
 // src/pages/system-management/backend-management/index.tsx
-import {
-  SafetyCertificateOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { history, Outlet, useLocation } from "@umijs/max";
 import { Tabs } from "antd";
 import React from "react";
-
+const backendSubRoutes = [
+  {
+    path: "/backend-management/user-management",
+    access: ["userManagement-preview", "userManagement-edit"],
+  },
+  {
+    path: "/backend-management/role-management",
+    access: ["roleManagement-preview", "roleManagement-edit"],
+  },
+  {
+    path: "/backend-management/permission-management",
+    access: ["permissionManagement-preview", "permissionManagement-edit"],
+  },
+];
+// useEffect(() => {
+//   const userAccess = getUserAccess(); // 获取当前用户权限
+//   const firstAllowed = backendSubRoutes.find((route) =>
+//     route.access.some((a) => userAccess.includes(a))
+//   );
+//   if (firstAllowed) {
+//     history.replace(firstAllowed.path);
+//   } else {
+//     // 没有任何权限，跳转到403或其他页面
+//     history.replace("/403");
+//   }
+// }, []);
 const tabList = [
   {
     key: "/backend-management/user-management",
@@ -17,14 +38,14 @@ const tabList = [
       </span>
     ),
   },
-  {
-    key: "/backend-management/role-management",
-    label: (
-      <span>
-        <TeamOutlined style={{ marginRight: 4 }} /> 角色管理
-      </span>
-    ),
-  },
+  // {
+  //   key: "/backend-management/role-management",
+  //   label: (
+  //     <span>
+  //       <TeamOutlined style={{ marginRight: 4 }} /> 角色管理
+  //     </span>
+  //   ),
+  // },
   {
     key: "/backend-management/permission-management",
     label: (
@@ -51,6 +72,7 @@ const BackendManagement: React.FC = () => {
         items={tabList}
         style={{ marginBottom: 16, paddingLeft: 32 }}
       />
+
       <Outlet />
     </div>
   );

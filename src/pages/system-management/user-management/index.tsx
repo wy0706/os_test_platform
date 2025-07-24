@@ -44,6 +44,69 @@ const userData = [
     email2: "12345678 ",
     email4: true,
   },
+  {
+    key: 4,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 5,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 6,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 7,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 8,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 9,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 10,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 11,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+  {
+    key: 12,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
 ];
 
 const Page: React.FC = () => {
@@ -139,7 +202,7 @@ const Page: React.FC = () => {
     } catch {
       return {
         data: userData,
-        total: 1,
+        total: userData.length,
         success: true,
       };
     }
@@ -154,7 +217,9 @@ const Page: React.FC = () => {
       actionRef.current.reload();
     }
   };
-
+  const handleOk = () => {
+    console.log("1111");
+  };
   return (
     <PageContainer>
       <ProTable
@@ -163,7 +228,7 @@ const Page: React.FC = () => {
         request={requestData}
         rowKey="key"
         cardBordered
-        search={false}
+        // search={false}
         options={false}
         pagination={{
           pageSize: 10,
@@ -187,6 +252,7 @@ const Page: React.FC = () => {
         ]}
       />
       <SetMemberModal
+        onOk={handleOk}
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}

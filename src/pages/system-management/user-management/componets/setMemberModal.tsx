@@ -16,6 +16,8 @@ interface SetMemberModalProps {
   onSuccess: () => void;
   onCancel: () => void;
   formSchema: any;
+  onOk?: (values: any) => void; // 新增
+  onInnerCancel?: () => void; // 新增
 }
 
 const SetMemberModal: React.FC<SetMemberModalProps> = ({
@@ -25,6 +27,8 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
   onSuccess,
   onCancel,
   formSchema,
+  onOk, // 新增
+  onInnerCancel, // 新增
 }) => {
   const [continueAdd, setContinueAdd] = useState(false);
   const formRef = useRef<ProFormInstance | null>(null);
@@ -42,6 +46,10 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
   const handleOk = async () => {
     try {
       const values = await formRef.current?.validateFields();
+      if (onOk) {
+        onOk(values); // 新增
+        return;
+      }
       if (isUpdate) {
         values.id = updateValue.id;
         const res: any = await updateOne({ ...values, id: updateValue.id });
@@ -68,6 +76,10 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
   };
 
   const handleCancel = () => {
+    if (onInnerCancel) {
+      onInnerCancel(); // 新增
+      return;
+    }
     onCancel();
     formRef.current?.resetFields();
   };

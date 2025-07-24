@@ -28,6 +28,7 @@ export const userSchemasColumns: any = [
     title: "账户状态",
     dataIndex: "email4",
     key: "email4",
+    search: false,
     render: (value: boolean, record: any, _, action) => (
       <Switch
         checked={value}
