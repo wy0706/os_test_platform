@@ -1,9 +1,4 @@
-import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { PageContainer } from "@ant-design/pro-components";
 import {
   Button,
@@ -19,7 +14,7 @@ import {
   Typography,
   message,
 } from "antd";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const { Title } = Typography;
 
@@ -31,6 +26,10 @@ const mockRoles = [
   { id: 4, name: "运维工程师", desc: "设备管理权限" },
   { id: 5, name: "质量保证", desc: "测试归档管理权限" },
   { id: 6, name: "访客", desc: "只读权限" },
+  { id: 7, name: "访客", desc: "只读权限" },
+  { id: 8, name: "访客", desc: "只读权限" },
+  { id: 9, name: "访客", desc: "只读权限" },
+  { id: 16, name: "访客", desc: "只读权限" },
 ];
 
 // 模拟权限分组数据
@@ -120,6 +119,13 @@ const PermissionManagement: React.FC = () => {
   const [roleSearchInput, setRoleSearchInput] = useState(""); // 输入框内容
   const [permSearch, setPermSearch] = useState(""); // 实际过滤关键字
   const [permSearchInput, setPermSearchInput] = useState(""); // 输入框内容
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   // 角色切换
   const handleRoleSelect = (id: number) => {
@@ -224,15 +230,12 @@ const PermissionManagement: React.FC = () => {
 
   return (
     <PageContainer
-    // style={{
-    //   height: "calc(100vh - 240px)",
-    //   display: "flex",
-    //   flexDirection: "column",
-    //   boxSizing: "border-box",
-    //   overflow: "hidden",
-    //   // overflowY: "auto",
-    //   position: "relative",
-    // }}
+      style={{
+        height: "calc(100vh - 220px)", // 48px为footer高度
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Row gutter={24}>
         {/* 左侧角色列表 */}
@@ -277,53 +280,61 @@ const PermissionManagement: React.FC = () => {
                 搜索
               </Button>
             </div>
-            <List
-              itemLayout="horizontal"
-              dataSource={filteredRoles}
-              renderItem={(role) => (
-                <List.Item
-                  style={{
-                    background:
-                      selectedRoleId === role.id ? "#e6f7ff" : undefined,
-                    cursor: "pointer",
-                    paddingLeft: 16,
-                  }}
-                  onClick={() => handleRoleSelect(role.id)}
-                  actions={[
-                    <Button
-                      icon={<EditOutlined />}
-                      size="small"
-                      type="link"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditRole(role);
-                      }}
-                      key="edit"
-                    >
-                      编辑
-                    </Button>,
-                    <Button
-                      icon={<DeleteOutlined />}
-                      size="small"
-                      type="link"
-                      danger
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteRole(role);
-                      }}
-                      key="del"
-                    >
-                      删除
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={<span>{role.name}</span>}
-                    description={role.desc}
-                  />
-                </List.Item>
-              )}
-            />
+            <div
+              style={{
+                maxHeight: "58vh",
+                overflow: "auto",
+                minHeight: 0,
+                paddingRight: 20,
+              }}
+            >
+              <List
+                itemLayout="horizontal"
+                dataSource={filteredRoles}
+                renderItem={(role) => (
+                  <List.Item
+                    style={{
+                      background:
+                        selectedRoleId === role.id ? "#e6f7ff" : undefined,
+                      cursor: "pointer",
+                      paddingLeft: 16,
+                    }}
+                    onClick={() => handleRoleSelect(role.id)}
+                    actions={[
+                      <Button
+                        icon={<EditOutlined />}
+                        size="small"
+                        type="link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditRole(role);
+                        }}
+                        key="edit"
+                      >
+                        编辑
+                      </Button>,
+                      <Button
+                        size="small"
+                        type="link"
+                        danger
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRole(role);
+                        }}
+                        key="del"
+                      >
+                        删除
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={<span>{role.name}</span>}
+                      description={role.desc}
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
           </Card>
         </Col>
         {/* 右侧权限配置 */}
@@ -350,15 +361,13 @@ const PermissionManagement: React.FC = () => {
             }
             extra={
               <span style={{ color: "#888" }}>{currentRole?.desc || ""}</span>
-              // <Button type="primary" icon={<PlusOutlined />} size="small">
-              //   添加权限
-              // </Button>
             }
-            // bodyStyle={{
-            //   padding: 0,
-            //   display: "flex",
-            //   flexDirection: "column",
-            // }}
+            bodyStyle={{
+              display: "flex",
+              flexDirection: "column",
+              minHeight: "55vh",
+              padding: 0,
+            }}
           >
             {/* 权限分组搜索框 */}
             {/* <div
@@ -394,6 +403,8 @@ const PermissionManagement: React.FC = () => {
                 overflow: "auto",
                 padding: 24,
                 paddingTop: 12,
+                minHeight: 0,
+                maxHeight: "58vh",
               }}
             >
               {currentRole ? (
@@ -435,11 +446,12 @@ const PermissionManagement: React.FC = () => {
                 background: "#fff",
                 padding: "16px 24px",
                 textAlign: "right",
-                // position: "absolute",
-
-                // position: "sticky",
-                // bottom: 0,
-                // zIndex: 10,
+                position: "sticky",
+                bottom: 0,
+                zIndex: 10,
+                borderRadius: 10,
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
               }}
             >
               <Space>

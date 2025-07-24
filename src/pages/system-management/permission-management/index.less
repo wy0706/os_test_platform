@@ -1,0 +1,17 @@
+.permission-scroll-area {
+  /* 隐藏滚动条 - Chrome/Safari/Edge */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  /* 隐藏滚动条 - Firefox */
+  scrollbar-width: none;
+  /* 隐藏滚动条 - IE/Edge */
+  -ms-overflow-style: none;
+}
+
+.permission-management-main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
