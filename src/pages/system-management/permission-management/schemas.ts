@@ -24,13 +24,17 @@ export const schemasForm: any = {
     gutter: [16, 16],
   },
   colProps: {
-    span: 12,
+    span: 24,
   },
   grid: true,
+  // formItemLayout: {
+  //   labelCol: { span: 4 },
+  //   wrapperCol: { span: 20 },
+  // },
   columns: [
     {
-      title: "名称",
-      dataIndex: "title",
+      title: "角色名称",
+      dataIndex: "name",
       formItemProps: {
         rules: [
           {
@@ -40,10 +44,9 @@ export const schemasForm: any = {
         ],
       },
     },
-
     {
-      title: "创建时间",
-      dataIndex: "createTime",
+      title: "角色描述",
+      dataIndex: "desc",
       formItemProps: {
         rules: [
           {

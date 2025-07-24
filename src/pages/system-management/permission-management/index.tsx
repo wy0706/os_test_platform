@@ -1,5 +1,6 @@
 import { EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { PageContainer } from "@ant-design/pro-components";
+import { useSetState } from "ahooks";
 import {
   Button,
   Card,
@@ -11,13 +12,11 @@ import {
   Modal,
   Row,
   Space,
-  Typography,
   message,
 } from "antd";
 import React, { useEffect, useState } from "react";
-
-const { Title } = Typography;
-
+import AddRoleModal from "./components/addRoleModal";
+import { schemasForm } from "./schemas";
 // 模拟角色数据
 const mockRoles = [
   { id: 1, name: "系统管理员", desc: "拥有所有权限" },
@@ -110,15 +109,18 @@ const PermissionManagement: React.FC = () => {
     defaultRolePermissions
   );
   const [addRoleModalOpen, setAddRoleModalOpen] = useState(false);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [newRoleDesc, setNewRoleDesc] = useState("");
-  const [editRoleId, setEditRoleId] = useState<number | null>(null);
-  const [editRoleName, setEditRoleName] = useState("");
-  const [editRoleDesc, setEditRoleDesc] = useState("");
   const [roleSearch, setRoleSearch] = useState(""); // 实际过滤关键字
   const [roleSearchInput, setRoleSearchInput] = useState(""); // 输入框内容
   const [permSearch, setPermSearch] = useState(""); // 实际过滤关键字
   const [permSearchInput, setPermSearchInput] = useState(""); // 输入框内容
+
+  const [state, setState] = useSetState<any>({
+    isUpdate: false,
+    isUpdateModalOpen: false,
+    updateValue: {},
+    formSchema: schemasForm,
+  });
+  const { isUpdate, isUpdateModalOpen, updateValue, formSchema } = state;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -144,42 +146,45 @@ const PermissionManagement: React.FC = () => {
   };
 
   // 添加角色
-  const handleAddRole = () => {
-    if (!newRoleName) {
-      message.warning("请输入角色名称");
-      return;
-    }
-    const newId = Math.max(...roles.map((r) => r.id)) + 1;
-    setRoles([...roles, { id: newId, name: newRoleName, desc: newRoleDesc }]);
-    setRolePermissions({
-      ...rolePermissions,
-      [newId]: {},
-    });
-    setAddRoleModalOpen(false);
-    setNewRoleName("");
-    setNewRoleDesc("");
-    message.success("添加成功");
-  };
+  // const handleAddRole = () => {
+  //   if (!newRoleName) {
+  //     message.warning("请输入角色名称");
+  //     return;
+  //   }
+
+  //   const newId = Math.max(...roles.map((r) => r.id)) + 1;
+  //   setRoles([...roles, { id: newId, name: newRoleName, desc: newRoleDesc }]);
+  //   setRolePermissions({
+  //     ...rolePermissions,
+  //     [newId]: {},
+  //   });
+  //   setAddRoleModalOpen(false);
+  //   setNewRoleName("");
+  //   setNewRoleDesc("");
+  //   message.success("添加成功");
+  // };
 
   // 编辑角色
   const handleEditRole = (role: any) => {
-    setEditRoleId(role.id);
-    setEditRoleName(role.name);
-    setEditRoleDesc(role.desc);
+    setState({
+      isUpdate: true,
+      isUpdateModalOpen: true,
+      updateValue: role,
+    });
   };
-  const handleEditRoleOk = () => {
-    setRoles(
-      roles.map((r) =>
-        r.id === editRoleId
-          ? { ...r, name: editRoleName, desc: editRoleDesc }
-          : r
-      )
-    );
-    setEditRoleId(null);
-    setEditRoleName("");
-    setEditRoleDesc("");
-    message.success("修改成功");
-  };
+  // const handleEditRoleOk = () => {
+  //   setRoles(
+  //     roles.map((r) =>
+  //       r.id === editRoleId
+  //         ? { ...r, name: editRoleName, desc: editRoleDesc }
+  //         : r
+  //     )
+  //   );
+  //   setEditRoleId(null);
+  //   setEditRoleName("");
+  //   setEditRoleDesc("");
+  //   message.success("修改成功");
+  // };
 
   // 删除角色
   const handleDeleteRole = (role: any) => {
@@ -203,7 +208,7 @@ const PermissionManagement: React.FC = () => {
 
   // 保存权限
   const handleSave = () => {
-    message.success("权限已保存（模拟，无后端）");
+    message.success("权限已保存（模拟）");
   };
 
   // 取消
@@ -227,6 +232,32 @@ const PermissionManagement: React.FC = () => {
       perm.group.includes(permSearch) ||
       (perm.desc && perm.desc.includes(permSearch))
   );
+
+  const handleOk = (value: any) => {
+    console.log("1=====", value);
+    setState({ isUpdateModalOpen: false });
+    if (!isUpdate) {
+      const newId = Math.max(...roles.map((r) => r.id)) + 1;
+      setRoles([...roles, { id: newId, name: value.name, desc: value.desc }]);
+      setRolePermissions({
+        ...rolePermissions,
+        [newId]: {},
+      });
+      setAddRoleModalOpen(false);
+      message.success("添加成功");
+    } else {
+      setRoles(
+        roles.map((r) =>
+          r.id === value.id ? { ...r, name: value.name, desc: value.desc } : r
+        )
+      );
+      message.success("修改成功");
+    }
+  };
+
+  const handleSuccess = () => {
+    setState({ isUpdateModalOpen: false });
+  };
 
   return (
     <PageContainer
@@ -254,7 +285,13 @@ const PermissionManagement: React.FC = () => {
                   type="primary"
                   icon={<PlusOutlined />}
                   size="small"
-                  onClick={() => setAddRoleModalOpen(true)}
+                  // onClick={() => setAddRoleModalOpen(true)}
+                  onClick={() => {
+                    setState({
+                      isUpdate: false,
+                      isUpdateModalOpen: true,
+                    });
+                  }}
                 >
                   添加角色
                 </Button>
@@ -472,7 +509,16 @@ const PermissionManagement: React.FC = () => {
       </Row>
 
       {/* 添加角色弹窗 */}
-      <Modal
+      <AddRoleModal
+        onOk={handleOk}
+        open={isUpdateModalOpen}
+        isUpdate={isUpdate}
+        updateValue={updateValue}
+        onSuccess={handleSuccess}
+        onCancel={() => setState({ isUpdateModalOpen: false })}
+        formSchema={formSchema}
+      />
+      {/* <Modal
         title="添加角色"
         open={addRoleModalOpen}
         onOk={handleAddRole}
@@ -492,9 +538,9 @@ const PermissionManagement: React.FC = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </Modal> */}
       {/* 编辑角色弹窗 */}
-      <Modal
+      {/* <Modal
         title="编辑角色"
         open={!!editRoleId}
         onOk={handleEditRoleOk}
@@ -514,7 +560,7 @@ const PermissionManagement: React.FC = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </Modal> */}
       {/* </div> */}
     </PageContainer>
   );

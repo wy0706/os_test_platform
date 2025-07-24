@@ -10,9 +10,9 @@ import {
   type ProFormInstance,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal } from "antd";
+import { Button, Modal } from "antd";
 import React, { useRef, useState } from "react";
-import SetMemberModal from "./componets/setMemberModal";
+import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
 import {
   userSchemasColumns,
@@ -113,7 +113,7 @@ const Page: React.FC = () => {
   // 密码显示状态，key为用户key，值为true时显示明文
   const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
+  // const form: any = Form.useForm()[0];
   const [continueAdd, setContinueAdd] = useState(false); // checkbox 状态
   const [state, setState] = useSetState<any>({
     title: userSchemasTitle,
@@ -150,7 +150,7 @@ const Page: React.FC = () => {
             ghost
             icon={<EditOutlined />}
             onClick={() => {
-              form.setFieldsValue(record);
+              // form.setFieldsValue(record);
               setState({
                 updateValue: record,
                 isUpdate: true,

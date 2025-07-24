@@ -22,14 +22,14 @@ export const userSchemasColumns: any = [
   { title: "姓名", dataIndex: "username", key: "username" },
   { title: "用户名", dataIndex: "email", key: "email" },
   { title: "所属角色", dataIndex: "email1", key: "email1" },
-  { title: "密码", dataIndex: "email2", key: "email2" },
+  { title: "密码", dataIndex: "email2", key: "email2", render: () => "******" },
   { title: "手机号", dataIndex: "email3", key: "email3" },
   {
     title: "账户状态",
     dataIndex: "email4",
     key: "email4",
     search: false,
-    render: (value: boolean, record: any, _, action) => (
+    render: (value: boolean, record: any, _: any, action: any) => (
       <Switch
         checked={value}
         onChange={async (checked) => {
