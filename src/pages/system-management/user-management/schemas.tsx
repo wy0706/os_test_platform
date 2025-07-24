@@ -1,3 +1,6 @@
+import { updateOne } from "@/services/system-management/user-management.service";
+import { Switch, message } from "antd";
+
 export const userSchemasTitle: any = {
   label: "用户管理",
   value: "roleManagement",
@@ -21,7 +24,28 @@ export const userSchemasColumns: any = [
   { title: "所属角色", dataIndex: "email1", key: "email1" },
   { title: "密码", dataIndex: "email2", key: "email2" },
   { title: "手机号", dataIndex: "email3", key: "email3" },
-  { title: "账户状态", dataIndex: "email4", key: "email4" },
+  {
+    title: "账户状态",
+    dataIndex: "email4",
+    key: "email4",
+    render: (value: boolean, record: any, _, action) => (
+      <Switch
+        checked={value}
+        onChange={async (checked) => {
+          console.log("checked", checked);
+          const hide = message.loading("正在更新状态...");
+          try {
+            await updateOne({ ...record, email4: checked });
+            // message.success("状态更新成功");
+            action?.reload?.();
+          } catch {
+            // message.error("状态更新失败");
+          }
+          hide();
+        }}
+      />
+    ),
+  },
 ];
 
 export const userSchemasForm: any = {
@@ -66,6 +90,10 @@ export const userSchemasForm: any = {
           {
             required: true,
             message: "此项为必填项",
+          },
+          {
+            pattern: /^1\d{10}$/,
+            message: "手机号格式错误！",
           },
         ],
       },

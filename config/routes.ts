@@ -145,24 +145,6 @@ export default [
     access: "systemManagement",
     routes: [
       {
-        path: "/system-management/user-management",
-        name: "用户管理",
-        access: ["userManagement-preview", "userManagement-edit"],
-        component: "./system-management/user-management",
-      },
-      {
-        path: "/system-management/role-management",
-        name: "角色管理",
-        access: ["roleManagement-preview", "roleManagement-edit"],
-        component: "./system-management/role-management",
-      },
-      {
-        path: "/system-management/permission-management",
-        name: "权限管理",
-        access: ["permissionManagement-preview", "permissionManagement-edit"],
-        component: "./system-management/permission-management",
-      },
-      {
         path: "/system-management/login-log",
         name: "登录日志",
         access: ["loginLog-preview", "loginLog-edit"],
@@ -184,8 +166,34 @@ export default [
     path: "/backend-management",
     name: "后台管理",
     // access: ["operationLog-preview", "operationLog-edit"],
-    component: "./system-management/backend-management",
+    component: "./backend-management",
     hideInMenu: true,
+    routes: [
+      {
+        path: "/backend-management/user-management",
+        name: "用户管理",
+        access: ["userManagement-preview", "userManagement-edit"],
+        component: "./system-management/user-management",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+      },
+      {
+        path: "/backend-management/role-management",
+        name: "角色管理",
+        access: ["roleManagement-preview", "roleManagement-edit"],
+        hideInMenu: true,
+        component: "./system-management/role-management",
+        hideInBreadcrumb: true,
+      },
+      {
+        path: "/backend-management/permission-management",
+        name: "权限管理",
+        access: ["permissionManagement-preview", "permissionManagement-edit"],
+        hideInMenu: true,
+        component: "./system-management/permission-management",
+        hideInBreadcrumb: true,
+      },
+    ],
   },
 
   {

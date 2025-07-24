@@ -252,12 +252,9 @@ const Page: React.FC = () => {
           <Modal
             title={isUpdate ? "编辑成员信息" : "新增成员信息"}
             open={isUpdateModalOpen}
-            // onCancel={() => {
-            //   setState({ isUpdateModalOpen: false });
-            //   formRef.current?.resetFields();
-            // }}
-            // onOk={handleOk}
+            onCancel={handleCancel}
             width={"50%"}
+            bodyStyle={{ minHeight: 300 }}
             footer={[
               <div
                 key="checkbox"

@@ -1,61 +1,86 @@
-
 import {
-  createOne,
   deleteOne,
   getList,
-  getOne,
-  updateOne,
-} from "@/services/system-management/user-management.service";
-import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+} from "@/services/system-management/role-management.service";
+import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
+  type ProFormInstance,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
-import React, { useRef } from "react";
+import { Button, Form, Modal } from "antd";
+import React, { useRef, useState } from "react";
+import SetMemberModal from "./componets/setMemberModal";
+import "./index.less";
 import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
+  userSchemasColumns,
+  userSchemasDescriptions,
+  userSchemasForm,
+  userSchemasTitle,
 } from "./schemas";
 
+const userData = [
+  {
+    key: 1,
+    username: "admin",
+    email: "admin@example.com",
+    email2: "123456788",
+    email4: true,
+  },
+
+  {
+    key: 2,
+    email4: false,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678",
+  },
+  {
+    key: 3,
+    username: "user1",
+    email: "user1@example.com",
+    email2: "12345678 ",
+    email4: true,
+  },
+];
+
 const Page: React.FC = () => {
+  // 密码显示状态，key为用户key，值为true时显示明文
+  const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
+  const [continueAdd, setContinueAdd] = useState(false); // checkbox 状态
   const [state, setState] = useSetState<any>({
-    title: schemasTitle,
+    title: userSchemasTitle,
     isUpdate: false,
     isUpdateModalOpen: false,
     updateValue: {},
-    formSchema: schemasForm,
+    formSchema: userSchemasForm,
     isPreviewModalOpen: false,
     detailsId: null,
-    descriptionsColumns: schemasDescriptions,
-    columns: schemasColumns.concat([
+    descriptionsColumns: userSchemasDescriptions,
+    columns: userSchemasColumns.concat([
       {
         title: "操作",
         valueType: "option",
         key: "option",
         width: 200,
         render: (text: any, record: any, _: any, action: any) => [
-          <Button
-            key="preview"
-            type="primary"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
-            }}
-          >
-            详情
-          </Button>,
+          // <Button
+          //   key="preview"
+          //   type="primary"
+          //   icon={<EyeOutlined />}
+          //   onClick={() => {
+          //     setState({
+          //       detailsId: record.id,
+          //       isPreviewModalOpen: true,
+          //     });
+          //   }}
+          // >
+          //   详情
+          // </Button>,
           <Button
             key="edit"
             type="primary"
@@ -70,15 +95,15 @@ const Page: React.FC = () => {
               });
             }}
           >
-            编辑
+            设置成员信息
           </Button>,
           <Button
             danger
-            icon={<DeleteOutlined />}
+            icon={<EyeOutlined />}
             key="delete"
             onClick={() => {
               Modal.confirm({
-                title: "确认删除吗？",
+                title: "是否确认重置密码？",
                 onOk: async () => {
                   await deleteOne(record.id);
                   if (actionRef.current) {
@@ -88,12 +113,13 @@ const Page: React.FC = () => {
               });
             }}
           >
-            删除
+            重置密码
           </Button>,
         ],
       },
     ]),
   });
+
   const {
     columns,
     title,
@@ -105,27 +131,40 @@ const Page: React.FC = () => {
     detailsId,
     descriptionsColumns,
   } = state;
+  const formRef = useRef<ProFormInstance | null>(null);
   const requestData: any = async (...args: any) => {
     try {
       const res = await getList({ params: args[0], sort: args[1] });
       return res;
     } catch {
       return {
-        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
+        data: userData,
         total: 1,
         success: true,
       };
     }
   };
+  // 移除 formRef、form、continueAdd、handleOk、handleCancel 相关内容
+  // 只保留控制弹窗开关的 isUpdateModalOpen、isUpdate、updateValue 相关 state
+
+  // 新增 onSuccess 回调
+  const handleSetMemberSuccess = () => {
+    setState({ isUpdateModalOpen: false });
+    if (actionRef.current) {
+      actionRef.current.reload();
+    }
+  };
 
   return (
     <PageContainer>
-      <ProTable<any>
-        columns={columns}
+      <ProTable
         actionRef={actionRef}
-        cardBordered
+        columns={columns}
         request={requestData}
-        rowKey="id"
+        rowKey="key"
+        cardBordered
+        search={false}
+        options={false}
         pagination={{
           pageSize: 10,
           onChange: (page) => requestData,
@@ -147,75 +186,16 @@ const Page: React.FC = () => {
           </Button>,
         ]}
       />
-      <Modal
-        title={isUpdate ? "编辑" : "新建"}
+      <SetMemberModal
         open={isUpdateModalOpen}
-        onCancel={() => {
-          setState({ isUpdateModalOpen: false });
-        }}
-        footer={null}
-        width={800}
-      >
-        <BetaSchemaForm<any>
-          {...formSchema}
-          defaultValue={updateValue}
-          form={form}
-          onFinish={async (value) => {
-            if (isUpdate) {
-              value.id = updateValue.id;
-              const res: any = await updateOne({
-                ...value,
-                id: updateValue.id,
-              });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            } else {
-              const res: any = await createOne({ ...value, config: "{}" });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            }
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}
-        />
-      </Modal>
-
-      <Modal
-        title="详情"
-        open={isPreviewModalOpen}
-        onCancel={() => {
-          setState({ isPreviewModalOpen: false });
-        }}
-        footer={null}
-        width={800}
-      >
-        <ProDescriptions
-          columns={descriptionsColumns}
-          request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: {id: 1,title: '测试数据',createTime: '测试数据',},
-                success: true,
-              };
-            }
-          }}
-        ></ProDescriptions>
-      </Modal>
+        isUpdate={isUpdate}
+        updateValue={updateValue}
+        onSuccess={handleSetMemberSuccess}
+        onCancel={() => setState({ isUpdateModalOpen: false })}
+        formSchema={formSchema}
+      />
     </PageContainer>
   );
 };
 
 export default Page;
-
