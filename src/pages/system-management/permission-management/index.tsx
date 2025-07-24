@@ -229,34 +229,14 @@ const PermissionManagement: React.FC = () => {
     //   display: "flex",
     //   flexDirection: "column",
     //   boxSizing: "border-box",
+    //   overflow: "hidden",
+    //   // overflowY: "auto",
+    //   position: "relative",
     // }}
     >
-      {/* // <div
-    //   style={{
-    //     backgroundColor: "red",
-    //     height: "calc(100vh - 250px)",
-    //     boxSizing: "border-box",
-    //     overflow: "hidden",
-    //     overflowY: "scroll",
-    //     // overflowX: "hidden",
-    //   }}
-    // > */}
-      <Row
-        gutter={24}
-        // style={{
-        //   height: "100%",
-        //   boxSizing: "border-box",
-        // }}
-      >
+      <Row gutter={24}>
         {/* 左侧角色列表 */}
-        <Col
-          span={8}
-          style={{
-            height: "100%",
-            boxSizing: "border-box",
-            // backgroundColor: "red",
-          }}
-        >
+        <Col span={8}>
           <Card
             title={
               <div
@@ -277,13 +257,6 @@ const PermissionManagement: React.FC = () => {
                 </Button>
               </div>
             }
-            // bodyStyle={{
-            //   // height: 600,
-            //   boxSizing: "border-box",
-            //   overflowY: "auto",
-            //   // height: "100%",
-            //   // overflowX: "hidden",
-            // }}
           >
             {/* 角色搜索框 */}
             <div style={{ padding: 12, display: "flex", gap: 8 }}>
@@ -354,22 +327,8 @@ const PermissionManagement: React.FC = () => {
           </Card>
         </Col>
         {/* 右侧权限配置 */}
-        <Col
-          span={16}
-          // style={{
-          //   height: 700,
-          //   backgroundColor: "blue",
-          //   boxSizing: "border-box",
-          // }}
-        >
+        <Col span={16}>
           <Card
-            style={{ height: "100%" }}
-            // bodyStyle={{
-            //   // height: 600,
-            //   // backgroundColor: "blue",
-            //   // overflowY: "scroll",
-            //   overflowY: "auto",
-            // }}
             title={
               <div
                 style={{
@@ -476,6 +435,8 @@ const PermissionManagement: React.FC = () => {
                 background: "#fff",
                 padding: "16px 24px",
                 textAlign: "right",
+                // position: "absolute",
+
                 // position: "sticky",
                 // bottom: 0,
                 // zIndex: 10,
