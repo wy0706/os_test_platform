@@ -198,48 +198,48 @@ let source = [
     moduleName: "system-management",
     label: "系统管理",
     children: [
-      {
-        pageName: "user-management",
-        label: "用户管理",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
-      {
-        pageName: "role-management",
-        label: "角色管理",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
-      {
-        pageName: "permission-management",
-        label: "权限管理",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
+      // {
+      //   pageName: "user-management",
+      //   label: "用户管理",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
+      // {
+      //   pageName: "role-management",
+      //   label: "角色管理",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
+      // {
+      //   pageName: "permission-management",
+      //   label: "权限管理",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
       {
         pageName: "operation-log",
         label: "操作日志",
@@ -257,6 +257,41 @@ let source = [
       {
         pageName: "login-log",
         label: "登录日志",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
+  // =====
+  {
+    moduleName: "backend-management",
+    label: "后台管理",
+    children: [
+      {
+        pageName: "user-management",
+        label: "用户管理",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "permission-management",
+        label: "权限管理",
         fileds: [
           {
             title: "名称",

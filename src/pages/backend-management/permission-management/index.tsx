@@ -25,10 +25,10 @@ const mockRoles = [
   { id: 4, name: "运维工程师", desc: "设备管理权限" },
   { id: 5, name: "质量保证", desc: "测试归档管理权限" },
   { id: 6, name: "访客", desc: "只读权限" },
-  { id: 7, name: "访客", desc: "只读权限" },
-  { id: 8, name: "访客", desc: "只读权限" },
-  { id: 9, name: "访客", desc: "只读权限" },
-  { id: 16, name: "访客", desc: "只读权限" },
+  // { id: 7, name: "访客", desc: "只读权限" },
+  // { id: 8, name: "访客", desc: "只读权限" },
+  // { id: 9, name: "访客", desc: "只读权限" },
+  // { id: 16, name: "访客", desc: "只读权限" },
 ];
 
 // 模拟权限分组数据
@@ -399,12 +399,20 @@ const PermissionManagement: React.FC = () => {
             extra={
               <span style={{ color: "#888" }}>{currentRole?.desc || ""}</span>
             }
-            bodyStyle={{
-              display: "flex",
-              flexDirection: "column",
-              minHeight: "55vh",
-              padding: 0,
+            styles={{
+              body: {
+                display: "flex",
+                flexDirection: "column",
+                minHeight: "55vh",
+                padding: 0,
+              },
             }}
+            // bodyStyle={{
+            //   display: "flex",
+            //   flexDirection: "column",
+            //   minHeight: "55vh",
+            //   padding: 0,
+            // }}
           >
             {/* 权限分组搜索框 */}
             {/* <div

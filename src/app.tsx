@@ -19,6 +19,7 @@ export async function getInitialState(): Promise<{
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
+  console.log("process.env.REACT_APP_ENV", REACT_APP_ENV);
   const fetchUserInfo = async () => {
     try {
       // const msg = await queryCurrentUser({
@@ -47,7 +48,7 @@ export async function getInitialState(): Promise<{
           { resourceCode: "testCase-edit" },
           { resourceCode: "operationLog-edit" },
           { resourceCode: "roleManagement-edit" },
-          { resourceCode: "testSequence-edit" },
+          // { resourceCode: "testSequence-edit" },
           { resourceCode: "loginLog-edit" },
           { resourceCode: "deployTool-edit" },
           { resourceCode: "permissionManagement-edit" },

@@ -25,14 +25,14 @@ export default [
 
   {
     path: "/welcome",
-    name: "welcome",
-    icon: "smile",
+    name: "工作台",
+    icon: "dashboard",
     component: "./Welcome",
   },
   {
     path: "/task-management",
     name: "任务管理",
-    icon: "table",
+    icon: "Schedule",
     access: "taskManagement",
     routes: [
       {
@@ -75,9 +75,8 @@ export default [
   {
     path: "/case-management",
     name: "用例管理",
-    icon: "table",
+    icon: "fileSearch",
     access: "caseManagement",
-    // redirect: "/case-management/case-library",
     routes: [
       {
         path: "/case-management/case-library",
@@ -111,9 +110,8 @@ export default [
   {
     path: "/equipment-management",
     name: "设备管理",
-    icon: "table",
+    icon: "database",
     access: "equipmentManagement",
-    // redirect: "/equipment-management/equipment-library",
     routes: [
       {
         path: "/equipment-management/equipment-library",
@@ -126,9 +124,8 @@ export default [
   {
     path: "/tool-management",
     name: "检测工具",
-    icon: "table",
+    icon: "tool",
     access: "toolManagement",
-    // redirect: "/tool-management/ide-tool",
     routes: [
       {
         path: "/tool-management/ide-tool",
@@ -148,9 +145,8 @@ export default [
   {
     path: "/system-management",
     name: "系统管理",
-    icon: "table",
+    icon: "setting",
     access: "systemManagement",
-    // redirect: "/system-management/login-log",
     routes: [
       {
         path: "/system-management/login-log",
@@ -173,7 +169,6 @@ export default [
   {
     path: "/backend-management",
     name: "后台管理",
-    // access: ["operationLog-preview", "operationLog-edit"],
     component: "./backend-management",
     hideInMenu: true,
     routes: [
@@ -185,24 +180,16 @@ export default [
         path: "/backend-management/user-management",
         name: "用户管理",
         access: ["userManagement-preview", "userManagement-edit"],
-        component: "./system-management/user-management",
+        component: "./backend-management/user-management",
         hideInMenu: true,
         hideInBreadcrumb: true,
       },
-      // {
-      //   path: "/backend-management/role-management",
-      //   name: "角色管理",
-      //   access: ["roleManagement-preview", "roleManagement-edit"],
-      //   hideInMenu: true,
-      //   component: "./system-management/role-management",
-      //   hideInBreadcrumb: true,
-      // },
       {
         path: "/backend-management/permission-management",
         name: "权限管理",
         access: ["permissionManagement-preview", "permissionManagement-edit"],
         hideInMenu: true,
-        component: "./system-management/permission-management",
+        component: "./backend-management/permission-management",
         hideInBreadcrumb: true,
       },
     ],
@@ -211,26 +198,9 @@ export default [
   {
     path: "/account/center",
     name: "账号设置",
-    // access: ["userManagement-preview", "userManagement-edit"],
     component: "./account/center",
     hideInMenu: true,
   },
-
-  // {
-  //   path: "/account",
-  //   name: "个人中心",
-  //   icon: "table",
-  //   // access: "systemManagement",
-  //   hideInMenu: true,
-  //   routes: [
-  //     {
-  //       path: "/account/center",
-  //       name: "账号设置",
-  //       // access: ["userManagement-preview", "userManagement-edit"],
-  //       component: "./account/center",
-  //     },
-  //   ],
-  // },
   {
     path: "*",
     layout: false,

@@ -4,11 +4,8 @@ import { defineConfig } from "@umijs/max";
 import { join } from "node:path";
 import defaultSettings from "./defaultSettings";
 import proxy from "./proxy";
-
 import routes from "./routes";
-
 const { REACT_APP_ENV = "dev" } = process.env;
-
 /**
  * @name 使用公共路径
  * @description 部署时的路径，如果部署在非根目录下，需要配置这个变量
@@ -17,6 +14,10 @@ const { REACT_APP_ENV = "dev" } = process.env;
 const PUBLIC_PATH: string = "/";
 
 export default defineConfig({
+  define: {
+    REACT_APP_ENV: process.env.REACT_APP_ENV,
+    UMI_ENV: process.env.UMI_ENV,
+  },
   /**
    * @name 开启 hash 模式
    * @description 让 build 之后的产物包含 hash 后缀。通常用于增量发布和避免浏览器加载缓存。
