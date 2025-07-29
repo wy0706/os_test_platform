@@ -1,22 +1,20 @@
-
 export const schemasTitle: any = {
-  label: '测试需求',
-  value: 'testRequirement',
+  label: "测试需求",
+  value: "testRequirement",
 };
 
 export const schemasColumns: any = [
-  
   {
-    title: "名称",
+    title: "编号",
     dataIndex: "title",
-    ellipsis: true,
-    sorter: true,
+    // ellipsis: true,
+    // sorter: true,
   },
   {
-    title: "创建时间",
+    title: "标题",
     dataIndex: "createTime",
-    ellipsis: true,
-    sorter: true,
+    // ellipsis: true,
+    // sorter: true,
   },
 ];
 
@@ -30,7 +28,6 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
-    
     {
       title: "名称",
       dataIndex: "title",
@@ -43,7 +40,7 @@ export const schemasForm: any = {
         ],
       },
     },
-  
+
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -56,12 +53,10 @@ export const schemasForm: any = {
         ],
       },
     },
-  
   ],
 };
 
 export const schemasDescriptions: any = [
-  
   {
     title: "名称",
     key: "title",
@@ -77,4 +72,3 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
-

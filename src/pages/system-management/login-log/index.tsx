@@ -1,12 +1,10 @@
-
 import {
   createOne,
-  deleteOne,
   getList,
   getOne,
   updateOne,
 } from "@/services/system-management/login-log.service";
-import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
@@ -36,63 +34,7 @@ const Page: React.FC = () => {
     isPreviewModalOpen: false,
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, _: any, action: any) => [
-          <Button
-            key="preview"
-            type="primary"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
-            }}
-          >
-            详情
-          </Button>,
-          <Button
-            key="edit"
-            type="primary"
-            ghost
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            key="delete"
-            onClick={() => {
-              Modal.confirm({
-                title: "确认删除吗？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
-            }}
-          >
-            删除
-          </Button>,
-        ],
-      },
-    ]),
+    columns: schemasColumns,
   });
   const {
     columns,
@@ -111,7 +53,7 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
+        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
         total: 1,
         success: true,
       };
@@ -206,7 +148,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: {id: 1,title: '测试数据',createTime: '测试数据',},
+                data: { id: 1, title: "测试数据", createTime: "测试数据" },
                 success: true,
               };
             }
@@ -218,4 +160,3 @@ const Page: React.FC = () => {
 };
 
 export default Page;
-

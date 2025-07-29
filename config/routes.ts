@@ -52,38 +52,32 @@ export default [
         component: "./task-management/test-task",
       },
 
-      {
-        path: "/task-management/test-execution",
-        name: "测试执行",
-        access: ["testExecution-preview", "testExecution-edit"],
-        component: "./task-management/test-execution",
-      },
-      {
-        path: "/task-management/test-execution-result",
-        name: "测试执行结果",
-        access: ["testExecutionResult-preview", "testExecutionResult-edit"],
-        component: "./task-management/test-execution-result",
-      },
-      {
-        path: "/task-management/test-report",
-        name: "测试报告",
-        access: ["testReport-preview", "testReport-edit"],
-        component: "./task-management/test-report",
-      },
+      // {
+      //   path: "/task-management/test-execution",
+      //   name: "测试执行",
+      //   access: ["testExecution-preview", "testExecution-edit"],
+      //   component: "./task-management/test-execution",
+      // },
+      // {
+      //   path: "/task-management/test-execution-result",
+      //   name: "测试执行结果",
+      //   access: ["testExecutionResult-preview", "testExecutionResult-edit"],
+      //   component: "./task-management/test-execution-result",
+      // },
+      // {
+      //   path: "/task-management/test-report",
+      //   name: "测试报告",
+      //   access: ["testReport-preview", "testReport-edit"],
+      //   component: "./task-management/test-report",
+      // },
     ],
   },
   {
     path: "/case-management",
-    name: "用例管理",
+    name: "测试设计",
     icon: "fileSearch",
     access: "caseManagement",
     routes: [
-      {
-        path: "/case-management/case-library",
-        name: "用例库",
-        access: ["caseLibrary-preview", "caseLibrary-edit"],
-        component: "./case-management/case-library",
-      },
       {
         path: "/case-management/test-case",
         name: "测试用例",
@@ -92,7 +86,7 @@ export default [
       },
       {
         path: "/case-management/test-sequence",
-        name: "测试序列",
+        name: "序列编辑",
         access: ["testSequence-preview", "testSequence-edit"],
         component: "./case-management/test-sequence",
       },
@@ -104,6 +98,12 @@ export default [
           "testSequenceIntegration-edit",
         ],
         component: "./case-management/test-sequence-integration",
+      },
+      {
+        path: "/case-management/case-library",
+        name: "用例执行",
+        access: ["caseLibrary-preview", "caseLibrary-edit"],
+        component: "./case-management/case-library",
       },
     ],
   },
@@ -121,27 +121,27 @@ export default [
       },
     ],
   },
-  {
-    path: "/tool-management",
-    name: "检测工具",
-    icon: "tool",
-    access: "toolManagement",
-    routes: [
-      {
-        path: "/tool-management/ide-tool",
-        name: "集成开发环境",
-        access: ["ideTool-preview", "ideTool-edit"],
-        component: "./tool-management/ide-tool",
-      },
+  // {
+  //   path: "/tool-management",
+  //   name: "检测工具",
+  //   icon: "tool",
+  //   access: "toolManagement",
+  //   routes: [
+  //     {
+  //       path: "/tool-management/ide-tool",
+  //       name: "集成开发环境",
+  //       access: ["ideTool-preview", "ideTool-edit"],
+  //       component: "./tool-management/ide-tool",
+  //     },
 
-      {
-        path: "/tool-management/deploy-tool",
-        name: "部署工具",
-        access: ["deployTool-preview", "deployTool-edit"],
-        component: "./tool-management/deploy-tool",
-      },
-    ],
-  },
+  //     {
+  //       path: "/tool-management/deploy-tool",
+  //       name: "部署工具",
+  //       access: ["deployTool-preview", "deployTool-edit"],
+  //       component: "./tool-management/deploy-tool",
+  //     },
+  //   ],
+  // },
   {
     path: "/system-management",
     name: "系统管理",
@@ -170,6 +170,7 @@ export default [
     path: "/backend-management",
     name: "后台管理",
     component: "./backend-management",
+    access: "backendManagement",
     hideInMenu: true,
     routes: [
       {

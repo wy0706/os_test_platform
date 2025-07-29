@@ -7,11 +7,13 @@ import {
   ActionType,
   PageContainer,
   ProTable,
+  TableDropdown,
   type ProFormInstance,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Modal } from "antd";
 import React, { useRef, useState } from "react";
+import { useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
 import {
@@ -32,6 +34,9 @@ const userData = [
 ];
 
 const Page: React.FC = () => {
+  const access = useAccess();
+  console.log("Page rendered-access:", access);
+
   // 密码显示状态，key为用户key，值为true时显示明文
   const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
   const actionRef = useRef<ActionType>();
@@ -52,7 +57,7 @@ const Page: React.FC = () => {
         valueType: "option",
         key: "option",
         width: 200,
-        render: (text: any, record: any, _: any, action: any) => [
+        render: (text: any, record: any, index: any, action: any) => [
           // <Button
           //   key="preview"
           //   type="primary"
@@ -68,8 +73,8 @@ const Page: React.FC = () => {
           // </Button>,
           <Button
             key="edit"
-            type="primary"
-            ghost
+            color="primary"
+            variant="link"
             icon={<EditOutlined />}
             onClick={() => {
               // form.setFieldsValue(record);
@@ -83,7 +88,8 @@ const Page: React.FC = () => {
             设置成员信息
           </Button>,
           <Button
-            danger
+            variant="link"
+            color="primary"
             icon={<EyeOutlined />}
             key="delete"
             onClick={() => {
@@ -100,6 +106,30 @@ const Page: React.FC = () => {
           >
             重置密码
           </Button>,
+          <TableDropdown
+            key={index}
+            onSelect={(key: string) => {
+              console.log("key----", key);
+              console.log(key);
+              switch (key) {
+                case "delete":
+                  Modal.confirm({
+                    title: "确认删除吗？",
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                  return;
+
+                default:
+                  return;
+              }
+            }}
+            menus={[{ key: "delete", name: "删除" }]}
+          />,
         ],
       },
     ]),
