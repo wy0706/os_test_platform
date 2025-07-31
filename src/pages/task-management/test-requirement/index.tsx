@@ -1,29 +1,25 @@
 import {
-  createOne,
   deleteOne,
   getList,
-  getOne,
-  updateOne,
 } from "@/services/task-management/test-requirement.service";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
+import { Button, Form, Modal } from "antd";
 import React, { useRef } from "react";
+import AddModal from "./components/addModal";
+import DetailModal from "./components/detailModal";
 import {
   schemasColumns,
   schemasDescriptions,
   schemasForm,
   schemasTitle,
 } from "./schemas";
-
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
@@ -60,7 +56,7 @@ const Page: React.FC = () => {
           <Button
             color="primary"
             variant="link"
-            key="preview"
+            key="edit"
             icon={<EditOutlined />}
             onClick={() => {
               form.setFieldsValue(record);
@@ -113,6 +109,9 @@ const Page: React.FC = () => {
     detailsId,
     descriptionsColumns,
   } = state;
+
+  const handleSuccess = () => {};
+  const handleOk = () => {};
   const requestData: any = async (...args: any) => {
     try {
       const res = await getList({ params: args[0], sort: args[1] });
@@ -125,7 +124,9 @@ const Page: React.FC = () => {
       };
     }
   };
-
+  const handleDetailCancel = () => {
+    setState({ isPreviewModalOpen: false });
+  };
   return (
     <PageContainer>
       <ProTable<any>
@@ -155,72 +156,16 @@ const Page: React.FC = () => {
           </Button>,
         ]}
       />
-      <Modal
-        title={isUpdate ? "编辑" : "新建"}
+      <DetailModal open={isPreviewModalOpen} onCancel={handleDetailCancel} />
+      <AddModal
+        onOk={handleOk}
         open={isUpdateModalOpen}
-        onCancel={() => {
-          setState({ isUpdateModalOpen: false });
-        }}
-        footer={null}
-        width={800}
-      >
-        <BetaSchemaForm<any>
-          {...formSchema}
-          defaultValue={updateValue}
-          form={form}
-          onFinish={async (value) => {
-            if (isUpdate) {
-              value.id = updateValue.id;
-              const res: any = await updateOne({
-                ...value,
-                id: updateValue.id,
-              });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            } else {
-              const res: any = await createOne({ ...value, config: "{}" });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            }
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}
-        />
-      </Modal>
-
-      <Modal
-        title="详情"
-        open={isPreviewModalOpen}
-        onCancel={() => {
-          setState({ isPreviewModalOpen: false });
-        }}
-        footer={null}
-        width={800}
-      >
-        <ProDescriptions
-          columns={descriptionsColumns}
-          request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                success: true,
-              };
-            }
-          }}
-        ></ProDescriptions>
-      </Modal>
+        isUpdate={isUpdate}
+        updateValue={updateValue}
+        onSuccess={handleSuccess}
+        onCancel={() => setState({ isUpdateModalOpen: false })}
+        formSchema={formSchema}
+      />
     </PageContainer>
   );
 };

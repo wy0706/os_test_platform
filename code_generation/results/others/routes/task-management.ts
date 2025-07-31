@@ -23,26 +23,10 @@ const routes =
 
         
             {
-                path: '/task-management/test-execution',
-                name: '测试执行',
-                access: ['testExecution-preview','testExecution-edit'],
-                component: './task-management/test-execution',
-            },
-
-        
-            {
-                path: '/task-management/test-execution-result',
-                name: '测试执行结果',
-                access: ['testExecutionResult-preview','testExecutionResult-edit'],
-                component: './task-management/test-execution-result',
-            },
-
-        
-            {
-                path: '/task-management/test-report',
-                name: '测试报告',
-                access: ['testReport-preview','testReport-edit'],
-                component: './task-management/test-report',
+                path: '/task-management/test-task-one',
+                name: '测试任务',
+                access: ['testTaskOne-preview','testTaskOne-edit'],
+                component: './task-management/test-task-one',
             },
 
         

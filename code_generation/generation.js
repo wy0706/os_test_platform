@@ -35,8 +35,8 @@ let source = [
         ],
       },
       {
-        pageName: "test-execution",
-        label: "测试执行",
+        pageName: "test-task-one",
+        label: "测试任务",
         fileds: [
           {
             title: "名称",
@@ -48,34 +48,48 @@ let source = [
           },
         ],
       },
-      {
-        pageName: "test-execution-result",
-        label: "测试执行结果",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
-      {
-        pageName: "test-report",
-        label: "测试报告",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
+      // {
+      //   pageName: "test-execution",
+      //   label: "测试执行",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
+      // {
+      //   pageName: "test-execution-result",
+      //   label: "测试执行结果",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
+      // {
+      //   pageName: "test-report",
+      //   label: "测试报告",
+      //   fileds: [
+      //     {
+      //       title: "名称",
+      //       dataIndex: "title",
+      //     },
+      //     {
+      //       title: "创建时间",
+      //       dataIndex: "createTime",
+      //     },
+      //   ],
+      // },
     ],
   },
   {
@@ -84,7 +98,7 @@ let source = [
     children: [
       {
         pageName: "case-library",
-        label: "用例库",
+        label: "用例执行",
         fileds: [
           {
             title: "名称",
@@ -112,7 +126,7 @@ let source = [
       },
       {
         pageName: "test-sequence",
-        label: "测试序列",
+        label: "序列编辑",
         fileds: [
           {
             title: "名称",
@@ -160,40 +174,40 @@ let source = [
       },
     ],
   },
-  {
-    moduleName: "tool-management",
-    label: "检测工具",
-    children: [
-      {
-        pageName: "ide-tool",
-        label: "集成开发环境",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
-      {
-        pageName: "deploy-tool",
-        label: "部署工具",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   moduleName: "tool-management",
+  //   label: "检测工具",
+  //   children: [
+  //     {
+  //       pageName: "ide-tool",
+  //       label: "集成开发环境",
+  //       fileds: [
+  //         {
+  //           title: "名称",
+  //           dataIndex: "title",
+  //         },
+  //         {
+  //           title: "创建时间",
+  //           dataIndex: "createTime",
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       pageName: "deploy-tool",
+  //       label: "部署工具",
+  //       fileds: [
+  //         {
+  //           title: "名称",
+  //           dataIndex: "title",
+  //         },
+  //         {
+  //           title: "创建时间",
+  //           dataIndex: "createTime",
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     moduleName: "system-management",
     label: "系统管理",
@@ -270,7 +284,7 @@ let source = [
       },
     ],
   },
-  // =====
+
   {
     moduleName: "backend-management",
     label: "后台管理",
@@ -425,6 +439,7 @@ import {
   PageContainer,
   ProDescriptions,
   ProTable,
+  TableDropdown
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
@@ -472,7 +487,7 @@ const Page: React.FC = () => {
           <Button
             color="primary"
             variant="link"
-            key="preview"
+            key="edit"
             icon={<EditOutlined />}
             onClick={() => {
               form.setFieldsValue(record);

@@ -1,35 +1,37 @@
 import {
-  createOne,
   deleteOne,
   getList,
-  getOne,
-  updateOne,
 } from "@/services/task-management/test-task.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  LeftCircleOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
+import { history } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
-import React, { useRef } from "react";
+import { Button, Checkbox, Form, Modal } from "antd";
+import React, { useRef, useState } from "react";
+import DetailModal from "./components/detailModal";
+import SequenceDataModal from "./components/sequenceDataModal";
+import TestSequenceData from "./components/testSequenceData";
 import {
   schemasColumns,
   schemasDescriptions,
   schemasForm,
   schemasTitle,
 } from "./schemas";
-
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
-    isUpdate: false,
+    optionType: "add",
     isUpdateModalOpen: false,
     updateValue: {},
     formSchema: schemasForm,
@@ -47,15 +49,12 @@ const Page: React.FC = () => {
             key="preview"
             variant="link"
             color="primary"
-            icon={<EyeOutlined />}
+            icon={<LeftCircleOutlined />}
             onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
+              alert("查看详情");
             }}
           >
-            详情
+            运行
           </Button>,
           <Button
             key="edit"
@@ -63,12 +62,14 @@ const Page: React.FC = () => {
             color="primary"
             icon={<EditOutlined />}
             onClick={() => {
-              form.setFieldsValue(record);
+              // form.setFieldsValue(record);
+              console.log("edit");
               setState({
                 updateValue: record,
-                isUpdate: true,
                 isUpdateModalOpen: true,
+                optionType: "edit",
               });
+              setTestDataModalOpen(true);
             }}
           >
             编辑
@@ -76,12 +77,11 @@ const Page: React.FC = () => {
           <TableDropdown
             key={index}
             onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
               switch (key) {
                 case "delete":
                   Modal.confirm({
-                    title: "确认删除吗？",
+                    title: `确认删除 ${record.title} 吗?`,
+                    // title: "确认删除吗?",
                     onOk: async () => {
                       await deleteOne(record.id);
                       if (actionRef.current) {
@@ -90,12 +90,29 @@ const Page: React.FC = () => {
                     },
                   });
                   return;
-
+                case "copy":
+                  setState({
+                    updateValue: record,
+                    isUpdateModalOpen: true,
+                    optionType: "copy",
+                  });
+                  setTestDataModalOpen(true);
+                  return;
+                case "preview":
+                  setState({
+                    detailsId: record.id,
+                    isPreviewModalOpen: true,
+                  });
+                  return;
                 default:
                   return;
               }
             }}
-            menus={[{ key: "delete", name: "删除" }]}
+            menus={[
+              { key: "copy", name: "复制" },
+              { key: "preview", name: "详情" },
+              { key: "delete", name: "删除" },
+            ]}
           />,
         ],
       },
@@ -104,13 +121,13 @@ const Page: React.FC = () => {
   const {
     columns,
     title,
-    isUpdate,
     isUpdateModalOpen,
     updateValue,
     formSchema,
     isPreviewModalOpen,
     detailsId,
     descriptionsColumns,
+    optionType,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -118,13 +135,51 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据", status: 1 }],
+        data: [
+          { id: 1, title: "测试数据", createTime: "测试数据", status: "all" },
+          { id: 2, title: "测试数据2", createTime: "测试数据2", status: "all" },
+        ],
         total: 1,
         success: true,
       };
     }
   };
+  const [testDataModalOpen, setTestDataModalOpen] = useState(false);
 
+  const [testDataList, setTestDataList] = useState(false);
+
+  const [testDataObj, steTestData] = useState({});
+  const handleOpenTestSequenceModal = () => {
+    console.log("text");
+  };
+  const handleDetailCancel = () => {
+    setState({ isPreviewModalOpen: false });
+  };
+  const handleSelect = (values: any) => {
+    setTestDataList(false);
+    console.log("calue", values);
+    steTestData({ ...values });
+  };
+  const selectData = () => {
+    setTestDataList(true);
+  };
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+
+  const handleRowClick = (record: any, index: number) => {
+    console.log("点击的行数据:", record);
+    console.log("行索引:", index);
+
+    history.push(`/task-management/test-task-one/${record.id}`);
+    // 更新选中的行
+    setSelectedRow(record);
+    // message.success(`已选择: ${record.title}`);
+
+    // 在这里可以执行其他操作，比如：
+    // - 打开详情弹窗
+    // - 跳转到详情页面
+    // - 更新表单数据
+    // - 触发其他业务逻辑
+  };
   return (
     <PageContainer>
       <ProTable<any>
@@ -139,87 +194,79 @@ const Page: React.FC = () => {
         }}
         headerTitle={title.label}
         toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                isUpdate: false,
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ marginRight: 20 }}>
+              <Checkbox
+                onChange={(e) => {
+                  console.log(" e.target.checked;", e.target.checked);
+                }}
+              >
+                显示测试过程
+              </Checkbox>
+            </div>
+            <Button
+              key="button"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setState({
+                  isUpdateModalOpen: true,
+                  optionType: "add",
+                });
+                setTestDataModalOpen(true);
+              }}
+              type="primary"
+            >
+              新建
+            </Button>
+          </div>,
         ]}
+        onRow={(record, index) => ({
+          onClick: () => handleRowClick(record, index || 0),
+          style: {
+            cursor: "pointer",
+            backgroundColor:
+              selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+          },
+        })}
       />
-      <Modal
-        title={isUpdate ? "编辑" : "新建"}
+      <DetailModal open={isPreviewModalOpen} onCancel={handleDetailCancel} />
+      {/* <AddModal
+        type={optionType}
+        formSchema={formSchema}
+        updateValue={updateValue}
         open={isUpdateModalOpen}
+        onSuccess={(values) => {
+          console.log("values", values);
+        }}
         onCancel={() => {
           setState({ isUpdateModalOpen: false });
         }}
-        footer={null}
-        width={800}
-      >
-        <BetaSchemaForm<any>
-          {...formSchema}
-          defaultValue={updateValue}
-          form={form}
-          onFinish={async (value) => {
-            if (isUpdate) {
-              value.id = updateValue.id;
-              const res: any = await updateOne({
-                ...value,
-                id: updateValue.id,
-              });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            } else {
-              const res: any = await createOne({ ...value, config: "{}" });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            }
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}
-        />
-      </Modal>
+      /> */}
 
-      <Modal
-        title="详情"
-        open={isPreviewModalOpen}
+      <TestSequenceData
+        type={optionType}
         onCancel={() => {
-          setState({ isPreviewModalOpen: false });
+          setTestDataModalOpen(false);
+          steTestData({});
         }}
-        footer={null}
-        width={800}
-      >
-        <ProDescriptions
-          columns={descriptionsColumns}
-          request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                success: true,
-              };
-            }
-          }}
-        ></ProDescriptions>
-      </Modal>
+        open={testDataModalOpen}
+        onSelect={selectData}
+        testData={testDataObj}
+        updateValue={updateValue}
+        onSuccess={(values) => {
+          const obj = { ...values, testDataObj };
+          console.log("表单数据", obj);
+        }}
+      />
+      {/* 选择列表 */}
+      <SequenceDataModal
+        open={testDataList}
+        onCancel={() => {
+          console.log("取消");
+          setTestDataList(false);
+        }}
+        onSuccess={handleSelect}
+      />
     </PageContainer>
   );
 };

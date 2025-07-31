@@ -37,15 +37,16 @@ const Page: React.FC = () => {
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
     columns: schemasColumns.concat([
-      {
+    {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 200,
-        render: (text: any, record: any, _: any, action: any) => [
+        width: 180,
+        render: (text: any, record: any, index: any, action: any) => [
           <Button
+            color="primary"
+            variant="link"
             key="preview"
-            type="primary"
             icon={<EyeOutlined />}
             onClick={() => {
               setState({
@@ -57,9 +58,9 @@ const Page: React.FC = () => {
             详情
           </Button>,
           <Button
-            key="edit"
-            type="primary"
-            ghost
+            color="primary"
+            variant="link"
+            key="preview"
             icon={<EditOutlined />}
             onClick={() => {
               form.setFieldsValue(record);
@@ -72,24 +73,29 @@ const Page: React.FC = () => {
           >
             编辑
           </Button>,
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            key="delete"
-            onClick={() => {
-              Modal.confirm({
-                title: "确认删除吗？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
+          <TableDropdown
+            key={index}
+            onSelect={(key: string) => {
+              console.log("key----", key);
+              console.log(key);
+              switch (key) {
+                case "delete":
+                  Modal.confirm({
+                    title: "确认删除吗？",
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                  return;
+                default:
+                  return;
+              }
             }}
-          >
-            删除
-          </Button>,
+            menus={[{ key: "delete", name: "删除" }]}
+          />,
         ],
       },
     ]),

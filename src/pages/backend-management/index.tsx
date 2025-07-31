@@ -1,4 +1,3 @@
-// src/pages/system-management/backend-management/index.tsx
 import { SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { history, Outlet, useLocation } from "@umijs/max";
 import { Tabs } from "antd";

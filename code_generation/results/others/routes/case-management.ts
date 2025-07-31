@@ -8,17 +8,9 @@ const routes =
 
             {
                 path: '/case-management/case-library',
-                name: '用例库',
+                name: '用例执行',
                 access: ['caseLibrary-preview','caseLibrary-edit'],
                 component: './case-management/case-library',
-            },
-
-        
-            {
-                path: '/case-management/test-sequence-integration',
-                name: '序列集成',
-                access: ['testSequenceIntegration-preview','testSequenceIntegration-edit'],
-                component: './case-management/test-sequence-integration',
             },
 
         
@@ -32,9 +24,17 @@ const routes =
         
             {
                 path: '/case-management/test-sequence',
-                name: '测试序列',
+                name: '序列编辑',
                 access: ['testSequence-preview','testSequence-edit'],
                 component: './case-management/test-sequence',
+            },
+
+        
+            {
+                path: '/case-management/test-sequence-integration',
+                name: '序列集成',
+                access: ['testSequenceIntegration-preview','testSequenceIntegration-edit'],
+                component: './case-management/test-sequence-integration',
             },
 
         

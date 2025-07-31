@@ -51,7 +51,14 @@ export default [
         access: ["testTask-preview", "testTask-edit"],
         component: "./task-management/test-task",
       },
-
+      {
+        path: "/task-management/test-task-one/:id",
+        name: "详细任务",
+        // access: ["testTaskOne-preview", "testTaskOne-edit"],
+        component: "./task-management/test-task-one",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+      },
       // {
       //   path: "/task-management/test-execution",
       //   name: "测试执行",

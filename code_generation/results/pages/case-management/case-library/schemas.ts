@@ -1,6 +1,6 @@
 
 export const schemasTitle: any = {
-  label: '用例库',
+  label: '用例执行',
   value: 'caseLibrary',
 };
 
