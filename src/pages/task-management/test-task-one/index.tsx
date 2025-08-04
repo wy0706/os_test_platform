@@ -23,7 +23,9 @@ import {
   message,
 } from "antd";
 import React, { useRef, useState } from "react";
+import TestSequenceModal from "../components/testSequenceModal";
 import AddModal from "./components/addModal";
+import EditModal from "./components/editModal";
 import {
   schemasColumns,
   schemasDescriptions,
@@ -48,7 +50,10 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdate: false,
-    isUpdateModalOpen: false,
+    isAddModalOpen: false, //规划用例
+    isEditModal: false, //编辑
+    isTestModal: false, //关联测试用例modal
+    editValue: {},
     updateValue: {},
     formSchema: schemasForm,
     isPreviewModalOpen: false,
@@ -66,6 +71,8 @@ const Page: React.FC = () => {
         version: "v1",
       },
     ], //选中的用例
+
+    selectTestData: {}, //选中的关联测试序列
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -94,7 +101,7 @@ const Page: React.FC = () => {
                   </div>
                 ),
                 onOk: () => {
-                  console.log("移出");
+                  console.log("移出", record);
 
                   // await deleteOne(record.id);
                   // if (actionRef.current) {
@@ -116,7 +123,7 @@ const Page: React.FC = () => {
           //     setState({
           //       updateValue: record,
           //       isUpdate: true,
-          //       isUpdateModalOpen: true,
+          //       isAddModalOpen: true,
           //     });
           //   }}
           // >
@@ -153,13 +160,17 @@ const Page: React.FC = () => {
     columns,
     title,
     isUpdate,
-    isUpdateModalOpen,
+    isAddModalOpen,
     updateValue,
     formSchema,
     isPreviewModalOpen,
     detailsId,
     descriptionsColumns,
     selectData,
+    isEditModal, //编辑
+    editValue,
+    isTestModal,
+    selectTestData,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -187,6 +198,15 @@ const Page: React.FC = () => {
 
   const onChange = (key: string) => {
     console.log(key);
+  };
+  //   处理行点击事件
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const handleRowClick = (record: any, index: number) => {
+    console.log("点击的行数据:", record);
+    console.log("行索引:", index);
+    setState({ isEditModal: true });
+    // 更新选中的行
+    setSelectedRow(record);
   };
   const [tabActiveKey, setTabActiveKey] = useState("1");
   return (
@@ -274,7 +294,7 @@ const Page: React.FC = () => {
                 onClick={() => {
                   setState({
                     isUpdate: false,
-                    isUpdateModalOpen: true,
+                    isAddModalOpen: true,
                   });
                 }}
                 type="primary"
@@ -282,16 +302,41 @@ const Page: React.FC = () => {
                 用例规划
               </Button>,
             ]}
+            onRow={(record, index) => ({
+              onClick: (e) => {
+                // 检查点击的元素是否在操作栏内
+                const target = e.target as HTMLElement;
+                const isActionColumn =
+                  target.closest(".ant-table-cell:last-child") ||
+                  target.closest(".ant-btn") ||
+                  target.closest("button") ||
+                  target.closest("a");
+
+                // 如果点击的是操作栏，则不跳转
+                if (isActionColumn) {
+                  e.stopPropagation();
+                  return;
+                }
+
+                // 否则执行正常的行点击逻辑
+                handleRowClick(record, index || 0);
+              },
+              style: {
+                cursor: "pointer",
+                backgroundColor:
+                  selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+              },
+            })}
           />
           {/* 规划用例 */}
           <AddModal
-            open={isUpdateModalOpen}
+            open={isAddModalOpen}
             onCancel={() => {
-              setState({ isUpdateModalOpen: false });
+              setState({ isAddModalOpen: false });
             }}
             onOk={async (values) => {
               console.log("values====", values);
-              setState({ selectData: values, isUpdateModalOpen: false });
+              setState({ selectData: values, isAddModalOpen: false });
               return;
               try {
                 if (isUpdate) {
@@ -301,7 +346,7 @@ const Page: React.FC = () => {
                   });
                   if (res.code === "0") {
                     message.success("更新成功");
-                    setState({ isUpdateModalOpen: false });
+                    setState({ isAddModalOpen: false });
                     if (actionRef.current) {
                       actionRef.current.reload();
                     }
@@ -310,7 +355,7 @@ const Page: React.FC = () => {
                   const res = await createOne(values);
                   if (res.code === "0") {
                     message.success("创建成功");
-                    setState({ isUpdateModalOpen: false });
+                    setState({ isAddModalOpen: false });
                     if (actionRef.current) {
                       actionRef.current.reload();
                     }
@@ -323,72 +368,40 @@ const Page: React.FC = () => {
             }}
             selectData={selectData}
           />
-          {/* <Modal
-            title={isUpdate ? "编辑" : "新建"}
-            open={isUpdateModalOpen}
+          {/* 编辑 */}
+          <EditModal
             onCancel={() => {
-              setState({ isUpdateModalOpen: false });
+              setState({ isEditModal: false });
             }}
-            footer={null}
-            width={800}
-          >
-            <BetaSchemaForm<any>
-              {...formSchema}
-              defaultValue={updateValue}
-              form={form}
-              onFinish={async (value) => {
-                if (isUpdate) {
-                  value.id = updateValue.id;
-                  const res: any = await updateOne({
-                    ...value,
-                    id: updateValue.id,
-                  });
-                  if (res.code === "0") {
-                    message.success("操作成功");
-                    setState({ isUpdateModalOpen: false });
-                  } else {
-                    return;
-                  }
-                } else {
-                  const res: any = await createOne({ ...value, config: "{}" });
-                  if (res.code === "0") {
-                    message.success("操作成功");
-                    setState({ isUpdateModalOpen: false });
-                  } else {
-                    return;
-                  }
-                }
-                if (actionRef.current) {
-                  actionRef.current.reload();
-                }
-              }}
-            />
-          </Modal> */}
+            onOk={() => {
+              setState({ isEditModal: false });
+            }}
+            onSelect={() => {
+              setState({ isTestModal: true });
+            }}
+            open={isEditModal}
+            updateValue={editValue}
+            selectData={selectTestData}
+          />
+          <TestSequenceModal
+            onCancel={() => {
+              setState({ isTestModal: false });
+            }}
+            onOk={(values) => {
+              console.log("values====", values);
 
-          {/* <Modal
-            title="详情"
-            open={isPreviewModalOpen}
-            onCancel={() => {
-              setState({ isPreviewModalOpen: false });
+              const data = values && values.length > 0 ? values[0] : {};
+              setState({
+                isTestModal: false,
+                selectTestData: data,
+                editValue: {
+                  ...editValue,
+                  selectTestData: data, //表示关联的测试序列
+                },
+              });
             }}
-            footer={null}
-            width={800}
-          >
-            <ProDescriptions
-              columns={descriptionsColumns}
-              request={async () => {
-                try {
-                  const res = await getOne(detailsId);
-                  return res;
-                } catch {
-                  return {
-                    data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                    success: true,
-                  };
-                }
-              }}
-            ></ProDescriptions>
-          </Modal> */}
+            open={isTestModal}
+          />
         </>
       )}
       {tabActiveKey === "2" && <div>测试报告</div>}

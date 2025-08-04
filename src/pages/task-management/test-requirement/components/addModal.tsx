@@ -131,7 +131,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       onCancel={handleCancel}
       onOk={handleOk}
-      width={"40%"}
+      width={"50%"}
       styles={{ body: { minHeight: 300, padding: 20 } }}
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
