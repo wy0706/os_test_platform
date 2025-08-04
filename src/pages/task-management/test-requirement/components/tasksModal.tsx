@@ -81,7 +81,7 @@ const TasksModal: React.FC<SetMemberModalProps> = ({
 
   const handleCancel = () => {
     if (onCancel) {
-      onCancel(selectedRowKeys, selectedRows);
+      onCancel(selectKeys, selectRows);
     }
     // formRef.current?.resetFields();
   };
@@ -128,14 +128,14 @@ const TasksModal: React.FC<SetMemberModalProps> = ({
   return (
     <>
       <Modal
-        // maskClosable={false}
+        maskClosable={false}
         zIndex={1100}
         title="选择测试文件"
         open={open}
         onCancel={handleCancel}
         onOk={handleOk}
         width={"60%"}
-        footer={null}
+        // footer={null}
         styles={{ body: { minHeight: 500, padding: 20 } }}
       >
         <ProTable<TableRecord>

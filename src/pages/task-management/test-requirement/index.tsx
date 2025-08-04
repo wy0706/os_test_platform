@@ -2,11 +2,7 @@ import {
   deleteOne,
   getList,
 } from "@/services/task-management/test-requirement.service";
-import {
-  EditOutlined,
-  FileTextOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -44,7 +40,7 @@ const Page: React.FC = () => {
             color="primary"
             variant="link"
             key="preview"
-            icon={<FileTextOutlined />}
+            icon={<EyeOutlined />}
             onClick={() => {
               setState({
                 detailsId: record.id,
@@ -191,6 +187,13 @@ const Page: React.FC = () => {
       <TasksModal
         open={isSelectModalOpen}
         selectKeys={selectKeys}
+        onOk={(keys: any, rows: any) => {
+          setState({
+            isSelectModalOpen: false,
+            selectKeys: keys,
+            selectRows: rows,
+          });
+        }}
         selectRows={selectRows}
         onCancel={(keys: any, rows: any) => {
           console.log("Selected keys:", keys);
