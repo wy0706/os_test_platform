@@ -1,12 +1,13 @@
 import { ActionType, ProTable } from "@ant-design/pro-components";
 import { Modal } from "antd";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
   onSelect?: (values: any) => void;
   onCancel?: () => void;
   selectedRow: any;
+  onOk?: (values: any) => void;
 }
 
 // 定义数据类型
@@ -60,12 +61,20 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
   open,
   onCancel,
   onSelect,
+  onOk,
   selectedRow,
 }) => {
   const actionRef = useRef<ActionType>();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRowData, setSelectedRowData] = useState<TableRecord | null>(
+    null
+  );
 
   useEffect(() => {
     if (open) {
+      // 重置选择状态
+      // setSelectedRowKeys([]);
+      setSelectedRowData(selectedRow);
     }
   }, [open]);
   const handleCancel = () => {
@@ -75,14 +84,28 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
     }
   };
 
-  // 处理行点击事件
-  const handleRowClick = (record: TableRecord, index: number) => {
-    console.log("点击的行数据:", record);
-    if (onSelect) {
-      onSelect(record);
-      return;
-    }
+  // 处理行选择变化
+  const handleRowSelectionChange = (
+    selectedKeys: React.Key[],
+    selectedRows: TableRecord[]
+  ) => {
+    setSelectedRowKeys(selectedKeys);
+    setSelectedRowData(selectedRows[0] || null);
+
+    // 调用父组件的选择回调
+    // if (onSelect && selectedRows[0]) {
+    //   onSelect(selectedRows[0]);
+    // }
   };
+
+  // 处理行点击事件
+  // const handleRowClick = (record: TableRecord, index: number) => {
+  //   console.log("点击的行数据:", record);
+  //   if (onSelect) {
+  //     onSelect(record);
+  //     return;
+  //   }
+  // };
 
   const requestData = () => {};
 
@@ -110,12 +133,17 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
     <>
       <Modal
         zIndex={1100}
-        footer={null}
+        // footer={null}
         maskClosable={false}
         title="选择测试文件"
         open={open}
         onCancel={handleCancel}
         width={"60%"}
+        onOk={() => {
+          if (onOk && selectedRowData) {
+            onOk(selectedRowData);
+          }
+        }}
         styles={{ body: { minHeight: 500, padding: 20 } }}
       >
         <ProTable<TableRecord>
@@ -123,6 +151,7 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
           actionRef={actionRef}
           cardBordered
           dataSource={mockData}
+          options={false}
           // request={requestData}
           rowKey="id"
           pagination={{
@@ -130,14 +159,20 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
             onChange: (page) => requestData,
           }}
           headerTitle="测试文件列表"
-          onRow={(record, index) => ({
-            onClick: () => handleRowClick(record, index || 0),
-            style: {
-              cursor: "pointer",
-              backgroundColor:
-                selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-            },
-          })}
+          rowSelection={{
+            type: "radio", // 单选模式
+            selectedRowKeys: selectedRowKeys,
+            onChange: handleRowSelectionChange,
+            columnWidth: 60,
+          }}
+          // onRow={(record, index) => ({
+          //   onClick: () => handleRowClick(record, index || 0),
+          //   style: {
+          //     cursor: "pointer",
+          //     backgroundColor:
+          //       selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+          //   },
+          // })}
         />
       </Modal>
     </>

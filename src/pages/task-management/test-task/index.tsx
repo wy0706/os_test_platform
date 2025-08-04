@@ -298,7 +298,7 @@ const Page: React.FC = () => {
           console.log("取消");
           setTestDataListOpen(false);
         }}
-        onSelect={(values) => {
+        onOk={(values) => {
           console.log("values", values);
           setTestData(values);
           setTestDataListOpen(false);
