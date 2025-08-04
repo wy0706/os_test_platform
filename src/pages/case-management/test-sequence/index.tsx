@@ -5,7 +5,11 @@ import {
   getOne,
   updateOne,
 } from "@/services/case-management/test-sequence.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
@@ -47,7 +51,7 @@ const Page: React.FC = () => {
             key="preview"
             variant="link"
             color="primary"
-            icon={<EyeOutlined />}
+            icon={<FileTextOutlined />}
             onClick={() => {
               setState({
                 detailsId: record.id,

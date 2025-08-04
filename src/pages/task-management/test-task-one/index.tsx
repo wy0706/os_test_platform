@@ -1,34 +1,29 @@
 import {
   createOne,
-  deleteOne,
   getList,
-  getOne,
   updateOne,
 } from "@/services/task-management/test-task-one.service";
 import { history } from "@umijs/max";
 
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, SwapLeftOutlined } from "@ant-design/icons";
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
-  TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import {
   Button,
   Checkbox,
   Form,
-  message,
   Modal,
   Progress,
   Tabs,
   type TabsProps,
+  message,
 } from "antd";
 import React, { useRef, useState } from "react";
-
+import AddModal from "./components/addModal";
 import {
   schemasColumns,
   schemasDescriptions,
@@ -59,66 +54,97 @@ const Page: React.FC = () => {
     isPreviewModalOpen: false,
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
+    selectData: [
+      {
+        id: "8",
+        title: "DEMO-8",
+        description: "商品信息页面展示",
+        importance: "P1",
+        checked: false,
+        libraryId: "library3",
+        moduleId: "module3-1",
+        version: "v1",
+      },
+    ], //选中的用例
     columns: schemasColumns.concat([
       {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 180,
+        width: 100,
         render: (text: any, record: any, index: any, action: any) => [
           <Button
             color="primary"
             variant="link"
             key="preview"
-            icon={<EyeOutlined />}
+            icon={<SwapLeftOutlined />}
             onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
+              // setState({
+              //   detailsId: record.id,
+              //   isPreviewModalOpen: true,
+              // });
+              Modal.confirm({
+                title: (
+                  <div>
+                    确认移出{" "}
+                    <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                      {record?.title}
+                    </span>{" "}
+                    吗？
+                  </div>
+                ),
+                onOk: () => {
+                  console.log("移出");
+
+                  // await deleteOne(record.id);
+                  // if (actionRef.current) {
+                  //   actionRef.current.reload();
+                  // }
+                },
               });
             }}
           >
-            详情
+            移出
           </Button>,
-          <Button
-            color="primary"
-            variant="link"
-            key="edit"
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: "确认删除吗？",
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-                default:
-                  return;
-              }
-            }}
-            menus={[{ key: "delete", name: "删除" }]}
-          />,
+          // <Button
+          //   color="primary"
+          //   variant="link"
+          //   key="edit"
+          //   icon={<EditOutlined />}
+          //   onClick={() => {
+          //     form.setFieldsValue(record);
+          //     setState({
+          //       updateValue: record,
+          //       isUpdate: true,
+          //       isUpdateModalOpen: true,
+          //     });
+          //   }}
+          // >
+          //   编辑
+          // </Button>,
+          // <TableDropdown
+          //   key={index}
+          //   onSelect={(key: string) => {
+          //     console.log("key----", key);
+          //     console.log(key);
+          //     switch (key) {
+          //       case "delete":
+          //         Modal.confirm({
+          //           title: "确认删除吗？",
+          //           onOk: async () => {
+          //             await deleteOne(record.id);
+          //             if (actionRef.current) {
+          //               actionRef.current.reload();
+          //             }
+          //           },
+          //         });
+          //         return;
+          //       default:
+          //         return;
+          //     }
+          //   }}
+          //   menus={[{ key: "delete", name: "删除" }]}
+          // />,
         ],
       },
     ]),
@@ -133,6 +159,7 @@ const Page: React.FC = () => {
     isPreviewModalOpen,
     detailsId,
     descriptionsColumns,
+    selectData,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -140,7 +167,18 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
+        data: [
+          {
+            id: "8",
+            title: "DEMO-8",
+            description: "商品信息页面展示",
+            importance: "P1",
+            checked: false,
+            libraryId: "library3",
+            moduleId: "module3-1",
+            version: "v1",
+          },
+        ],
         total: 1,
         success: true,
       };
@@ -241,11 +279,51 @@ const Page: React.FC = () => {
                 }}
                 type="primary"
               >
-                新建
+                用例规划
               </Button>,
             ]}
           />
-          <Modal
+          {/* 规划用例 */}
+          <AddModal
+            open={isUpdateModalOpen}
+            onCancel={() => {
+              setState({ isUpdateModalOpen: false });
+            }}
+            onOk={async (values) => {
+              console.log("values====", values);
+              setState({ selectData: values, isUpdateModalOpen: false });
+              return;
+              try {
+                if (isUpdate) {
+                  const res = await updateOne({
+                    ...values,
+                    id: updateValue.id,
+                  });
+                  if (res.code === "0") {
+                    message.success("更新成功");
+                    setState({ isUpdateModalOpen: false });
+                    if (actionRef.current) {
+                      actionRef.current.reload();
+                    }
+                  }
+                } else {
+                  const res = await createOne(values);
+                  if (res.code === "0") {
+                    message.success("创建成功");
+                    setState({ isUpdateModalOpen: false });
+                    if (actionRef.current) {
+                      actionRef.current.reload();
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("操作失败:", error);
+                message.error("操作失败");
+              }
+            }}
+            selectData={selectData}
+          />
+          {/* <Modal
             title={isUpdate ? "编辑" : "新建"}
             open={isUpdateModalOpen}
             onCancel={() => {
@@ -285,9 +363,9 @@ const Page: React.FC = () => {
                 }
               }}
             />
-          </Modal>
+          </Modal> */}
 
-          <Modal
+          {/* <Modal
             title="详情"
             open={isPreviewModalOpen}
             onCancel={() => {
@@ -310,7 +388,7 @@ const Page: React.FC = () => {
                 }
               }}
             ></ProDescriptions>
-          </Modal>
+          </Modal> */}
         </>
       )}
       {tabActiveKey === "2" && <div>测试报告</div>}

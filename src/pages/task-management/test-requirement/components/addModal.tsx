@@ -33,10 +33,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const columns: any = [
-    // {
-    //   title: "序号",
-    //   dataIndex: "index",
-    // },
     {
       title: "任务名称",
       dataIndex: "title",
@@ -132,6 +128,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     <Modal
       title={isUpdate ? "编辑产品需求" : "新建产品需求"}
       open={open}
+      maskClosable={false}
       onCancel={handleCancel}
       onOk={handleOk}
       width={"40%"}

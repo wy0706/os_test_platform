@@ -2,7 +2,7 @@ import {
   deleteOne,
   getList,
 } from "@/services/system-management/role-management.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, KeyOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -90,7 +90,7 @@ const Page: React.FC = () => {
           <Button
             variant="link"
             color="primary"
-            icon={<EyeOutlined />}
+            icon={<KeyOutlined />}
             key="delete"
             onClick={() => {
               Modal.confirm({

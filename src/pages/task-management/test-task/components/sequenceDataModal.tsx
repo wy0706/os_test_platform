@@ -1,21 +1,12 @@
-import {
-  ActionType,
-  ProTable,
-  type ProFormInstance,
-} from "@ant-design/pro-components";
-import { message, Modal } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import { ActionType, ProTable } from "@ant-design/pro-components";
+import { Modal } from "antd";
+import React, { useEffect, useRef } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
-  updateValue?: any;
-  type?: string;
-  onSuccess?: (values: any) => void;
-
+  onSelect?: (values: any) => void;
   onCancel?: () => void;
-  formSchema?: any;
-  onOk?: (values: any) => void; // 新增
-  onInnerCancel?: () => void; // 新增
+  selectedRow: any;
 }
 
 // 定义数据类型
@@ -67,67 +58,30 @@ const columns: any = [
 
 const SequenceDataModal: React.FC<SetMemberModalProps> = ({
   open,
-  updateValue,
-  onSuccess,
   onCancel,
-  formSchema,
-  type,
-  onOk, // 新增
-  onInnerCancel, // 新增
+  onSelect,
+  selectedRow,
 }) => {
   const actionRef = useRef<ActionType>();
-  const formRef = useRef<ProFormInstance | null>(null);
-  const [selectedRow, setSelectedRow] = useState<TableRecord | null>(null);
 
   useEffect(() => {
     if (open) {
-      formRef.current?.resetFields();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        formRef.current?.setFieldsValue(updateValue);
-      }
     }
-  }, [open, type, updateValue]);
-
-  const handleOk = () => {
-    if (!selectedRow) {
-      message.error("请先选择一行数据");
-      return;
-    }
-    console.log("selectedRow", selectedRow);
-    if (onSuccess) {
-      onSuccess(selectedRow); // 新增
-      return;
-    }
-  };
-
+  }, [open]);
   const handleCancel = () => {
-    if (onInnerCancel) {
-      onInnerCancel(); // 新增
-      return;
-    }
     if (onCancel) {
       onCancel();
+      return;
     }
-    formRef.current?.resetFields();
   };
 
   // 处理行点击事件
   const handleRowClick = (record: TableRecord, index: number) => {
     console.log("点击的行数据:", record);
-    console.log("行索引:", index);
-    setSelectedRow(record);
-    // message.success(`已选择: ${record.title}`);
-
-    // 在这里可以执行其他操作，比如：
-    // - 打开详情弹窗
-    // - 跳转到详情页面
-    // - 更新表单数据
-    // - 触发其他业务逻辑
+    if (onSelect) {
+      onSelect(record);
+      return;
+    }
   };
 
   const requestData = () => {};
@@ -155,28 +109,15 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
   return (
     <>
       <Modal
+        zIndex={1100}
+        footer={null}
         maskClosable={false}
         title="选择测试文件"
         open={open}
         onCancel={handleCancel}
-        onOk={handleOk}
         width={"60%"}
         styles={{ body: { minHeight: 500, padding: 20 } }}
       >
-        {/* {selectedRow && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: 12,
-              backgroundColor: "#f5f5f5",
-              borderRadius: 4,
-            }}
-          >
-            <strong>当前选中:</strong> {selectedRow.title} -{" "}
-            {selectedRow.title2}
-          </div>
-        )} */}
-
         <ProTable<TableRecord>
           columns={columns}
           actionRef={actionRef}

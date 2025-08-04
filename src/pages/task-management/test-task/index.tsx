@@ -17,15 +17,10 @@ import { history } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Checkbox, Form, Modal } from "antd";
 import React, { useRef, useState } from "react";
+import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import SequenceDataModal from "./components/sequenceDataModal";
-import TestSequenceData from "./components/testSequenceData";
-import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
-} from "./schemas";
+import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
@@ -34,10 +29,9 @@ const Page: React.FC = () => {
     optionType: "add",
     isUpdateModalOpen: false,
     updateValue: {},
-    formSchema: schemasForm,
     isPreviewModalOpen: false,
     detailsId: null,
-    descriptionsColumns: schemasDescriptions,
+    detailsData: {},
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -71,7 +65,6 @@ const Page: React.FC = () => {
                 isUpdateModalOpen: true,
                 optionType: "edit",
               });
-              setTestDataModalOpen(true);
             }}
           >
             编辑
@@ -82,9 +75,36 @@ const Page: React.FC = () => {
               onSelect={(key: string) => {
                 switch (key) {
                   case "delete":
+                    console.log("record", record);
+
                     Modal.confirm({
-                      title: `确认删除 ${record.title} 吗?`,
-                      // title: "确认删除吗?",
+                      title: (
+                        <div>
+                          <div>
+                            确认删除测试任务{" "}
+                            <span
+                              style={{ color: "#ff4d4f", fontWeight: "bold" }}
+                            >
+                              {record.title}
+                            </span>{" "}
+                            吗？
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "#666",
+                              marginTop: "8px",
+                            }}
+                          >
+                            测试任务删除后不可恢复，删除测试任务会一起删除测试任务内的执行用例
+                          </div>
+                        </div>
+                      ),
+                      // content: (
+                      //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                      //     {record.title}
+                      //   </div>
+                      // ),
                       onOk: async () => {
                         await deleteOne(record.id);
                         if (actionRef.current) {
@@ -99,12 +119,12 @@ const Page: React.FC = () => {
                       isUpdateModalOpen: true,
                       optionType: "copy",
                     });
-                    setTestDataModalOpen(true);
                     return;
                   case "preview":
                     setState({
                       detailsId: record.id,
                       isPreviewModalOpen: true,
+                      detailsData: record,
                     });
                     return;
                   default:
@@ -127,11 +147,10 @@ const Page: React.FC = () => {
     title,
     isUpdateModalOpen,
     updateValue,
-    formSchema,
     isPreviewModalOpen,
     detailsId,
-    descriptionsColumns,
     optionType,
+    detailsData,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -140,33 +159,39 @@ const Page: React.FC = () => {
     } catch {
       return {
         data: [
-          { id: 1, title: "测试数据", createTime: "测试数据", status: "all" },
-          { id: 2, title: "测试数据2", createTime: "测试数据2", status: "all" },
+          {
+            id: "1",
+            title: "测试数据",
+            title2: 100,
+            title3: "张三",
+            title4: "测试数据",
+            createTime: "2025-07-30",
+            status: "all",
+          },
+          {
+            id: "2",
+            title: "测试数据2",
+            title2: 70,
+            title3: "李四",
+            title4: "测试数据",
+            createTime: "2025-07-30",
+            status: "all",
+          },
         ],
-        total: 1,
+        total: 2,
         success: true,
       };
     }
   };
-  const [testDataModalOpen, setTestDataModalOpen] = useState(false);
 
-  const [testDataList, setTestDataList] = useState(false);
+  const [testDataListOpen, setTestDataListOpen] = useState(false);
 
-  const [testDataObj, steTestData] = useState({});
-  const handleOpenTestSequenceModal = () => {
-    console.log("text");
-  };
+  const [testDataObj, setTestData] = useState({});
+
   const handleDetailCancel = () => {
     setState({ isPreviewModalOpen: false });
   };
-  const handleSelect = (values: any) => {
-    setTestDataList(false);
-    console.log("calue", values);
-    steTestData({ ...values });
-  };
-  const selectData = () => {
-    setTestDataList(true);
-  };
+  //   处理行点击事件
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
   const handleRowClick = (record: any, index: number) => {
@@ -176,12 +201,6 @@ const Page: React.FC = () => {
     // 更新选中的行
     setSelectedRow(record);
     // message.success(`已选择: ${record.title}`);
-
-    // 在这里可以执行其他操作，比如：
-    // - 打开详情弹窗
-    // - 跳转到详情页面
-    // - 更新表单数据
-    // - 触发其他业务逻辑
   };
   return (
     <PageContainer>
@@ -215,7 +234,6 @@ const Page: React.FC = () => {
                   isUpdateModalOpen: true,
                   optionType: "add",
                 });
-                setTestDataModalOpen(true);
               }}
               type="primary"
             >
@@ -224,7 +242,24 @@ const Page: React.FC = () => {
           </div>,
         ]}
         onRow={(record, index) => ({
-          onClick: () => handleRowClick(record, index || 0),
+          onClick: (e) => {
+            // 检查点击的元素是否在操作栏内
+            const target = e.target as HTMLElement;
+            const isActionColumn =
+              target.closest(".ant-table-cell:last-child") ||
+              target.closest(".ant-btn") ||
+              target.closest("button") ||
+              target.closest("a");
+
+            // 如果点击的是操作栏，则不跳转
+            if (isActionColumn) {
+              e.stopPropagation();
+              return;
+            }
+
+            // 否则执行正常的行点击逻辑
+            handleRowClick(record, index || 0);
+          },
           style: {
             cursor: "pointer",
             backgroundColor:
@@ -232,43 +267,42 @@ const Page: React.FC = () => {
           },
         })}
       />
-      <DetailModal open={isPreviewModalOpen} onCancel={handleDetailCancel} />
-      {/* <AddModal
+      <DetailModal
+        details={detailsData}
+        open={isPreviewModalOpen}
+        onCancel={handleDetailCancel}
+      />
+
+      <AddModal
         type={optionType}
-        formSchema={formSchema}
-        updateValue={updateValue}
-        open={isUpdateModalOpen}
-        onSuccess={(values) => {
-          console.log("values", values);
-        }}
         onCancel={() => {
           setState({ isUpdateModalOpen: false });
+          setTestData({});
         }}
-      /> */}
-
-      <TestSequenceData
-        type={optionType}
-        onCancel={() => {
-          setTestDataModalOpen(false);
-          steTestData({});
+        open={isUpdateModalOpen}
+        onSelect={() => {
+          setTestDataListOpen(true);
         }}
-        open={testDataModalOpen}
-        onSelect={selectData}
         testData={testDataObj}
         updateValue={updateValue}
-        onSuccess={(values) => {
+        onOk={(values: any) => {
           const obj = { ...values, testDataObj };
           console.log("表单数据", obj);
         }}
       />
       {/* 选择列表 */}
       <SequenceDataModal
-        open={testDataList}
+        selectedRow={testDataObj}
+        open={testDataListOpen}
         onCancel={() => {
           console.log("取消");
-          setTestDataList(false);
+          setTestDataListOpen(false);
         }}
-        onSuccess={handleSelect}
+        onSelect={(values) => {
+          console.log("values", values);
+          setTestData(values);
+          setTestDataListOpen(false);
+        }}
       />
     </PageContainer>
   );

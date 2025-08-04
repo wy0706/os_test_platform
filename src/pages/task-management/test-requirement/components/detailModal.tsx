@@ -54,7 +54,7 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       <div className={s.container}>
         <div className={s.items}>
           <div className={s.name}>标题:</div>
-          <div>{data?.title || ""}</div>
+          <div>{data?.title || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>描述:</div>

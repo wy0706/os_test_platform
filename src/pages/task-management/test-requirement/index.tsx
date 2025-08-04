@@ -2,7 +2,11 @@ import {
   deleteOne,
   getList,
 } from "@/services/task-management/test-requirement.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -40,7 +44,7 @@ const Page: React.FC = () => {
             color="primary"
             variant="link"
             key="preview"
-            icon={<EyeOutlined />}
+            icon={<FileTextOutlined />}
             onClick={() => {
               setState({
                 detailsId: record.id,

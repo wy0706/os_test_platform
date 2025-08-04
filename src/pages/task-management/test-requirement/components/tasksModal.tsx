@@ -129,6 +129,7 @@ const TasksModal: React.FC<SetMemberModalProps> = ({
     <>
       <Modal
         // maskClosable={false}
+        zIndex={1100}
         title="选择测试文件"
         open={open}
         onCancel={handleCancel}

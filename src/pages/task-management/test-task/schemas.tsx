@@ -4,9 +4,17 @@ export const schemasTitle: any = {
   value: "testTask",
 };
 
+export const statusEnum: any = {
+  all: { text: "已完成", status: "Success" },
+  close: { text: "关闭", status: "Default" },
+  running: { text: "运行中", status: "Processing" },
+  online: { text: "已上线", status: "Success" },
+  error: { text: "异常", status: "Error" },
+};
+
 export const schemasColumns: any = [
   {
-    title: "名称",
+    title: "任务名称",
     dataIndex: "title",
     ellipsis: true,
     sorter: true,
@@ -20,45 +28,26 @@ export const schemasColumns: any = [
     initialValue: "all",
     filters: true,
     onFilter: true,
-    valueEnum: {
-      all: { text: "已完成", status: "Success" },
-      close: { text: "关闭", status: "Default" },
-      running: { text: "运行中", status: "Processing" },
-      online: { text: "已上线", status: "Success" },
-      error: { text: "异常", status: "Error" },
-    },
-
-    // valueEnum: {
-    //   1: {
-    //     text: "已完成",
-    //   },
-    //   2: {
-    //     text: "未完成",
-    //   },
-    // },
-
-    // render: (text: any) => {
-    //   return <Tag color="success">已完成</Tag>;
-    // },
+    valueEnum: statusEnum,
   },
   {
     title: "结果分布",
     dataIndex: "title2",
     sorter: true,
     search: false,
-    render: () => {
-      return <Progress percent={100} size="small"></Progress>;
+    render: (text: any, record: any) => {
+      return <Progress percent={record.title2} size="small"></Progress>;
     },
   },
   {
     title: "负责人",
-    dataIndex: "title",
+    dataIndex: "title3",
     ellipsis: true,
     sorter: true,
   },
   {
     title: "描述",
-    dataIndex: "title",
+    dataIndex: "title4",
     ellipsis: true,
     search: false,
   },

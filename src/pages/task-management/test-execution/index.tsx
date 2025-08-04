@@ -5,7 +5,11 @@ import {
   getOne,
   updateOne,
 } from "@/services/task-management/test-execution.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
@@ -47,7 +51,7 @@ const Page: React.FC = () => {
             key="preview"
             variant="link"
             color="primary"
-            icon={<EyeOutlined />}
+            icon={<PlayCircleOutlined />}
             onClick={() => {
               setState({
                 detailsId: record.id,

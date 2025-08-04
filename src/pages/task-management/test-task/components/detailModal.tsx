@@ -1,25 +1,32 @@
-import { Modal } from "antd";
+import { Modal, Progress, Tag } from "antd";
 import { useEffect, useState } from "react";
 import s from "../index.less";
-import { schemasDescriptions } from "../schemas";
+import { statusEnum } from "../schemas";
+
 interface SetMemberModalProps {
   open: boolean;
-  onSuccess?: (values: any) => void;
+  details?: any;
   onCancel?: () => void;
-  onInnerCancel?: () => void; // 新增
+}
+
+interface DetailData {
+  title3: string;
+  title?: string;
+  status?: string;
+  title2?: string;
+  title43?: string;
+  title4?: string;
+  createTime?: string;
 }
 
 const DetailModal: React.FC<SetMemberModalProps> = ({
   open,
-  onSuccess,
   onCancel,
-  onInnerCancel,
+  details,
 }) => {
-  console.log("schemasDescriptions", schemasDescriptions);
-
-  const [data, setData] = useState({});
+  const [data, setData] = useState<DetailData>({});
   useEffect(() => {
-    console.log("详情");
+    details && setData(details);
   }, [open]);
   return (
     <Modal
@@ -35,27 +42,37 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       <div className={s.container}>
         <div className={s.items}>
           <div className={s.name}>名称:</div>
-          <div>1222</div>
+          <div>{data?.title || ""}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>状态:</div>
-          <div>1222</div>
+          <div>
+            {data?.status !== undefined && statusEnum[data.status] ? (
+              <Tag color={statusEnum[data.status].status.toLowerCase()}>
+                {statusEnum[data.status].text}
+              </Tag>
+            ) : (
+              "-"
+            )}
+          </div>
         </div>
         <div className={s.items}>
           <div className={s.name}>结果分布:</div>
-          <div>1222</div>
+          <div style={{ width: 200 }}>
+            {data.title2 ? <Progress size="small" percent={30} /> : "-"}
+          </div>
         </div>
         <div className={s.items}>
           <div className={s.name}>负责人:</div>
-          <div>1222</div>
+          <div>{data?.title3 || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>描述: </div>
-          <div>1222</div>
+          <div>{data?.title4 || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>创建时间:</div>
-          <div>1222</div>
+          <div>{data?.createTime || "-"}</div>
         </div>
       </div>
     </Modal>
