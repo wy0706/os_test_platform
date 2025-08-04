@@ -14,12 +14,8 @@ import { Button, Form, Modal } from "antd";
 import React, { useRef } from "react";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
-import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
-} from "./schemas";
+import TasksModal from "./components/tasksModal";
+import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
@@ -28,10 +24,11 @@ const Page: React.FC = () => {
     isUpdate: false,
     isUpdateModalOpen: false,
     updateValue: {},
-    formSchema: schemasForm,
     isPreviewModalOpen: false,
     detailsId: null,
-    descriptionsColumns: schemasDescriptions,
+    isSelectModalOpen: false, //选择任务modal
+    selectKeys: [], // 选择的任务keys
+    selectRows: [], // 选择的任务rows
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -48,6 +45,7 @@ const Page: React.FC = () => {
               setState({
                 detailsId: record.id,
                 isPreviewModalOpen: true,
+                updateValue: record,
               });
             }}
           >
@@ -104,14 +102,20 @@ const Page: React.FC = () => {
     isUpdate,
     isUpdateModalOpen,
     updateValue,
-    formSchema,
     isPreviewModalOpen,
     detailsId,
-    descriptionsColumns,
+    isSelectModalOpen,
+    selectKeys,
+    selectRows,
   } = state;
 
-  const handleSuccess = () => {};
-  const handleOk = () => {};
+  const handleOk = (values: any) => {
+    const params = { ...values, lists: selectKeys };
+    console.log("params", params);
+    setState({
+      isUpdateModalOpen: false,
+    });
+  };
   const requestData: any = async (...args: any) => {
     try {
       const res = await getList({ params: args[0], sort: args[1] });
@@ -156,15 +160,43 @@ const Page: React.FC = () => {
           </Button>,
         ]}
       />
-      <DetailModal open={isPreviewModalOpen} onCancel={handleDetailCancel} />
+      <DetailModal
+        details={updateValue}
+        open={isPreviewModalOpen}
+        onCancel={handleDetailCancel}
+      />
+      {/* 新增 */}
       <AddModal
         onOk={handleOk}
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}
-        onSuccess={handleSuccess}
-        onCancel={() => setState({ isUpdateModalOpen: false })}
-        formSchema={formSchema}
+        onCancel={() => {
+          setState({
+            isUpdateModalOpen: false,
+            selectRows: [],
+            selectKeys: [],
+          });
+        }}
+        onSelect={() => {
+          setState({ isSelectModalOpen: true });
+        }}
+        selectData={selectRows}
+      />
+      {/* 选择测试任务 */}
+      <TasksModal
+        open={isSelectModalOpen}
+        selectKeys={selectKeys}
+        selectRows={selectRows}
+        onCancel={(keys: any, rows: any) => {
+          console.log("Selected keys:", keys);
+          console.log("Selected rows:", rows);
+          setState({
+            isSelectModalOpen: false,
+            selectKeys: keys,
+            selectRows: rows,
+          });
+        }}
       />
     </PageContainer>
   );

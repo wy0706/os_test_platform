@@ -1,19 +1,22 @@
-import {
-  BetaSchemaForm,
-  type ProFormInstance,
-} from "@ant-design/pro-components";
-import { Modal } from "antd";
-import React, { useRef } from "react";
+import { ProTable } from "@ant-design/pro-components";
+import { Button, Form, Input, Modal, Select } from "antd";
+import React from "react";
+const { Option } = Select;
 
+const layout = {
+  labelCol: { span: 24 },
+};
 interface SetMemberModalProps {
   open: boolean;
   isUpdate: boolean;
+  selectData?: any; // 关联的任务
   updateValue: any;
-  onSuccess: (values: any) => void;
+  onSuccess?: (values: any) => void;
   onCancel: () => void;
-  formSchema: any;
-  onOk?: (values: any) => void; // 新增
-  onInnerCancel?: () => void; // 新增
+  // formSchema: any;
+  onOk?: (values: any) => void;
+  onInnerCancel?: () => void;
+  onSelect?: () => void;
 }
 
 const AddModal: React.FC<SetMemberModalProps> = ({
@@ -22,32 +25,67 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   updateValue,
   onSuccess,
   onCancel,
-  formSchema,
-  onOk, // 新增
-  onInnerCancel, // 新增
+  // formSchema,
+  onOk,
+  onInnerCancel,
+  onSelect,
+  selectData,
 }) => {
-  const formRef = useRef<ProFormInstance | null>(null);
+  const [form] = Form.useForm();
+  const columns: any = [
+    // {
+    //   title: "序号",
+    //   dataIndex: "index",
+    // },
+    {
+      title: "任务名称",
+      dataIndex: "title",
+    },
+    {
+      title: "状态",
+      dataIndex: "status",
+      // ellipsis: true,
+      // sorter: true,
+      // // initialValue: "all",
+      // filters: true,
+      // onFilter: true,
+      valueEnum: {
+        1: { text: "已完成", status: "Success" },
+        2: { text: "未完成", status: "Default" },
+      },
+      // sorter: true,
+    },
 
+    {
+      title: "日期和时间",
+      dataIndex: "createTime",
+      ellipsis: true,
+      sorter: true,
+      valueType: "dateTime",
+    },
+  ];
   React.useEffect(() => {
     if (open) {
-      formRef.current?.resetFields();
+      console.log("selectData", selectData);
+
+      form?.resetFields();
       if (isUpdate && updateValue) {
         console.log("uodateCalue", updateValue);
-        formRef.current?.setFieldsValue(updateValue);
+        form?.setFieldsValue(updateValue);
       }
     }
   }, [open, isUpdate, updateValue]);
 
   const handleOk = async () => {
-    const values = await formRef.current?.validateFields();
+    const values = await form?.validateFields();
     const params = isUpdate ? { ...updateValue, ...values } : values;
-    if (onSuccess) {
-      onSuccess(params); // 新增
+    if (onOk) {
+      onOk(params);
       return;
     }
 
     // try {
-    //   const values = await formRef.current?.validateFields();
+    //   const values = await form?.validateFields();
     //   if (onOk) {
     //     onOk(values); // 新增
     //     return;
@@ -57,7 +95,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     //     const res: any = await updateOne({ ...values, id: updateValue.id });
     //     if (res.code === "0") {
     //       message.success("操作成功");
-    //       formRef.current?.resetFields();
+    //       form?.resetFields();
     //       if (!continueAdd) {
     //         onSuccess();
     //       }
@@ -66,7 +104,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     //     const res: any = await createOne({ ...values, config: "{}" });
     //     if (res.code === "0") {
     //       message.success("操作成功");
-    //       formRef.current?.resetFields();
+    //       form?.resetFields();
     //       if (!continueAdd) {
     //         onSuccess();
     //       }
@@ -83,8 +121,12 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       return;
     }
     onCancel();
-    formRef.current?.resetFields();
+    form?.resetFields();
   };
+
+  function onFinish(values: any): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <Modal
@@ -95,12 +137,52 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       width={"40%"}
       styles={{ body: { minHeight: 300, padding: 20 } }}
     >
-      <BetaSchemaForm<any>
-        submitter={false}
-        formRef={formRef}
-        {...formSchema}
-        defaultValue={updateValue}
-      />
+      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+        <Form.Item name="title" label="标题" rules={[{ required: true }]}>
+          <Input placeholder="请输入标题" />
+        </Form.Item>
+        <Form.Item name="createTime" label="描述">
+          <Input.TextArea rows={4} placeholder="请输入描述" />
+        </Form.Item>
+
+        <Form.Item name="lists" label="关联测试任务">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px",
+              flexDirection: "column",
+            }}
+          >
+            <Button
+              style={{ marginBottom: 10 }}
+              onClick={() => {
+                onSelect && onSelect();
+              }}
+            >
+              选择测试任务
+            </Button>
+
+            {selectData && selectData.length > 0 ? (
+              <ProTable<any>
+                search={false}
+                columns={columns}
+                // actionRef={actionRef}
+                cardBordered
+                options={false}
+                dataSource={selectData}
+                rowKey="id"
+                pagination={{
+                  pageSize: 20,
+                }}
+                headerTitle="已选择测试文件列表"
+              />
+            ) : (
+              <span></span>
+            )}
+          </div>
+        </Form.Item>
+      </Form>
     </Modal>
   );
 };

@@ -5,6 +5,8 @@ import {
   getOne,
   updateOne,
 } from "@/services/task-management/test-task-one.service";
+import { history } from "@umijs/max";
+
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -153,7 +155,16 @@ const Page: React.FC = () => {
     <PageContainer
       header={{
         ghost: true,
-        extra: [<Button key="1">返回</Button>],
+        extra: [
+          <Button
+            key="1"
+            onClick={() => {
+              history.back();
+            }}
+          >
+            返回
+          </Button>,
+        ],
       }}
     >
       <Tabs

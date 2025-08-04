@@ -1,25 +1,25 @@
 import { Modal } from "antd";
 import { useEffect, useState } from "react";
 import s from "../index.less";
-import { schemasDescriptions } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
-  onSuccess?: (values: any) => void;
+  details: any;
   onCancel?: () => void;
-  onInnerCancel?: () => void; // 新增
 }
 
 const DetailModal: React.FC<SetMemberModalProps> = ({
   open,
-  onSuccess,
   onCancel,
-  onInnerCancel,
+  details,
 }) => {
-  console.log("schemasDescriptions", schemasDescriptions);
-
-  const [data, setData] = useState({});
+  const [data, setData] = useState<any>({});
   useEffect(() => {
+    console.log("details", details);
+
     console.log("详情");
+    if (open) {
+      setData(details);
+    }
   }, [open]);
   return (
     <Modal
@@ -54,14 +54,14 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       <div className={s.container}>
         <div className={s.items}>
           <div className={s.name}>标题:</div>
-          <div>1222</div>
+          <div>{data?.title || ""}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>描述:</div>
           <div>1222</div>
         </div>
         <div className={s.items}>
-          <div className={s.name}>关联测试任务:</div>
+          <div className={s.name}>已关联测试任务:</div>
           <div>1222</div>
         </div>
       </div>

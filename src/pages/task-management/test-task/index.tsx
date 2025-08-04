@@ -50,8 +50,9 @@ const Page: React.FC = () => {
             variant="link"
             color="primary"
             icon={<LeftCircleOutlined />}
-            onClick={() => {
-              alert("查看详情");
+            onClick={(e) => {
+              e.stopPropagation();
+              // message.("查看详情");
             }}
           >
             运行
@@ -61,7 +62,8 @@ const Page: React.FC = () => {
             variant="link"
             color="primary"
             icon={<EditOutlined />}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               // form.setFieldsValue(record);
               console.log("edit");
               setState({
@@ -74,46 +76,48 @@ const Page: React.FC = () => {
           >
             编辑
           </Button>,
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: `确认删除 ${record.title} 吗?`,
-                    // title: "确认删除吗?",
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-                case "copy":
-                  setState({
-                    updateValue: record,
-                    isUpdateModalOpen: true,
-                    optionType: "copy",
-                  });
-                  setTestDataModalOpen(true);
-                  return;
-                case "preview":
-                  setState({
-                    detailsId: record.id,
-                    isPreviewModalOpen: true,
-                  });
-                  return;
-                default:
-                  return;
-              }
-            }}
-            menus={[
-              { key: "copy", name: "复制" },
-              { key: "preview", name: "详情" },
-              { key: "delete", name: "删除" },
-            ]}
-          />,
+          <div onClick={(e) => e.stopPropagation()}>
+            <TableDropdown
+              key={index}
+              onSelect={(key: string) => {
+                switch (key) {
+                  case "delete":
+                    Modal.confirm({
+                      title: `确认删除 ${record.title} 吗?`,
+                      // title: "确认删除吗?",
+                      onOk: async () => {
+                        await deleteOne(record.id);
+                        if (actionRef.current) {
+                          actionRef.current.reload();
+                        }
+                      },
+                    });
+                    return;
+                  case "copy":
+                    setState({
+                      updateValue: record,
+                      isUpdateModalOpen: true,
+                      optionType: "copy",
+                    });
+                    setTestDataModalOpen(true);
+                    return;
+                  case "preview":
+                    setState({
+                      detailsId: record.id,
+                      isPreviewModalOpen: true,
+                    });
+                    return;
+                  default:
+                    return;
+                }
+              }}
+              menus={[
+                { key: "copy", name: "复制" },
+                { key: "preview", name: "详情" },
+                { key: "delete", name: "删除" },
+              ]}
+            />
+          </div>,
         ],
       },
     ]),
@@ -168,7 +172,6 @@ const Page: React.FC = () => {
   const handleRowClick = (record: any, index: number) => {
     console.log("点击的行数据:", record);
     console.log("行索引:", index);
-
     history.push(`/task-management/test-task-one/${record.id}`);
     // 更新选中的行
     setSelectedRow(record);

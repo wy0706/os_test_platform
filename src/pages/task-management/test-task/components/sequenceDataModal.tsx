@@ -77,12 +77,9 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const actionRef = useRef<ActionType>();
   const formRef = useRef<ProFormInstance | null>(null);
-  const [title, setTitle] = useState("新建");
   const [selectedRow, setSelectedRow] = useState<TableRecord | null>(null);
 
   useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
-    setTitle(name);
     if (open) {
       formRef.current?.resetFields();
       // if (isUpdate && updateValue) {
