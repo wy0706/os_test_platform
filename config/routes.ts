@@ -120,6 +120,7 @@ export default [
         component: "./case-management/test-case-example",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        hideFooter: true,
       },
     ],
   },

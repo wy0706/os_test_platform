@@ -80,7 +80,7 @@ const editModal: React.FC<ModalProps> = ({
   return (
     <div className="editModal-page">
       <Modal
-        width={"50%"}
+        width={"60%"}
         title="用例库/模块名称/用例编号"
         open={open}
         onCancel={() => {
@@ -140,11 +140,7 @@ const editModal: React.FC<ModalProps> = ({
                   </Form.Item>
                 </Col>
                 <Col span={6}>
-                  <Form.Item
-                    name="importance"
-                    label="重要程度"
-                    // rules={[{ required: true }]}
-                  >
+                  <Form.Item name="importance" label="重要程度">
                     <Select placeholder="请选择重要程度">
                       <Option value="1">P0</Option>
                       <Option value="2">P1</Option>

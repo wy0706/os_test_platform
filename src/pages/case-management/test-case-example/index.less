@@ -1,0 +1,63 @@
+.container {
+  display: block;
+  .items {
+    display: flex;
+    padding-bottom: 30px;
+  }
+  .name {
+    min-width: 90px;
+    max-width: 200px;
+  }
+}
+
+// 自定义Tree组件样式
+.custom-tree {
+  .ant-tree-node-content-wrapper {
+    margin: 4px 0;
+    padding: 8px 12px !important;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #f0f8ff !important;
+    }
+
+    &.ant-tree-node-selected {
+      background-color: #e6f7ff !important;
+      border: 1px solid #91d5ff;
+    }
+  }
+
+  .ant-tree-title {
+    width: 100%;
+  }
+
+  .ant-tree-switcher {
+    display: none !important;
+  }
+}
+
+// 模块选择状态样式
+.module-selected {
+  background-color: #e6f7ff !important;
+  border: 1px solid #91d5ff !important;
+}
+
+// 自定义滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #a8a8a8;
+  }
+}

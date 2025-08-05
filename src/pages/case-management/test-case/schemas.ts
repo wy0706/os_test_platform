@@ -5,7 +5,7 @@ export const schemasTitle: any = {
 
 export const schemasColumns: any = [
   {
-    title: "名称",
+    title: "",
     dataIndex: "title",
     ellipsis: true,
     sorter: true,
@@ -20,6 +20,7 @@ export const schemasColumns: any = [
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
+    search: false,
   },
 ];
 
