@@ -136,6 +136,15 @@ export default [
         access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
         component: "./equipment-management/equipment-library",
       },
+      {
+        path: "/equipment-management/equipment-library-edit/:id",
+        name: "设备编辑",
+        access: ["equipmentLibraryEdit-preview", "equipmentLibraryEdit-edit"],
+        component: "./equipment-management/equipment-library-edit",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+        hideFooter: true,
+      },
     ],
   },
   // {

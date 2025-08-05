@@ -1,24 +1,23 @@
+
 import {
   createOne,
   deleteOne,
   getList,
   getOne,
   updateOne,
-} from "@/services/equipment-management/equipment-library.service";
-import { DeleteOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
-import { history } from "@umijs/max";
-
+} from "@/services/equipment-management/equipment-library-edit.service";
+import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
   PageContainer,
   ProDescriptions,
   ProTable,
+  TableDropdown
 } from "@ant-design/pro-components";
-
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import {
   schemasColumns,
   schemasDescriptions,
@@ -39,16 +38,16 @@ const Page: React.FC = () => {
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
     columns: schemasColumns.concat([
-      {
+    {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 200,
+        width: 180,
         render: (text: any, record: any, index: any, action: any) => [
           <Button
-            key="preview"
-            variant="link"
             color="primary"
+            variant="link"
+            key="preview"
             icon={<EyeOutlined />}
             onClick={() => {
               setState({
@@ -60,24 +59,44 @@ const Page: React.FC = () => {
             详情
           </Button>,
           <Button
-            key="edit"
-            variant="link"
             color="primary"
-            icon={<DeleteOutlined />}
+            variant="link"
+            key="edit"
+            icon={<EditOutlined />}
             onClick={() => {
-              Modal.confirm({
-                title: "确认删除吗？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
+              form.setFieldsValue(record);
+              setState({
+                updateValue: record,
+                isUpdate: true,
+                isUpdateModalOpen: true,
               });
             }}
           >
-            删除
+            编辑
           </Button>,
+          <TableDropdown
+            key={index}
+            onSelect={(key: string) => {
+              console.log("key----", key);
+              console.log(key);
+              switch (key) {
+                case "delete":
+                  Modal.confirm({
+                    title: "确认删除吗？",
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                  return;
+                default:
+                  return;
+              }
+            }}
+            menus={[{ key: "delete", name: "删除" }]}
+          />,
         ],
       },
     ]),
@@ -99,19 +118,13 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
+        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
         total: 1,
         success: true,
       };
     }
   };
-  //   处理行点击事件
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const handleRowClick = (record: any, index: number) => {
-    history.push(`/equipment-management/equipment-library-edit/${record.id}`);
-    // 更新选中的行
-    setSelectedRow(record);
-  };
+
   return (
     <PageContainer>
       <ProTable<any>
@@ -130,38 +143,16 @@ const Page: React.FC = () => {
             key="button"
             icon={<PlusOutlined />}
             onClick={() => {
-              history.push("/equipment-management/equipment-library-edit");
+              setState({
+                isUpdate: false,
+                isUpdateModalOpen: true,
+              });
             }}
             type="primary"
           >
             新建
           </Button>,
         ]}
-        onRow={(record, index) => ({
-          onClick: (e) => {
-            // 检查点击的元素是否在操作栏内
-            const target = e.target as HTMLElement;
-            const isActionColumn =
-              target.closest(".ant-table-cell:last-child") ||
-              target.closest(".ant-btn") ||
-              target.closest("button") ||
-              target.closest("a");
-
-            // 如果点击的是操作栏，则不跳转
-            if (isActionColumn) {
-              e.stopPropagation();
-              return;
-            }
-
-            // 否则执行正常的行点击逻辑
-            handleRowClick(record, index || 0);
-          },
-          style: {
-            cursor: "pointer",
-            backgroundColor:
-              selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-          },
-        })}
       />
       <Modal
         title={isUpdate ? "编辑" : "新建"}
@@ -222,7 +213,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
+                data: {id: 1,title: '测试数据',createTime: '测试数据',},
                 success: true,
               };
             }
@@ -234,3 +225,4 @@ const Page: React.FC = () => {
 };
 
 export default Page;
+

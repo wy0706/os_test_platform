@@ -186,6 +186,20 @@ let source = [
           },
         ],
       },
+      {
+        pageName: "equipment-library-edit",
+        label: "设备编辑",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
     ],
   },
   // {

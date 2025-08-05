@@ -95,7 +95,10 @@ export const layout: RunTimeLayoutConfig = ({
   // 检查当前路由是否需要隐藏footer
   const shouldHideFooter = () => {
     // 这里可以根据路径判断是否需要隐藏footer
-    const hideFooterPaths = ["/case-management/test-case-example"];
+    const hideFooterPaths = [
+      "/case-management/test-case-example",
+      "/equipment-management/equipment-library-edit",
+    ];
     return hideFooterPaths.some((path) => currentPath.startsWith(path));
   };
   // 忽略特定 React warning（如 findDOMNode）

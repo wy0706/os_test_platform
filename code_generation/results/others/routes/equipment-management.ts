@@ -14,5 +14,13 @@ const routes =
             },
 
         
+            {
+                path: '/equipment-management/equipment-library-edit',
+                name: '设备编辑',
+                access: ['equipmentLibraryEdit-preview','equipmentLibraryEdit-edit'],
+                component: './equipment-management/equipment-library-edit',
+            },
+
+        
     ],
 },

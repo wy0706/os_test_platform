@@ -23,6 +23,14 @@ const routes =
 
         
             {
+                path: '/case-management/test-case-example',
+                name: '示例测试库',
+                access: ['testCaseExample-preview','testCaseExample-edit'],
+                component: './case-management/test-case-example',
+            },
+
+        
+            {
                 path: '/case-management/test-sequence',
                 name: '序列编辑',
                 access: ['testSequence-preview','testSequence-edit'],
@@ -35,14 +43,6 @@ const routes =
                 name: '序列集成',
                 access: ['testSequenceIntegration-preview','testSequenceIntegration-edit'],
                 component: './case-management/test-sequence-integration',
-            },
-
-        
-            {
-                path: '/case-management/test-case-example',
-                name: '示例测试库',
-                access: ['testCaseExample-preview','testCaseExample-edit'],
-                component: './case-management/test-case-example',
             },
 
         
