@@ -112,6 +112,15 @@ export default [
         access: ["caseLibrary-preview", "caseLibrary-edit"],
         component: "./case-management/case-library",
       },
+
+      {
+        path: "/case-management/test-case-example/:id",
+        name: "示例测试库",
+        access: ["testCaseExample-preview", "testCaseExample-edit"],
+        component: "./case-management/test-case-example",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+      },
     ],
   },
   {

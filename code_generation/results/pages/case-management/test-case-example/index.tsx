@@ -5,7 +5,7 @@ import {
   getList,
   getOne,
   updateOne,
-} from "@/services/backend-management/user-management.service";
+} from "@/services/case-management/test-case-example.service";
 import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,

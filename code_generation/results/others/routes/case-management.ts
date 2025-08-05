@@ -38,5 +38,13 @@ const routes =
             },
 
         
+            {
+                path: '/case-management/test-case-example',
+                name: '示例测试库',
+                access: ['testCaseExample-preview','testCaseExample-edit'],
+                component: './case-management/test-case-example',
+            },
+
+        
     ],
 },

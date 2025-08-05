@@ -13,6 +13,7 @@ import {
   PageContainer,
   ProDescriptions,
   ProTable,
+  TableDropdown
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
@@ -60,7 +61,7 @@ const Page: React.FC = () => {
           <Button
             color="primary"
             variant="link"
-            key="preview"
+            key="edit"
             icon={<EditOutlined />}
             onClick={() => {
               form.setFieldsValue(record);

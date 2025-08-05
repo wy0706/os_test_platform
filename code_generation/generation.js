@@ -125,6 +125,20 @@ let source = [
         ],
       },
       {
+        pageName: "test-case-example",
+        label: "示例测试库",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
         pageName: "test-sequence",
         label: "序列编辑",
         fileds: [

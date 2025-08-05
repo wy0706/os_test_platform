@@ -1,19 +1,20 @@
-
 import {
   createOne,
   deleteOne,
   getList,
   getOne,
   updateOne,
-} from "@/services/backend-management/user-management.service";
-import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+} from "@/services/case-management/test-case-example.service";
+import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { history } from "@umijs/max";
+
 import {
   ActionType,
   BetaSchemaForm,
   PageContainer,
   ProDescriptions,
   ProTable,
-  TableDropdown
+  TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
@@ -38,7 +39,7 @@ const Page: React.FC = () => {
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
     columns: schemasColumns.concat([
-    {
+      {
         title: "操作",
         valueType: "option",
         key: "option",
@@ -118,7 +119,7 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
+        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
         total: 1,
         success: true,
       };
@@ -126,7 +127,21 @@ const Page: React.FC = () => {
   };
 
   return (
-    <PageContainer>
+    <PageContainer
+      header={{
+        ghost: true,
+        extra: [
+          <Button
+            key="1"
+            onClick={() => {
+              history.back();
+            }}
+          >
+            返回
+          </Button>,
+        ],
+      }}
+    >
       <ProTable<any>
         columns={columns}
         actionRef={actionRef}
@@ -213,7 +228,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: {id: 1,title: '测试数据',createTime: '测试数据',},
+                data: { id: 1, title: "测试数据", createTime: "测试数据" },
                 success: true,
               };
             }
@@ -225,4 +240,3 @@ const Page: React.FC = () => {
 };
 
 export default Page;
-

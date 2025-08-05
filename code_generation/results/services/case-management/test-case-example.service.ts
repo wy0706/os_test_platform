@@ -1,7 +1,7 @@
 
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/caseManagement/testSequence";
+const baseUrl = "/api/caseManagement/testCaseExample";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {

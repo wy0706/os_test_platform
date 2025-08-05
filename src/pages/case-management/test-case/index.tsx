@@ -1,22 +1,21 @@
 import {
-  createOne,
   deleteOne,
   getList,
-  getOne,
-  updateOne,
 } from "@/services/case-management/test-case.service";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { history } from "@umijs/max";
+
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
-import React, { useRef } from "react";
+import { Button, Form, Modal } from "antd";
+import React, { useRef, useState } from "react";
+import AddModal from "./components/addModal";
+import DetailModal from "./components/detailModal";
 import {
   schemasColumns,
   schemasDescriptions,
@@ -29,9 +28,10 @@ const Page: React.FC = () => {
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
-    isUpdate: false,
     isUpdateModalOpen: false,
     updateValue: {},
+    optionType: "add", //默认是新增，add ｜ edit｜ copy
+    detailsData: {}, //详情
     formSchema: schemasForm,
     isPreviewModalOpen: false,
     detailsId: null,
@@ -52,6 +52,7 @@ const Page: React.FC = () => {
               setState({
                 detailsId: record.id,
                 isPreviewModalOpen: true,
+                detailsData: record,
               });
             }}
           >
@@ -66,8 +67,8 @@ const Page: React.FC = () => {
               form.setFieldsValue(record);
               setState({
                 updateValue: record,
-                isUpdate: true,
                 isUpdateModalOpen: true,
+                optionType: "edit",
               });
             }}
           >
@@ -81,7 +82,33 @@ const Page: React.FC = () => {
               switch (key) {
                 case "delete":
                   Modal.confirm({
-                    title: "确认删除吗？",
+                    title: (
+                      <div>
+                        <div>
+                          确认删除测试库{" "}
+                          <span
+                            style={{ color: "#ff4d4f", fontWeight: "bold" }}
+                          >
+                            {record.title}
+                          </span>{" "}
+                          吗？
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#666",
+                            marginTop: "8px",
+                          }}
+                        >
+                          测试库删除后不可恢复，删除测试库会一起删除测试库内的执行用例
+                        </div>
+                      </div>
+                    ),
+                    // content: (
+                    //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                    //     {record.title}
+                    //   </div>
+                    // ),
                     onOk: async () => {
                       await deleteOne(record.id);
                       if (actionRef.current) {
@@ -90,12 +117,28 @@ const Page: React.FC = () => {
                     },
                   });
                   return;
-
+                case "copy":
+                  form.setFieldsValue(record);
+                  setState({
+                    updateValue: record,
+                    isUpdateModalOpen: true,
+                    optionType: "copy",
+                  });
+                  return;
+                case "example":
+                  history.push(
+                    `/case-management/test-case-example/${record.id}`
+                  );
+                  return;
                 default:
                   return;
               }
             }}
-            menus={[{ key: "delete", name: "删除" }]}
+            menus={[
+              { key: "copy", name: "复制" },
+              { key: "example", name: "示例测试库" },
+              { key: "delete", name: "删除" },
+            ]}
           />,
         ],
       },
@@ -104,13 +147,14 @@ const Page: React.FC = () => {
   const {
     columns,
     title,
-    isUpdate,
     isUpdateModalOpen,
     updateValue,
     formSchema,
     isPreviewModalOpen,
     detailsId,
     descriptionsColumns,
+    optionType,
+    detailsData,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -118,13 +162,29 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
+        data: [
+          {
+            id: 1,
+            title: "测试数据",
+            title1: "DEMO",
+            createTime: "2025-07-30",
+          },
+        ],
         total: 1,
         success: true,
       };
     }
   };
+  //   处理行点击事件
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
+  const handleRowClick = (record: any, index: number) => {
+    console.log("点击的行数据:", record);
+    history.push(`/case-management/test-case-example/${record.id}`);
+    // 更新选中的行
+    setSelectedRow(record);
+    // message.success(`已选择: ${record.title}`);
+  };
   return (
     <PageContainer>
       <ProTable<any>
@@ -144,8 +204,8 @@ const Page: React.FC = () => {
             icon={<PlusOutlined />}
             onClick={() => {
               setState({
-                isUpdate: false,
                 isUpdateModalOpen: true,
+                optionType: "add",
               });
             }}
             type="primary"
@@ -153,8 +213,33 @@ const Page: React.FC = () => {
             新建
           </Button>,
         ]}
+        // onRow={(record, index) => ({
+        //   onClick: (e) => {
+        //     // 检查点击的元素是否在操作栏内
+        //     const target = e.target as HTMLElement;
+        //     const isActionColumn =
+        //       target.closest(".ant-table-cell:last-child") ||
+        //       target.closest(".ant-btn") ||
+        //       target.closest("button") ||
+        //       target.closest("a");
+
+        //     // 如果点击的是操作栏，则不跳转
+        //     if (isActionColumn) {
+        //       e.stopPropagation();
+        //       return;
+        //     }
+
+        //     // 否则执行正常的行点击逻辑
+        //     handleRowClick(record, index || 0);
+        //   },
+        //   style: {
+        //     cursor: "pointer",
+        //     backgroundColor:
+        //       selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+        //   },
+        // })}
       />
-      <Modal
+      {/* <Modal
         title={isUpdate ? "编辑" : "新建"}
         open={isUpdateModalOpen}
         onCancel={() => {
@@ -194,32 +279,27 @@ const Page: React.FC = () => {
             }
           }}
         />
-      </Modal>
+      </Modal> */}
 
-      <Modal
-        title="详情"
+      <AddModal
+        open={isUpdateModalOpen}
+        onCancel={() => {
+          setState({
+            isUpdateModalOpen: false,
+          });
+        }}
+        type={optionType}
+        onOk={(values: any) => {
+          console.log("values---", values);
+        }}
+      />
+      <DetailModal
+        details={detailsData}
         open={isPreviewModalOpen}
         onCancel={() => {
           setState({ isPreviewModalOpen: false });
         }}
-        footer={null}
-        width={800}
-      >
-        <ProDescriptions
-          columns={descriptionsColumns}
-          request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                success: true,
-              };
-            }
-          }}
-        ></ProDescriptions>
-      </Modal>
+      />
     </PageContainer>
   );
 };
