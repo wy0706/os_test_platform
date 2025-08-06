@@ -12,6 +12,7 @@ import {
   type ProColumns,
 } from "@ant-design/pro-components";
 import { history, useParams } from "@umijs/max";
+// import {useParams}
 import { useSetState } from "ahooks";
 import {
   Button,
@@ -24,10 +25,10 @@ import {
   message,
 } from "antd";
 import React, { useEffect, useState } from "react";
-import AddModelModal from "./components/addModelModal";
 import AddTypeModal from "./components/addTypeModal";
-import ParamModal from "./components/paramModal";
 import "./index.less";
+
+import AddModelModal from "./components/addModelModal";
 interface DeviceConfig {
   deviceType: string;
   deviceModel: string;
@@ -58,26 +59,13 @@ const PeripheralImport: React.FC = () => {
     []
   );
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | number | null>(null);
-
   const [state, setState] = useSetState<any>({
     isTypeModalOpen: false,
     isModelModalOpen: false,
     oneModelNode: null, //右键种类添加型号的当前种类节点
-    isParamModalOpen: false,
-    paramType: "", //参数配置类型
-    currentParamRecord: {}, //当前编辑表格行数据
   });
   const params = useParams();
-  const {
-    isTypeModalOpen,
-    isModelModalOpen,
-    oneModelNode,
-    isParamModalOpen,
-    paramType,
-    currentParamRecord,
-  } = state;
+  const { isTypeModalOpen, isModelModalOpen, oneModelNode } = state;
   useEffect(() => {
     if (params.id && params.id !== "add") {
       const data = [
@@ -127,7 +115,7 @@ const PeripheralImport: React.FC = () => {
   // 展开的节点keys
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
-  // 设备配置表格列定义 1
+  // 设备配置表格列定义
   const deviceConfigColumns: ProColumns<DeviceConfig>[] = [
     {
       title: "设备种类",
@@ -152,48 +140,17 @@ const PeripheralImport: React.FC = () => {
       dataIndex: "parameterConfig",
       key: "parameterConfig",
       width: 120,
-      render: (text, record) => {
-        return (
-          <div
-            onClick={() => {
-              // setState({
-              //   isParamModalOpen: true,
-              //   paramType: record.deviceType,
-              //   currentParamRecord: record,
-              // });
-            }}
-            style={{ cursor: "pointer", color: "#1677ff" }}
-          >
-            {text}
-          </div>
-        );
-      },
     },
     {
       title: "是否有效",
       dataIndex: "isValid",
       key: "isValid",
       width: 100,
-      render: (text, record) => {
-        return (
-          <div
-            onClick={() => {
-              // setState({
-              //   isParamModalOpen: true,
-              //   paramType: "parameter",
-              //   currentParamRecord: record,
-              // });
-            }}
-            style={{ cursor: "pointer", color: text ? "#088e35ff" : "red" }}
-          >
-            {text ? "✓" : "✗"}
-          </div>
-        );
-      },
+      render: (_, record) => (record.isValid ? "✓" : "✗"),
     },
   ];
 
-  // 通道配置表格列定义2
+  // 通道配置表格列定义
   const channelConfigColumns: ProColumns<ChannelConfig>[] = [
     {
       title: "设备型号",
@@ -242,14 +199,6 @@ const PeripheralImport: React.FC = () => {
         parameterConfig: "1,115200,1",
         isValid: 0,
         id: 2,
-      },
-      {
-        deviceType: "LIN",
-        deviceModel: "LIN",
-        interface: "RS232",
-        parameterConfig: "1,115200,1",
-        isValid: 0,
-        id: 3,
       },
     ];
     setDeviceConfigData(data2);
@@ -717,22 +666,6 @@ const PeripheralImport: React.FC = () => {
           setState({ isModelModalOpen: false });
         }}
         onOk={handleAddModelSuccess}
-      />
-      {/* 单击table数据编辑 */}
-      <ParamModal
-        open={isParamModalOpen}
-        type={paramType}
-        data={currentParamRecord}
-        onCancel={() => {
-          setState({
-            isParamModalOpen: false,
-          });
-        }}
-        onOk={() => {
-          setState({
-            isParamModalOpen: false,
-          });
-        }}
       />
     </PageContainer>
   );

@@ -16,7 +16,7 @@ interface UseCase {
   id: string;
   title: string;
   description: string;
-  importance: "P1" | "P2" | "P3";
+  importance: "P1" | "P2" | "P3" | "P0" | "P4";
   checked: boolean;
   libraryId?: string;
   moduleId?: string;
@@ -107,7 +107,7 @@ const AddModal: React.FC<ModalProps> = ({
       id: "2",
       title: "DEMO-2",
       description: "提交订单时可以修改收货地址",
-      importance: "P1",
+      importance: "P0",
       checked: false,
       libraryId: "library1",
       moduleId: "module1-1",

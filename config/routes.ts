@@ -86,6 +86,10 @@ export default [
     access: "caseManagement",
     routes: [
       {
+        path: "/case-management",
+        redirect: "/case-management/test-case",
+      },
+      {
         path: "/case-management/test-case",
         name: "测试用例",
         access: ["testCase-preview", "testCase-edit"],
@@ -131,14 +135,25 @@ export default [
     access: "equipmentManagement",
     routes: [
       {
+        path: "/equipment-management",
+        redirect: "/equipment-management/equipment-library",
+      },
+      {
         path: "/equipment-management/equipment-library",
         name: "设备库",
         access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
         component: "./equipment-management/equipment-library",
       },
+      // {
+      //   path: "/equipment-management/peripheral-import",
+      //   name: "外设导入",
+      //   access: ["peripheralImport-preview", "peripheralImport-edit"],
+      //   component: "./equipment-management/peripheral-import",
+      //   hideFooter: true,
+      // },
       {
         path: "/equipment-management/equipment-library-edit/:id",
-        name: "设备编辑",
+        name: "外设导入",
         access: ["equipmentLibraryEdit-preview", "equipmentLibraryEdit-edit"],
         component: "./equipment-management/equipment-library-edit",
         hideInMenu: true,

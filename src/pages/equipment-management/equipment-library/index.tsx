@@ -130,7 +130,7 @@ const Page: React.FC = () => {
             key="button"
             icon={<PlusOutlined />}
             onClick={() => {
-              history.push("/equipment-management/equipment-library-edit");
+              history.push("/equipment-management/equipment-library-edit/add");
             }}
             type="primary"
           >
