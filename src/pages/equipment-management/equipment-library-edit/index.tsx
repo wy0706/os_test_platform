@@ -2,7 +2,6 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   FileAddOutlined,
-  FolderOpenOutlined,
   PlusOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
@@ -26,6 +25,8 @@ import {
 import React, { useEffect, useState } from "react";
 import AddModelModal from "./components/addModelModal";
 import AddTypeModal from "./components/addTypeModal";
+import CanModal from "./components/canModal";
+import LinModal from "./components/linModal";
 import ParamModal from "./components/paramModal";
 import "./index.less";
 interface DeviceConfig {
@@ -66,6 +67,8 @@ const PeripheralImport: React.FC = () => {
     isModelModalOpen: false,
     oneModelNode: null, //右键种类添加型号的当前种类节点
     isParamModalOpen: false,
+    isLinModalOpen: false,
+    isCanModalOpen: false,
     paramType: "", //参数配置类型
     currentParamRecord: {}, //当前编辑表格行数据
   });
@@ -77,6 +80,8 @@ const PeripheralImport: React.FC = () => {
     isParamModalOpen,
     paramType,
     currentParamRecord,
+    isLinModalOpen,
+    isCanModalOpen,
   } = state;
   useEffect(() => {
     if (params.id && params.id !== "add") {
@@ -156,11 +161,27 @@ const PeripheralImport: React.FC = () => {
         return (
           <div
             onClick={() => {
-              // setState({
-              //   isParamModalOpen: true,
-              //   paramType: record.deviceType,
-              //   currentParamRecord: record,
-              // });
+              setState({
+                paramType: record.deviceType,
+                currentParamRecord: record,
+              });
+              switch (record.deviceType) {
+                case "LIN":
+                  setState({
+                    isLinModalOpen: true,
+                  });
+                  return;
+                case "CAN":
+                  setState({
+                    isCanModalOpen: true,
+                  });
+                  return;
+                default:
+                  setState({
+                    isParamModalOpen: true,
+                  });
+                  return;
+              }
             }}
             style={{ cursor: "pointer", color: "#1677ff" }}
           >
@@ -633,9 +654,9 @@ const PeripheralImport: React.FC = () => {
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新建
             </Button>
-            <Button icon={<FolderOpenOutlined />} onClick={handleImport}>
+            {/* <Button icon={<FolderOpenOutlined />} onClick={handleImport}>
               打开
-            </Button>
+            </Button> */}
             <Button icon={<SaveOutlined />} onClick={handleExport}>
               保存
             </Button>
@@ -718,10 +739,9 @@ const PeripheralImport: React.FC = () => {
         }}
         onOk={handleAddModelSuccess}
       />
-      {/* 单击table数据编辑 */}
+      {/* 串口配置参数 */}
       <ParamModal
         open={isParamModalOpen}
-        type={paramType}
         data={currentParamRecord}
         onCancel={() => {
           setState({
@@ -731,6 +751,36 @@ const PeripheralImport: React.FC = () => {
         onOk={() => {
           setState({
             isParamModalOpen: false,
+          });
+        }}
+      />
+      {/* can */}
+      <CanModal
+        open={isCanModalOpen}
+        data={currentParamRecord}
+        onCancel={() => {
+          setState({
+            isCanModalOpen: false,
+          });
+        }}
+        onOk={() => {
+          setState({
+            isCanModalOpen: false,
+          });
+        }}
+      />
+      {/* lin */}
+      <LinModal
+        open={isLinModalOpen}
+        data={currentParamRecord}
+        onCancel={() => {
+          setState({
+            isLinModalOpen: false,
+          });
+        }}
+        onOk={() => {
+          setState({
+            isLinModalOpen: false,
           });
         }}
       />

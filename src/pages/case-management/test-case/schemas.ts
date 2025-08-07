@@ -1,5 +1,5 @@
 export const schemasTitle: any = {
-  label: "测试用例",
+  label: "测试用例库",
   value: "testCase",
 };
 

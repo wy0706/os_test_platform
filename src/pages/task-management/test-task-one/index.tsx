@@ -14,7 +14,6 @@ import {
 import { useSetState } from "ahooks";
 import {
   Button,
-  Checkbox,
   Form,
   Modal,
   Progress,
@@ -188,6 +187,8 @@ const Page: React.FC = () => {
             libraryId: "library3",
             moduleId: "module3-1",
             version: "v1",
+            importance2: "null",
+            importance3: null,
           },
         ],
         total: 1,
@@ -271,7 +272,7 @@ const Page: React.FC = () => {
                 <span style={{ color: "#888" }}> 已测 </span>
                 <span style={{ color: "#888" }}>1</span>/<span>6</span>
               </div>,
-              <div style={{ marginRight: 10, minWidth: 100 }}>
+              <div style={{ marginRight: 20, minWidth: 100 }}>
                 <Progress
                   size="small"
                   percent={17}
@@ -279,15 +280,15 @@ const Page: React.FC = () => {
                   strokeColor="#72c240"
                 />
               </div>,
-              <div style={{ marginRight: 20 }}>
-                <Checkbox
-                  onChange={(e) => {
-                    console.log(" e.target.checked;", e.target.checked);
-                  }}
-                >
-                  显示测试过程
-                </Checkbox>
-              </div>,
+              // <div style={{ marginRight: 20 }}>
+              //   <Checkbox
+              //     onChange={(e) => {
+              //       console.log(" e.target.checked;", e.target.checked);
+              //     }}
+              //   >
+              //     显示测试过程
+              //   </Checkbox>
+              // </div>,
               <Button
                 key="button"
                 icon={<PlusOutlined />}

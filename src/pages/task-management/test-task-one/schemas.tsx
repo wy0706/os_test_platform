@@ -1,5 +1,5 @@
 export const schemasTitle: any = {
-  label: "测试任务",
+  label: "执行用例",
   value: "testTaskOne",
 };
 
@@ -26,6 +26,33 @@ export const schemasColumns: any = [
     dataIndex: "importance",
     ellipsis: true,
     sorter: true,
+  },
+  {
+    title: "执行结果",
+    dataIndex: "importance2",
+    ellipsis: true,
+    valueEnum: {
+      pass: {
+        text: "PASS",
+        status: "Success",
+      },
+      fail: {
+        text: "Error",
+        status: "Success",
+      },
+      null: {
+        text: "未测",
+        status: "Default",
+      },
+    },
+    // 执行结果：未测、PASS/FAIL
+    // sorter: true,
+  },
+  {
+    title: "执行时间",
+    dataIndex: "importance3",
+    ellipsis: true,
+    valueType: "dateTime",
   },
 ];
 

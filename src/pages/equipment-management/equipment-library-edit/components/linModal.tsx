@@ -1,19 +1,19 @@
 import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Modal, Select } from "antd";
+import { Form, InputRef, Modal, Select } from "antd";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   COMOptions,
   dataBitsOption,
-  parityOption,
+  domainOption,
   rateOption,
-  stopBitsOption,
 } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
   onSelect?: () => void;
+  type?: string;
   data?: any;
 }
 const { Option } = Select;
@@ -23,15 +23,21 @@ const layout = {
   labelCol: { span: 24 },
 };
 
-const ParamModal: React.FC<SetMemberModalProps> = ({
+const LinModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
   onSelect,
+  type,
   data,
 }) => {
   const [userList, setUserList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [busProtocol, setBusProtocol] = useState(null); //CAN 总线协议
+
+  const [domainOptions, setDomainOptions] = useState(domainOption);
+  const [domainName, setDomainName] = useState("");
+  const inputdomainRef = useRef<InputRef>(null);
 
   // 获取所有用户列表
   const fetchAllUsers = async () => {
@@ -53,6 +59,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
+    console.log("type====", type);
+
     if (open) {
       form?.resetFields();
       // 打开弹窗时获取所有用户列表
@@ -61,14 +69,18 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       //   console.log("uodateCalue", data);
       //   formRef.current?.setFieldsValue(data);
       // }
-      // if ((type === "edit" || type === "copy") && data) {
-      //   console.log("uodateCalue====", data);
-      //   form?.setFieldsValue(data);
-      // }
+      if ((type === "edit" || type === "copy") && data) {
+        console.log("uodateCalue====", data);
+        form?.setFieldsValue(data);
+      }
     }
-  }, [open, data]);
+  }, [open, type, data]);
 
   const [form] = Form.useForm();
+
+  const onFinish = (values: any) => {
+    console.log(values);
+  };
 
   const handleOk = () => {
     form
@@ -84,6 +96,28 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       });
   };
 
+  const demainNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDomainName(event.target.value);
+  };
+
+  const addDemainItem = (
+    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
+  ) => {
+    e.preventDefault();
+    setDomainOptions;
+    setDomainOptions([
+      ...domainOptions,
+      {
+        value: domainName || `New item ${index++}`,
+        label: domainName || `New item ${index++}`,
+      },
+    ]);
+    setDomainName(e.target.value);
+    setTimeout(() => {
+      inputdomainRef.current?.focus();
+    }, 0);
+  };
+
   return (
     <Modal
       title="设备种类参数配置"
@@ -96,10 +130,10 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="port" label="端口">
+      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+        <Form.Item name="port" label="主从模式">
           <Select
-            placeholder="选择设备类型"
+            placeholder="选择主从模式"
             allowClear
             showSearch
             loading={loading}
@@ -130,9 +164,9 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
             }
           ></Select>
         </Form.Item>
-        <Form.Item name="databits" label="数据位">
+        <Form.Item name="databits" label="同步间隔宽度">
           <Select
-            placeholder="选择数据位"
+            placeholder="选择间隔宽度"
             allowClear
             showSearch
             loading={loading}
@@ -149,47 +183,9 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="stopbits" label="停止位">
-          <Select
-            placeholder="选择停止位"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {stopBitsOption.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item name="parity" label="奇偶校验">
-          <Select
-            placeholder="选择奇偶校验"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {parityOption.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
       </Form>
     </Modal>
   );
 };
 
-export default ParamModal;
+export default LinModal;
