@@ -106,6 +106,71 @@ const CanModal: React.FC<SetMemberModalProps> = ({
 
   const [form] = Form.useForm();
 
+  //  监听 仲裁域波特率计算采样点 波特率
+  const name2 = Form.useWatch("name2", form);
+  const name3 = Form.useWatch("name3", form);
+  const name4 = Form.useWatch("name4", form);
+  const name5 = Form.useWatch("name5", form);
+  const name61 = Form.useWatch("name61", form);
+  const remember = Form.useWatch("remember", form);
+
+  //name7 name8 name9 name10 name62 remember1
+  const name7 = Form.useWatch("name7", form);
+  const name8 = Form.useWatch("name8", form);
+  const name9 = Form.useWatch("name9", form);
+  const name10 = Form.useWatch("name10", form);
+  const name62 = Form.useWatch("name62", form);
+  const remember1 = Form.useWatch("remember1", form);
+  useEffect(() => {
+    setSate({
+      arbitCheck: remember,
+    });
+    setSate({
+      arbitPoint: name4 && name5 ? handlePoint(name4, name5) : 0,
+    });
+    if (remember) {
+      if (name3 && name4 && name5 && name61) {
+        console.log("111", 1);
+
+        setSate({
+          arbitBaudRate: handleRate(name61, name3, name4, name5),
+        });
+      } else {
+        setSate({
+          arbitBaudRate: name2 ? name2 : 0,
+        });
+      }
+    } else {
+      setSate({
+        arbitBaudRate: name2 ? name2 : 0,
+      });
+    }
+  }, [name2, name3, name4, name5, name61, remember]);
+
+  useEffect(() => {
+    setSate({
+      domainCheck: remember1,
+    });
+    setSate({
+      doaminPoint: name9 && name10 ? handlePoint(name9, name10) : 0,
+    });
+    if (remember1) {
+      if (name8 && name9 && name10 && name62) {
+        setSate({
+          domainBaudRate: handleRate(name62, name8, name9, name10),
+        });
+      } else {
+        setSate({
+          domainBaudRate: name7 ? name7 : 0,
+        });
+      }
+    } else {
+      setSate({
+        domainBaudRate: name7 ? name7 : 0,
+      });
+    }
+  }, [name7, name8, name9, name10, name62, remember1]);
+
   const handleOk = () => {
     console.log("ok");
 
@@ -202,6 +267,7 @@ const CanModal: React.FC<SetMemberModalProps> = ({
         maskClosable={false}
         open={open}
         onCancel={() => {
+          form?.resetFields();
           onCancel && onCancel();
         }}
         styles={{ body: { minHeight: 100, padding: 20 } }}
@@ -303,23 +369,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                       </Space>
                     </>
                   )}
-                  onChange={(value) => {
-                    const { name3, name4, name5, name61 } =
-                      form.getFieldsValue();
-                    let m;
-                    if (arbitCheck) {
-                      if (name3 && name4 && name5 && name61) {
-                        m = handleRate(name61, name3, name4, name5);
-                      } else {
-                        m = 0;
-                      }
-                    } else {
-                      m = value ? value : 0;
-                    }
-                    setSate({
-                      arbitBaudRate: m,
-                    });
-                  }}
                 ></Select>
               </Form.Item>
               <Form.Item name="name3" label="BRP">
@@ -328,18 +377,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   min={1}
                   max={255}
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name4, name5, name61 } = form.getFieldsValue();
-                    let m;
-                    if (arbitCheck) {
-                      if (value && name4 && name5 && name61) {
-                        m = handleRate(name61, value, name4, name5);
-                      }
-                      setSate({
-                        arbitBaudRate: m,
-                      });
-                    }
-                  }}
                 />
               </Form.Item>
               <Form.Item name="name4" label="SEG1">
@@ -348,29 +385,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   min={2}
                   max={255}
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name3, name5, name61 } = form.getFieldsValue();
-
-                    if (arbitCheck) {
-                      let m;
-                      if (value && name3 && name5 && name61) {
-                        m = handleRate(name61, name3, value, name5);
-                      }
-                      setSate({
-                        arbitBaudRate: m,
-                      });
-                    }
-                    // 计算采样点
-                    let point;
-                    if (value && name5) {
-                      point = handlePoint(value, name5);
-                    } else {
-                      point = 0;
-                    }
-                    setSate({
-                      arbitPoint: point,
-                    });
-                  }}
                 />
               </Form.Item>
               <Form.Item name="name5" label="SEG2">
@@ -379,30 +393,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   min={1}
                   max={128}
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name3, name4, name61 } = form.getFieldsValue();
-
-                    if (arbitCheck) {
-                      let m;
-                      if (value && name3 && name4 && name61) {
-                        m = handleRate(name61, name3, name4, value);
-                      }
-                      setSate({
-                        arbitBaudRate: m,
-                      });
-                    }
-
-                    // 计算采样点
-                    let point;
-                    if (value && name4) {
-                      point = handlePoint(value, name4);
-                    } else {
-                      point = 0;
-                    }
-                    setSate({
-                      arbitPoint: point,
-                    });
-                  }}
                 />
               </Form.Item>
               <Form.Item
@@ -449,29 +439,8 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   />
                 </Form.Item>
               ) : null}
-              <Form.Item name="remember">
-                <Checkbox
-                  checked={arbitCheck}
-                  onChange={(e) => {
-                    let m;
-                    const { name2, name3, name4, name5, name61 } =
-                      form.getFieldsValue();
-
-                    if (e.target.checked) {
-                      if (name3 && name4 && name5 && name61) {
-                        m = handleRate(name61, name3, name4, name5);
-                      } else {
-                        m = 0;
-                      }
-                    }
-                    setSate({
-                      arbitBaudRate: e.target.checked ? m : name2 ? name2 : 0,
-                      arbitCheck: e.target.checked,
-                    });
-                  }}
-                >
-                  波特率计算器
-                </Checkbox>
+              <Form.Item name="remember" valuePropName="checked">
+                <Checkbox>波特率计算器</Checkbox>
               </Form.Item>
               <div
                 style={{
@@ -519,23 +488,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                       ?.toLowerCase()
                       .includes(input.toLowerCase())
                   }
-                  onChange={(value) => {
-                    const { name8, name9, name10, name62 } =
-                      form.getFieldsValue();
-                    let m;
-                    if (domainCheck) {
-                      if (name8 && name9 && 10 && name62) {
-                        m = handleRate(name62, name8, name9, name10);
-                      } else {
-                        m = 0;
-                      }
-                    } else {
-                      m = value ? value : 0;
-                    }
-                    setSate({
-                      domainBaudRate: m,
-                    });
-                  }}
                   popupRender={(menu) => (
                     <>
                       {menu}
@@ -573,18 +525,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   min={1}
                   max={255}
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name9, name10, name62 } = form.getFieldsValue();
-                    let m;
-                    if (domainCheck) {
-                      if (value && name9 && name10 && name62) {
-                        m = handleRate(name62, value, name9, name10);
-                      }
-                      setSate({
-                        domainBaudRate: m,
-                      });
-                    }
-                  }}
                 />
               </Form.Item>
               <Form.Item name="name9" label="SEG1">
@@ -594,28 +534,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   disabled={busProtocol === "CAN"}
                   placeholder="输入SEG1"
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name8, name10, name62 } = form.getFieldsValue();
-                    if (domainCheck) {
-                      let m;
-                      if (value && name8 && name10 && name62) {
-                        m = handleRate(name62, name8, value, name10);
-                      }
-                      setSate({
-                        domainBaudRate: m,
-                      });
-                    }
-                    // 计算采样点
-                    let point;
-                    if (value && name10) {
-                      point = handlePoint(value, name10);
-                    } else {
-                      point = 0;
-                    }
-                    setSate({
-                      domainPoint: point,
-                    });
-                  }}
                 />
               </Form.Item>
               <Form.Item name="name10" label="SEG2">
@@ -625,29 +543,6 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                   disabled={busProtocol === "CAN"}
                   placeholder="输入SEG2"
                   style={{ width: "100%" }}
-                  onChange={(value) => {
-                    const { name8, name9, name62 } = form.getFieldsValue();
-                    if (domainCheck) {
-                      let m;
-                      if (value && name8 && name9 && name62) {
-                        m = handleRate(name62, name8, name9, value);
-                      }
-                      setSate({
-                        domainBaudRate: m,
-                      });
-                    }
-
-                    // 计算采样点
-                    let point;
-                    if (value && name9) {
-                      point = handlePoint(value, name9);
-                    } else {
-                      point = 0;
-                    }
-                    setSate({
-                      domainPoint: point,
-                    });
-                  }}
                 />
               </Form.Item>
               <Form.Item name="name11" label="SJW">
@@ -674,43 +569,11 @@ const CanModal: React.FC<SetMemberModalProps> = ({
                     min={1}
                     style={{ width: "100%" }}
                     addonAfter="MHz"
-                    onChange={(value) => {
-                      console.log("输入CAN时钟进行波特率计算", value);
-
-                      const { name3, name4, name5 } = form.getFieldsValue();
-                      if (value && name3 && name4 && name5) {
-                        let m = handleRate(value, name3, name4, name5);
-                        setSate({
-                          arbitBaudRate: m,
-                        });
-                      }
-                    }}
                   />
                 </Form.Item>
               ) : null}
-              <Form.Item name="remember1">
-                <Checkbox
-                  checked={domainCheck}
-                  onChange={(e) => {
-                    let m;
-                    const { name7, name8, name9, name10, name62 } =
-                      form.getFieldsValue();
-
-                    if (e.target.checked) {
-                      if (name8 && name9 && name10 && name62) {
-                        m = handleRate(name62, name8, name9, name10);
-                      } else {
-                        m = 0;
-                      }
-                    }
-                    setSate({
-                      domainBaudRate: e.target.checked ? m : name7 ? name7 : 0,
-                      domainCheck: e.target.checked,
-                    });
-                  }}
-                >
-                  波特率计算器
-                </Checkbox>
+              <Form.Item name="remember1" valuePropName="checked">
+                <Checkbox>波特率计算器</Checkbox>
               </Form.Item>
               <div
                 style={{
