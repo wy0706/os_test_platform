@@ -1,13 +1,8 @@
 import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, InputRef, Modal, Select } from "antd";
+import { Form, Modal, Select } from "antd";
 
-import { useEffect, useRef, useState } from "react";
-import {
-  COMOptions,
-  dataBitsOption,
-  domainOption,
-  rateOption,
-} from "../schemas";
+import { useEffect, useState } from "react";
+import { linRateOption, spaceOptions } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -18,7 +13,6 @@ interface SetMemberModalProps {
 }
 const { Option } = Select;
 
-let index = 0;
 const layout = {
   labelCol: { span: 24 },
 };
@@ -31,13 +25,10 @@ const LinModal: React.FC<SetMemberModalProps> = ({
   type,
   data,
 }) => {
+  const [form] = Form.useForm();
   const [userList, setUserList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [busProtocol, setBusProtocol] = useState(null); //CAN 总线协议
-
-  const [domainOptions, setDomainOptions] = useState(domainOption);
-  const [domainName, setDomainName] = useState("");
-  const inputdomainRef = useRef<InputRef>(null);
+  const port = Form.useWatch("port", form);
 
   // 获取所有用户列表
   const fetchAllUsers = async () => {
@@ -59,6 +50,14 @@ const LinModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
+    //当“主从模式”选择从机时，“同步间隔宽度（bit）”不可配，只能为13
+    if (port == 2) {
+      form.setFieldsValue({
+        databits: 13,
+      });
+    }
+  }, [port]);
+  useEffect(() => {
     console.log("type====", type);
 
     if (open) {
@@ -69,18 +68,11 @@ const LinModal: React.FC<SetMemberModalProps> = ({
       //   console.log("uodateCalue", data);
       //   formRef.current?.setFieldsValue(data);
       // }
-      if ((type === "edit" || type === "copy") && data) {
-        console.log("uodateCalue====", data);
-        form?.setFieldsValue(data);
-      }
+
+      console.log("uodateCalue====", data);
+      form?.setFieldsValue(data);
     }
   }, [open, type, data]);
-
-  const [form] = Form.useForm();
-
-  const onFinish = (values: any) => {
-    console.log(values);
-  };
 
   const handleOk = () => {
     form
@@ -96,28 +88,6 @@ const LinModal: React.FC<SetMemberModalProps> = ({
       });
   };
 
-  const demainNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDomainName(event.target.value);
-  };
-
-  const addDemainItem = (
-    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
-  ) => {
-    e.preventDefault();
-    setDomainOptions;
-    setDomainOptions([
-      ...domainOptions,
-      {
-        value: domainName || `New item ${index++}`,
-        label: domainName || `New item ${index++}`,
-      },
-    ]);
-    setDomainName(e.target.value);
-    setTimeout(() => {
-      inputdomainRef.current?.focus();
-    }, 0);
-  };
-
   return (
     <Modal
       title="设备种类参数配置"
@@ -130,32 +100,19 @@ const LinModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form} name="control-hooks">
         <Form.Item name="port" label="主从模式">
-          <Select
-            placeholder="选择主从模式"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {COMOptions.map((com) => (
-              <Option key={com} value={com}>
-                {com}
-              </Option>
-            ))}
+          <Select placeholder="选择主从模式" allowClear>
+            <Option value="1">主机</Option>
+            <Option value="2">丛机</Option>
           </Select>
         </Form.Item>
-        <Form.Item name="rate" label="波特率">
+        <Form.Item name="rate" label="波特率值">
           <Select
-            placeholder="选择波特率 "
+            placeholder="选择波特率值"
             allowClear
             showSearch
-            options={rateOption}
+            options={linRateOption}
             loading={loading}
             filterOption={(input, option) =>
               (option?.children as unknown as string)
@@ -164,19 +121,20 @@ const LinModal: React.FC<SetMemberModalProps> = ({
             }
           ></Select>
         </Form.Item>
-        <Form.Item name="databits" label="同步间隔宽度">
+        <Form.Item name="databits" label="同步间隔宽度(bit)">
           <Select
             placeholder="选择间隔宽度"
             allowClear
+            disabled={port == 2}
             showSearch
-            loading={loading}
+            // loading={loading}
             filterOption={(input, option) =>
               (option?.children as unknown as string)
                 ?.toLowerCase()
                 .includes(input.toLowerCase())
             }
           >
-            {dataBitsOption.map((item) => (
+            {spaceOptions.map((item) => (
               <Option value={item.value} key={item.value}>
                 {item.label}
               </Option>

@@ -16,8 +16,8 @@ import {
   Button,
   Card,
   Dropdown,
-  Menu,
   Modal,
+  Select,
   Space,
   Tree,
   message,
@@ -52,6 +52,15 @@ interface TreeNode {
   level?: number;
 }
 
+interface SelfCheckMessage {
+  id: number;
+  deviceType: string;
+  serialNumber: string;
+  errorCode: string;
+  message: string;
+  timestamp: Date;
+}
+
 const PeripheralImport: React.FC = () => {
   const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [deviceConfigData, setDeviceConfigData] = useState<DeviceConfig[]>([]);
@@ -62,7 +71,19 @@ const PeripheralImport: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | number | null>(null);
 
-  const [state, setState] = useSetState<any>({
+  const [state, setState] = useSetState<{
+    isTypeModalOpen: boolean;
+    isModelModalOpen: boolean;
+    oneModelNode: any;
+    isParamModalOpen: boolean;
+    isLinModalOpen: boolean;
+    isCanModalOpen: boolean;
+    paramType: string;
+    currentParamRecord: any;
+    isSelfCheck: boolean;
+    selfCheckMessages: SelfCheckMessage[];
+    isSelfChecking: boolean;
+  }>({
     isTypeModalOpen: false,
     isModelModalOpen: false,
     oneModelNode: null, //右键种类添加型号的当前种类节点
@@ -71,6 +92,9 @@ const PeripheralImport: React.FC = () => {
     isCanModalOpen: false,
     paramType: "", //参数配置类型
     currentParamRecord: {}, //当前编辑表格行数据
+    isSelfCheck: false, //是否点击自检
+    selfCheckMessages: [], //自检信息列表
+    isSelfChecking: false, //是否正在自检中
   });
   const params = useParams();
   const {
@@ -82,6 +106,9 @@ const PeripheralImport: React.FC = () => {
     currentParamRecord,
     isLinModalOpen,
     isCanModalOpen,
+    isSelfCheck,
+    selfCheckMessages,
+    isSelfChecking,
   } = state;
   useEffect(() => {
     if (params.id && params.id !== "add") {
@@ -127,6 +154,7 @@ const PeripheralImport: React.FC = () => {
       setExpandedKeys(["instrument"]);
     }
   }, []);
+
   // 树结构数据
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   // 展开的节点keys
@@ -139,22 +167,26 @@ const PeripheralImport: React.FC = () => {
       dataIndex: "deviceType",
       key: "deviceType",
       width: 120,
+      editable: false,
     },
     {
       title: "设备型号",
       dataIndex: "deviceModel",
       key: "deviceModel",
+      editable: false,
       width: 150,
     },
     {
       title: "接口",
       dataIndex: "interface",
       key: "interface",
+      editable: false,
       width: 100,
     },
     {
       title: "参数配置",
       dataIndex: "parameterConfig",
+      editable: false,
       key: "parameterConfig",
       width: 120,
       render: (text, record) => {
@@ -195,22 +227,44 @@ const PeripheralImport: React.FC = () => {
       dataIndex: "isValid",
       key: "isValid",
       width: 100,
-      render: (text, record) => {
+      valueType: "select",
+      filters: true,
+      ellipsis: true,
+      editable: (text, record, index) => true,
+      valueEnum: {
+        1: {
+          text: "✓",
+          status: "Success",
+        },
+        0: {
+          text: "✗",
+          status: "Error",
+        },
+      },
+      renderFormItem: () => {
         return (
-          <div
-            onClick={() => {
-              // setState({
-              //   isParamModalOpen: true,
-              //   paramType: "parameter",
-              //   currentParamRecord: record,
-              // });
-            }}
-            style={{ cursor: "pointer", color: text ? "#088e35ff" : "red" }}
-          >
-            {text ? "✓" : "✗"}
-          </div>
+          <Select>
+            <Select.Option value={1}>✓</Select.Option>
+            <Select.Option value={0}>✗</Select.Option>
+          </Select>
         );
       },
+    },
+    {
+      title: "操作",
+      valueType: "option",
+      width: 100,
+      key: "option",
+      render: (text, record, _, action) => [
+        <a
+          key="editable"
+          onClick={() => {
+            action?.startEditable?.(record.id);
+          }}
+        >
+          编辑
+        </a>,
+      ],
     },
   ];
 
@@ -219,22 +273,60 @@ const PeripheralImport: React.FC = () => {
     {
       title: "设备型号",
       dataIndex: "deviceModel",
-
       width: 150,
+      editable: false,
     },
     {
       title: "通道号",
       dataIndex: "channelNumber",
       width: 100,
+      editable: false,
     },
     {
       title: "指定序号",
       dataIndex: "assignedSequenceNumber",
       width: 120,
+      valueType: "select",
+      editable: (text, record, index) => true,
+      valueEnum: {
+        "1": { text: "1" },
+        "2": { text: "2" },
+        "3": { text: "3" },
+        "4": { text: "4" },
+      },
+      renderFormItem: () => {
+        return (
+          <Select>
+            <Select.Option value="1">1</Select.Option>
+            <Select.Option value="2">2</Select.Option>
+            <Select.Option value="3">3</Select.Option>
+            <Select.Option value="4">4</Select.Option>
+          </Select>
+        );
+      },
+    },
+    {
+      title: "操作",
+      valueType: "option",
+      key: "option",
+      width: 100,
+      render: (text, record, _, action) => [
+        <a
+          key="editable"
+          onClick={() => {
+            action?.startEditable?.(record.id);
+          }}
+        >
+          编辑
+        </a>,
+      ],
     },
   ];
   // 树节点选择处理
   const onSelect = (selectedKeys: React.Key[]) => {
+    setState({
+      isSelfCheck: false,
+    });
     if (selectedKeys.length > 0) {
       setSelectedDevice(selectedKeys[0] as string);
     }
@@ -287,60 +379,54 @@ const PeripheralImport: React.FC = () => {
     const level = node.level || 1;
     switch (level) {
       case 1: // Instrument 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "addType",
-                icon: <PlusOutlined />,
-                label: "添加种类",
-                onClick: () => {
-                  setState({ isTypeModalOpen: true });
-                },
+        return {
+          items: [
+            {
+              key: "addType",
+              icon: <PlusOutlined />,
+              label: "添加种类",
+              onClick: () => {
+                setState({ isTypeModalOpen: true });
               },
-              {
-                key: "deleteAll",
-                icon: <DeleteOutlined />,
-                label: "删除全部",
-                onClick: () => handleDeleteAll(),
-              },
-            ]}
-          />
-        );
+            },
+            {
+              key: "deleteAll",
+              icon: <DeleteOutlined />,
+              label: "删除全部",
+              onClick: () => handleDeleteAll(),
+            },
+          ],
+        };
       case 2: // AC SOURCE 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "addModel",
-                icon: <PlusOutlined />,
-                label: "添加型号",
-                onClick: () => handleAddModel(node),
-              },
-              {
-                key: "deleteType",
-                icon: <DeleteOutlined />,
-                label: "删除种类",
-                onClick: () => handleDeleteType(node),
-              },
-            ]}
-          />
-        );
+        return {
+          items: [
+            {
+              key: "addModel",
+              icon: <PlusOutlined />,
+              label: "添加型号",
+              onClick: () => handleAddModel(node),
+            },
+            {
+              key: "deleteType",
+              icon: <DeleteOutlined />,
+              label: "删除种类",
+              onClick: () => handleDeleteType(node),
+            },
+          ],
+        };
       case 3: // Chroma 61600 Series 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "deleteModel",
-                icon: <DeleteOutlined />,
-                label: "删除型号",
-                onClick: () => handleDeleteModel(node),
-              },
-            ]}
-          />
-        );
+        return {
+          items: [
+            {
+              key: "deleteModel",
+              icon: <DeleteOutlined />,
+              label: "删除型号",
+              onClick: () => handleDeleteModel(node),
+            },
+          ],
+        };
       default:
-        return null;
+        return { items: [] };
     }
   };
 
@@ -635,7 +721,250 @@ const PeripheralImport: React.FC = () => {
       },
     });
   };
+  // 自检
+  const handleSelfCheck = () => {
+    setState({
+      isSelfCheck: true,
+      isSelfChecking: true,
+      selfCheckMessages: [],
+    });
 
+    // 模拟自检信息
+    const mockSelfCheckMessages: SelfCheckMessage[] = [
+      {
+        id: 1,
+        deviceType: "直流源",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 2,
+        deviceType: "直流源",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 3,
+        deviceType: "开关继电器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 4,
+        deviceType: "开关继电器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 5,
+        deviceType: "开关继电器",
+        serialNumber: "序号3",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 6,
+        deviceType: "开关继电器",
+        serialNumber: "序号4",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 7,
+        deviceType: "数字多用表",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 8,
+        deviceType: "CAN设备",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 9,
+        deviceType: "交流源",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 10,
+        deviceType: "交流源",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 11,
+        deviceType: "负载箱",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 12,
+        deviceType: "负载箱",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 13,
+        deviceType: "温度传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 14,
+        deviceType: "温度传感器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 15,
+        deviceType: "压力传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 16,
+        deviceType: "压力传感器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 17,
+        deviceType: "流量计",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 18,
+        deviceType: "流量计",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 19,
+        deviceType: "振动传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 20,
+        deviceType: "振动传感器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 21,
+        deviceType: "湿度传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 22,
+        deviceType: "湿度传感器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 23,
+        deviceType: "光电传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 24,
+        deviceType: "光电传感器",
+        serialNumber: "序号2",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+      {
+        id: 25,
+        deviceType: "超声波传感器",
+        serialNumber: "序号1",
+        errorCode: "-9970",
+        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
+        timestamp: new Date(),
+      },
+    ];
+
+    // 模拟后端分批返回数据
+    setTimeout(() => {
+      // 第一批数据（8条）
+      setState((prevState) => ({
+        ...prevState,
+        selfCheckMessages: mockSelfCheckMessages.slice(0, 8),
+      }));
+    }, 1000);
+
+    setTimeout(() => {
+      // 第二批数据（8条）
+      setState((prevState) => ({
+        ...prevState,
+        selfCheckMessages: [
+          ...(prevState.selfCheckMessages || []),
+          ...mockSelfCheckMessages.slice(8, 16),
+        ],
+      }));
+    }, 2000);
+
+    setTimeout(() => {
+      // 第三批数据（9条）
+      setState((prevState) => ({
+        ...prevState,
+        selfCheckMessages: [
+          ...(prevState.selfCheckMessages || []),
+          ...mockSelfCheckMessages.slice(16, 25),
+        ],
+        isSelfChecking: false,
+      }));
+    }, 3000);
+  };
   return (
     <PageContainer
       header={{
@@ -663,7 +992,7 @@ const PeripheralImport: React.FC = () => {
             <Button icon={<FileAddOutlined />} onClick={handleExport}>
               另存为
             </Button>
-            <Button icon={<CheckCircleOutlined />} onClick={handleExport}>
+            <Button icon={<CheckCircleOutlined />} onClick={handleSelfCheck}>
               自检
             </Button>
           </Space>
@@ -681,10 +1010,7 @@ const PeripheralImport: React.FC = () => {
               titleRender={(node) => {
                 const menu = getContextMenu(node);
                 return (
-                  <Dropdown
-                    overlay={menu || <Menu />}
-                    trigger={["contextMenu"]}
-                  >
+                  <Dropdown menu={menu} trigger={["contextMenu"]}>
                     <span style={{ display: "inline-block", width: "100%" }}>
                       {node.title}
                     </span>
@@ -698,18 +1024,80 @@ const PeripheralImport: React.FC = () => {
           <div className="table-panel">
             {/* 设备配置表格 */}
             <Card className="table-card">
-              <ProTable<DeviceConfig>
-                columns={deviceConfigColumns}
-                dataSource={deviceConfigData}
-                pagination={false}
-                search={false}
-                options={false}
-                size="small"
-              />
+              {isSelfCheck ? (
+                <div className="self-check-container">
+                  <div className="self-check-header">
+                    <h3>自检信息</h3>
+                    {isSelfChecking && (
+                      <div className="self-check-status">
+                        <span className="loading-dot"></span>
+                        自检中...
+                      </div>
+                    )}
+                  </div>
+                  <div className="self-check-content">
+                    {!selfCheckMessages || selfCheckMessages.length === 0 ? (
+                      <div className="no-messages">
+                        {isSelfChecking
+                          ? "正在获取自检信息..."
+                          : "暂无自检信息"}
+                      </div>
+                    ) : (
+                      <div className="messages-list">
+                        {selfCheckMessages
+                          .filter(
+                            (message: SelfCheckMessage) =>
+                              message && message.deviceType
+                          )
+                          .map((message: SelfCheckMessage) => (
+                            <div key={message.id} className="message-line">
+                              <span className="device-name">
+                                {message.deviceType} {message.serialNumber}
+                              </span>
+                              <span className="error-message">
+                                {message.message}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <ProTable<DeviceConfig>
+                  columns={deviceConfigColumns}
+                  dataSource={deviceConfigData}
+                  pagination={false}
+                  search={false}
+                  options={false}
+                  size="small"
+                  rowKey="id"
+                  editable={{
+                    type: "single",
+                    actionRender: (row, config, defaultDoms) => {
+                      return [defaultDoms.save, defaultDoms.cancel];
+                    },
+                    onSave: async (rowKey, data, row) => {
+                      // 更新设备配置数据
+                      const newData = deviceConfigData.map((item) =>
+                        item.id === rowKey ? { ...item, ...data } : item
+                      );
+                      setDeviceConfigData(newData);
+                      message.success("保存成功");
+                    },
+                    onCancel: async (rowKey, record, originRow) => {
+                      message.info("已取消编辑");
+                    },
+                  }}
+                />
+              )}
             </Card>
 
             {/* 通道配置表格 */}
             <Card className="table-card">
+              {/* 指定序号可编辑
+               */}
+
               <ProTable<ChannelConfig>
                 columns={channelConfigColumns}
                 dataSource={channelConfigData}
@@ -717,6 +1105,24 @@ const PeripheralImport: React.FC = () => {
                 search={false}
                 options={false}
                 size="small"
+                rowKey="id"
+                editable={{
+                  type: "single",
+                  actionRender: (row, config, defaultDoms) => {
+                    return [defaultDoms.save, defaultDoms.cancel];
+                  },
+                  onSave: async (rowKey, data, row) => {
+                    // 更新通道配置数据
+                    const newData = channelConfigData.map((item) =>
+                      item.id === rowKey ? { ...item, ...data } : item
+                    );
+                    setChannelConfigData(newData);
+                    message.success("保存成功");
+                  },
+                  onCancel: async (rowKey, record, originRow) => {
+                    message.info("已取消编辑");
+                  },
+                }}
               />
             </Card>
           </div>

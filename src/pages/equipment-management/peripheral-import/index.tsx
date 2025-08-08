@@ -14,16 +14,7 @@ import {
 import { history, useParams } from "@umijs/max";
 // import {useParams}
 import { useSetState } from "ahooks";
-import {
-  Button,
-  Card,
-  Dropdown,
-  Menu,
-  Modal,
-  Space,
-  Tree,
-  message,
-} from "antd";
+import { Button, Card, Dropdown, Modal, Space, Tree, message } from "antd";
 import React, { useEffect, useState } from "react";
 import AddTypeModal from "./components/addTypeModal";
 import "./index.less";
@@ -215,60 +206,54 @@ const PeripheralImport: React.FC = () => {
     const level = node.level || 1;
     switch (level) {
       case 1: // Instrument 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "addType",
-                icon: <PlusOutlined />,
-                label: "添加种类",
-                onClick: () => {
-                  setState({ isTypeModalOpen: true });
-                },
+        return {
+          items: [
+            {
+              key: "addType",
+              icon: <PlusOutlined />,
+              label: "添加种类",
+              onClick: () => {
+                setState({ isTypeModalOpen: true });
               },
-              {
-                key: "deleteAll",
-                icon: <DeleteOutlined />,
-                label: "删除全部",
-                onClick: () => handleDeleteAll(),
-              },
-            ]}
-          />
-        );
+            },
+            {
+              key: "deleteAll",
+              icon: <DeleteOutlined />,
+              label: "删除全部",
+              onClick: () => handleDeleteAll(),
+            },
+          ],
+        };
       case 2: // AC SOURCE 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "addModel",
-                icon: <PlusOutlined />,
-                label: "添加型号",
-                onClick: () => handleAddModel(node),
-              },
-              {
-                key: "deleteType",
-                icon: <DeleteOutlined />,
-                label: "删除种类",
-                onClick: () => handleDeleteType(node),
-              },
-            ]}
-          />
-        );
+        return {
+          items: [
+            {
+              key: "addModel",
+              icon: <PlusOutlined />,
+              label: "添加型号",
+              onClick: () => handleAddModel(node),
+            },
+            {
+              key: "deleteType",
+              icon: <DeleteOutlined />,
+              label: "删除种类",
+              onClick: () => handleDeleteType(node),
+            },
+          ],
+        };
       case 3: // Chroma 61600 Series 级别
-        return (
-          <Menu
-            items={[
-              {
-                key: "deleteModel",
-                icon: <DeleteOutlined />,
-                label: "删除型号",
-                onClick: () => handleDeleteModel(node),
-              },
-            ]}
-          />
-        );
+        return {
+          items: [
+            {
+              key: "deleteModel",
+              icon: <DeleteOutlined />,
+              label: "删除型号",
+              onClick: () => handleDeleteModel(node),
+            },
+          ],
+        };
       default:
-        return null;
+        return { items: [] };
     }
   };
 
@@ -609,10 +594,7 @@ const PeripheralImport: React.FC = () => {
               titleRender={(node) => {
                 const menu = getContextMenu(node);
                 return (
-                  <Dropdown
-                    overlay={menu || <Menu />}
-                    trigger={["contextMenu"]}
-                  >
+                  <Dropdown menu={menu} trigger={["contextMenu"]}>
                     <span style={{ display: "inline-block", width: "100%" }}>
                       {node.title}
                     </span>

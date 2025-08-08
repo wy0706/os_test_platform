@@ -117,3 +117,98 @@
     }
   }
 }
+
+// 自检信息样式
+.self-check-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #fafafa;
+  border-radius: 6px;
+
+  .self-check-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    h3 {
+      margin: 0;
+      color: #262626;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .self-check-status {
+      display: flex;
+      align-items: center;
+      color: #1890ff;
+      font-size: 14px;
+
+      .loading-dot {
+        width: 8px;
+        height: 8px;
+        margin-right: 8px;
+        background: #1890ff;
+        border-radius: 50%;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+  }
+
+  .self-check-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #fff;
+
+    .no-messages {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: #8c8c8c;
+      font-size: 14px;
+    }
+
+    .messages-list {
+      .message-line {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 8px;
+        padding: 4px 0;
+        color: #cf1322;
+        font-size: 13px;
+        line-height: 1.4;
+
+        .device-name {
+          flex-shrink: 0;
+          min-width: 120px;
+          margin-right: 8px;
+          font-weight: 600;
+        }
+
+        .error-message {
+          flex: 1;
+          word-break: break-all;
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+}

@@ -375,3 +375,36 @@ export const domainOption = [
 ];
 
 export const COMOptions = Array.from({ length: 30 }, (_, i) => `COM${i + 1}`);
+export const linRateOption = [
+  {
+    value: "38400",
+    label: "38400",
+  },
+  {
+    value: "19200",
+    label: "19200",
+  },
+  {
+    value: "14400",
+    label: "14400",
+  },
+  {
+    value: "9600",
+    label: "9600",
+  },
+  {
+    value: "4800",
+    label: "4800",
+  },
+  {
+    value: "2400",
+    label: "2400",
+  },
+];
+export const spaceOptions = Array.from({ length: 17 }, (_, i) => {
+  const num = i + 10;
+  return {
+    label: String(num),
+    value: num,
+  };
+});
