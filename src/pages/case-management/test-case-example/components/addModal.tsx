@@ -118,7 +118,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item name="stepDescription" label="步骤描述">
               <Input.TextArea
                 rows={4}
-                placeholder="请输入步骤描述"
+                placeholder="输入步骤描述"
                 // style={{ resize: "none" }}
               />
             </Form.Item>
@@ -127,7 +127,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item name="expectedResult" label="预期结果">
               <Input.TextArea
                 rows={4}
-                placeholder="请输入预期结果"
+                placeholder="输入预期结果"
                 // style={{ resize: "none" }}
               />
             </Form.Item>

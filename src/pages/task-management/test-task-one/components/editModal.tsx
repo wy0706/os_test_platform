@@ -103,7 +103,7 @@ const editModal: React.FC<ModalProps> = ({
                     // rules={[{ required: true }]}
                   >
                     <Select
-                      placeholder="请选择维护人"
+                      placeholder="选择维护人"
                       showSearch
                       filterOption={(input, option) =>
                         (option?.children as unknown as string)
@@ -119,7 +119,7 @@ const editModal: React.FC<ModalProps> = ({
                 </Col>
                 <Col span={6}>
                   <Form.Item name="version" label="版本号">
-                    <Input placeholder="请输入版本号" />
+                    <Input placeholder="输入版本号" />
                   </Form.Item>
                 </Col>
                 <Col span={6}>
@@ -141,7 +141,7 @@ const editModal: React.FC<ModalProps> = ({
                 </Col>
                 <Col span={6}>
                   <Form.Item name="importance" label="重要程度">
-                    <Select placeholder="请选择重要程度">
+                    <Select placeholder="选择重要程度">
                       <Option value="1">P0</Option>
                       <Option value="2">P1</Option>
                       <Option value="2">P2</Option>
@@ -156,7 +156,7 @@ const editModal: React.FC<ModalProps> = ({
               <Form.Item name="createTime" label="前置条件">
                 <Input.TextArea
                   rows={4}
-                  placeholder="请输入前置条件"
+                  placeholder="输入前置条件"
                   style={{ resize: "none" }}
                 />
               </Form.Item>
@@ -167,7 +167,7 @@ const editModal: React.FC<ModalProps> = ({
                   <Form.Item name="stepDescription" label="步骤描述">
                     <Input.TextArea
                       rows={4}
-                      placeholder="请输入步骤描述"
+                      placeholder="输入步骤描述"
                       style={{ resize: "none" }}
                     />
                   </Form.Item>
@@ -176,7 +176,7 @@ const editModal: React.FC<ModalProps> = ({
                   <Form.Item name="expectedResult" label="预期结果">
                     <Input.TextArea
                       rows={4}
-                      placeholder="请输入预期结果"
+                      placeholder="输入预期结果"
                       style={{ resize: "none" }}
                     />
                   </Form.Item>
@@ -186,7 +186,7 @@ const editModal: React.FC<ModalProps> = ({
                 <Input.TextArea
                   style={{ resize: "none" }}
                   rows={4}
-                  placeholder="请输入备注"
+                  placeholder="输入备注"
                 />
               </Form.Item>
             </Form>

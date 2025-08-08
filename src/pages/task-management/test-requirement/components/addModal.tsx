@@ -136,10 +136,10 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
         <Form.Item name="title" label="标题" rules={[{ required: true }]}>
-          <Input placeholder="请输入标题" />
+          <Input placeholder="输入标题" />
         </Form.Item>
         <Form.Item name="createTime" label="描述">
-          <Input.TextArea rows={4} placeholder="请输入描述" />
+          <Input.TextArea rows={4} placeholder="输入描述" />
         </Form.Item>
 
         <Form.Item name="lists" label="关联测试任务">

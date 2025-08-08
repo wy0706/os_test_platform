@@ -102,14 +102,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
         <Form.Item name="note" label="任务名称" rules={[{ required: true }]}>
-          <Input placeholder="请输入任务名称" />
+          <Input placeholder="输入任务名称" />
         </Form.Item>
         <Form.Item name="gender1" label="任务描述">
-          <Input.TextArea rows={4} placeholder="请输入任务描述" />
+          <Input.TextArea rows={4} placeholder="输入任务描述" />
         </Form.Item>
         <Form.Item name="gender2" label="负责人" rules={[{ required: true }]}>
           <Select
-            placeholder="请选择负责人"
+            placeholder="选择负责人"
             allowClear
             showSearch
             loading={loading}
