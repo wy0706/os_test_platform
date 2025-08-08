@@ -1,11 +1,10 @@
-
 import { request } from "@umijs/max";
 
 const baseUrl = "/api/caseManagement/testSequence";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: 'GET',
+    method: "GET",
     params: params,
   });
   return result;
@@ -53,6 +52,41 @@ export async function deleteBatch(ids: any) {
   const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
     method: "DELETE",
     data: ids,
+  });
+  return result;
+}
+
+// 获取树形结构数据
+export async function getTreeData(params?: any) {
+  const result: any = await request<{}>(`${baseUrl}/getTreeData`, {
+    method: "GET",
+    params: params,
+  });
+  return result;
+}
+
+// 创建子集
+export async function createSubset(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/createSubset`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+// 更新子集名称
+export async function updateSubset(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/updateSubset`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+// 删除子集
+export async function deleteSubset(id: any) {
+  const result: any = await request<{}>(`${baseUrl}/deleteSubset/${id}`, {
+    method: "DELETE",
   });
   return result;
 }
