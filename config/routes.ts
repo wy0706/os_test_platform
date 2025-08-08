@@ -140,7 +140,7 @@ export default [
       },
       {
         path: "/equipment-management/equipment-library",
-        name: "设备库",
+        name: "设备配置文件",
         access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
         component: "./equipment-management/equipment-library",
       },
