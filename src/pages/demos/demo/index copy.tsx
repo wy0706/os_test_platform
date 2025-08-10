@@ -1,12 +1,12 @@
-import { DemoService } from "@/services/case-management/test-sequence.service";
+import { DemoService } from "@/services/demos/demo.service";
 import { deleteOne } from "@/services/task-management/test-requirement.service";
 import {
   CopyOutlined,
-  DeleteOutlined,
   DownOutlined,
   EditOutlined,
   FileTextOutlined,
   FolderOutlined,
+  MoreOutlined,
   PlusOutlined,
   RightOutlined,
 } from "@ant-design/icons";
@@ -18,7 +18,7 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { Button, Input, message, Modal, Select, Spin } from "antd";
+import { Button, message, Modal, Select, Spin } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import "./index.less";
 import { schemasColumns, schemasTitle, TestItem, TreeNode } from "./schemas";
@@ -302,8 +302,6 @@ const DemoPage: React.FC = () => {
 
   // 编辑节点名称
   const handleEditNode = async (nodeId: string, newName: string) => {
-    console.log("node====", nodeId, newName);
-
     const trimmedName = newName.trim();
 
     // 如果名称为空，取消编辑
@@ -400,31 +398,25 @@ const DemoPage: React.FC = () => {
           </div>
           <div className="node-label">
             {isEditing ? (
-              <Input
+              <input
                 className="editable-text"
                 defaultValue={node.name}
                 autoFocus
-                size="small"
                 onBlur={(e) => handleEditNode(node.id, e.target.value)}
-                onPressEnter={(e) =>
-                  handleEditNode(node.id, e.currentTarget.value)
-                }
                 onKeyDown={(e) => {
-                  if (e.key === "Escape") {
+                  if (e.key === "Enter") {
+                    handleEditNode(node.id, e.currentTarget.value);
+                  } else if (e.key === "Escape") {
                     setEditingNodeId(null);
                     setOriginalNodeName("");
                   }
                 }}
               />
             ) : (
-              <span title={node.name}>{node.name}</span>
+              <span>{node.name}</span>
             )}
           </div>
-          <div
-            className={`node-actions ${
-              node.type === "folder" ? "folder-actions" : ""
-            }`}
-          >
+          <div className="node-actions">
             {node.type === "folder" && (
               <button
                 className="action-btn add-btn"
@@ -437,26 +429,31 @@ const DemoPage: React.FC = () => {
               </button>
             )}
             {node.type === "item" ? (
-              <>
-                <button
-                  className="action-btn edit-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startEditNode(node.id);
-                  }}
-                >
-                  <EditOutlined />
-                </button>
-                <button
-                  className="action-btn delete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteNode(node.id);
-                  }}
-                >
-                  <DeleteOutlined />
-                </button>
-              </>
+              <div className="dropdown-actions">
+                <div className="dots-menu">
+                  <MoreOutlined />
+                </div>
+                <div className="hover-menu">
+                  <button
+                    className="action-btn edit-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditNode(node.id);
+                    }}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    className="action-btn delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNode(node.id);
+                    }}
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
             ) : (
               <button
                 className="action-btn edit-btn"

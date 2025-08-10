@@ -1,4 +1,4 @@
-import { DemoService } from "@/services/case-management/test-sequence.service";
+import { DemoService } from "@/services/demos/demo.service";
 import { deleteOne } from "@/services/task-management/test-requirement.service";
 import {
   CopyOutlined,
@@ -18,7 +18,7 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { Button, Input, message, Modal, Select, Spin } from "antd";
+import { Button, message, Modal, Select, Spin } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import "./index.less";
 import { schemasColumns, schemasTitle, TestItem, TreeNode } from "./schemas";
@@ -400,17 +400,15 @@ const DemoPage: React.FC = () => {
           </div>
           <div className="node-label">
             {isEditing ? (
-              <Input
+              <input
                 className="editable-text"
                 defaultValue={node.name}
                 autoFocus
-                size="small"
                 onBlur={(e) => handleEditNode(node.id, e.target.value)}
-                onPressEnter={(e) =>
-                  handleEditNode(node.id, e.currentTarget.value)
-                }
                 onKeyDown={(e) => {
-                  if (e.key === "Escape") {
+                  if (e.key === "Enter") {
+                    handleEditNode(node.id, e.currentTarget.value);
+                  } else if (e.key === "Escape") {
                     setEditingNodeId(null);
                     setOriginalNodeName("");
                   }
