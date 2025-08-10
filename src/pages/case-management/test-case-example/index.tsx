@@ -3,10 +3,16 @@ import {
   getList,
 } from "@/services/case-management/test-case.service";
 import {
+  createModule,
+  deleteModule as deleteModuleService,
+  getModuleList,
+  updateModule,
+} from "@/services/case-management/test-module.service";
+import {
+  DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   FolderOutlined,
-  MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import {
@@ -23,8 +29,9 @@ import {
   Form,
   Input,
   Menu,
+  message,
   Modal,
-  Popover,
+  Spin,
   Tree,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
@@ -57,10 +64,13 @@ interface UseCase {
 }
 
 interface Module {
+  id: string;
   name: string;
   count: number;
   expanded: boolean;
   key: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const TestCaseExample: React.FC = () => {
@@ -71,12 +81,11 @@ const TestCaseExample: React.FC = () => {
   const [pageSize, setPageSize] = useState(50);
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [modules, setModules] = useState<Module[]>([
-    { name: "注册与登录", count: 6, expanded: true, key: "login" },
-    { name: "商城下单", count: 7, expanded: true, key: "shopping" },
-    { name: "订单支付", count: 2, expanded: true, key: "payment" },
-    { name: "无模块用例", count: 0, expanded: true, key: "no-module" },
-  ]);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [moduleLoading, setModuleLoading] = useState(false);
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
@@ -96,6 +105,7 @@ const TestCaseExample: React.FC = () => {
     descriptionsColumns: schemasDescriptions,
     open: false, //编辑用例模块
     modulevalue: {}, //单个模块数据
+    isEditMode: false, //是否为编辑模式，false为新增
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -229,6 +239,8 @@ const TestCaseExample: React.FC = () => {
     selectTestData,
     isRowEditModal,
     rowValue,
+    modulevalue,
+    isEditMode,
   } = state;
   // 模拟用例数据
   const useCases: UseCase[] = [
@@ -369,121 +381,297 @@ const TestCaseExample: React.FC = () => {
     },
   ];
 
-  // 创建新模块的函数
-  const createNewModule = () => {
-    const newKey = `module-${Date.now()}`;
-    const newModule: Module = {
-      name: "未命名模块",
-      count: 0,
-      expanded: true,
-      key: newKey,
-    };
-    setModules([...modules, newModule]);
-    // 自动选中新创建的模块
-    setSelectedModule(newKey);
+  // 从后端获取模块列表
+  const fetchModules = async () => {
+    setLoading(true);
+    try {
+      const response = await getModuleList({});
+      if (response?.success && response?.data) {
+        const moduleData = response.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          count: item.count || 0,
+          expanded: true,
+          key: item.id,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        }));
+        setModules(moduleData);
+      } else {
+        console.log("获取模块列表API返回失败，使用默认数据");
+        // 如果后端接口失败，使用默认数据
+        const defaultModules = [
+          {
+            id: "login",
+            name: "注册与登录",
+            count: 6,
+            expanded: true,
+            key: "login",
+          },
+          {
+            id: "shopping",
+            name: "商城下单",
+            count: 7,
+            expanded: true,
+            key: "shopping",
+          },
+          {
+            id: "payment",
+            name: "订单支付",
+            count: 2,
+            expanded: true,
+            key: "payment",
+          },
+          {
+            id: "no-module",
+            name: "无模块用例",
+            count: 0,
+            expanded: true,
+            key: "no-module",
+          },
+        ];
+        setModules(defaultModules);
+      }
+    } catch (error) {
+      console.error("获取模块列表失败:", error);
+      // 使用默认数据
+      const defaultModules = [
+        {
+          id: "login",
+          name: "注册与登录",
+          count: 6,
+          expanded: true,
+          key: "login",
+        },
+        {
+          id: "shopping",
+          name: "商城下单",
+          count: 7,
+          expanded: true,
+          key: "shopping",
+        },
+        {
+          id: "payment",
+          name: "订单支付",
+          count: 2,
+          expanded: true,
+          key: "payment",
+        },
+        {
+          id: "no-module",
+          name: "无模块用例",
+          count: 0,
+          expanded: true,
+          key: "no-module",
+        },
+      ];
+      setModules(defaultModules);
+      message.error("获取模块列表失败，使用默认数据");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 编辑模块名称的函数
-  const editModuleName = (moduleKey: string) => {
+  // 创建新模块的函数
+  const createNewModule = async () => {
+    setModuleLoading(true);
+    try {
+      console.log("开始创建模块，参数:", { name: "未命名模块" });
+
+      const response = await createModule({
+        name: "未命名模块",
+      });
+
+      console.log("创建模块API响应:", response);
+
+      if (response?.success) {
+        message.success("模块创建成功");
+        // 重新获取模块列表
+        await fetchModules();
+
+        // 如果返回了新创建的模块ID，选中新模块但不进入编辑模式
+        if (response.data?.id) {
+          setSelectedModule(response.data.id);
+        }
+      } else {
+        console.error("创建模块失败，响应:", response);
+        message.error(response?.message || "创建模块失败");
+      }
+    } catch (error) {
+      console.error("创建模块异常:", error);
+      // 如果是网络错误或API不存在，先尝试本地模拟创建
+      const newModuleId = `temp-${Date.now()}`;
+      const newModule: Module = {
+        id: newModuleId,
+        name: "未命名模块",
+        count: 0,
+        expanded: true,
+        key: newModuleId,
+      };
+
+      // 添加到本地状态
+      setModules([...modules, newModule]);
+
+      // 选中新创建的模块但不进入编辑模式
+      setSelectedModule(newModuleId);
+
+      // message.warning("后端接口暂不可用，已创建临时模块，请联系开发人员");
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  // 开始编辑模块名称（行内编辑）
+  const startEditModuleName = (module: Module) => {
+    setEditingModuleId(module.id);
+    setEditingValue(module.name);
+  };
+
+  // 保存编辑的模块名称
+  const saveEditModuleName = async () => {
+    if (!editingModuleId || !editingValue.trim()) {
+      message.error("模块名称不能为空");
+      return;
+    }
+
+    if (editingValue.length > 50) {
+      message.error("模块名称不能超过50个字符");
+      return;
+    }
+
+    // 防止重复提交
+    if (moduleLoading) {
+      return;
+    }
+
+    setModuleLoading(true);
+    try {
+      const response = await updateModule({
+        id: editingModuleId,
+        name: editingValue.trim(),
+      });
+
+      if (response?.success) {
+        message.success("模块名称修改成功");
+        // 更新本地状态
+        setModules(
+          modules.map((m) =>
+            m.id === editingModuleId ? { ...m, name: editingValue.trim() } : m
+          )
+        );
+        // 退出编辑状态
+        setEditingModuleId(null);
+        setEditingValue("");
+      } else {
+        message.error(response?.message || "修改模块名称失败");
+      }
+    } catch (error) {
+      console.error("修改模块名称失败:", error);
+      message.error("修改模块名称时发生错误，请重试");
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  // 取消编辑
+  const cancelEditModuleName = () => {
+    setEditingModuleId(null);
+    setEditingValue("");
+  };
+
+  // 检查并退出编辑模式（如果有的话）
+  const exitEditModeIfNeeded = (excludeModuleId?: string) => {
+    if (editingModuleId && editingModuleId !== excludeModuleId) {
+      setEditingModuleId(null);
+      setEditingValue("");
+    }
+  };
+
+  // 编辑模块名称的函数（弹窗模式）
+  const editModuleName = (module: Module) => {
     setState({
       open: true,
+      isEditMode: true,
+      modulevalue: module,
     });
-
-    // const newName = prompt(
-    //   "请输入模块名称:",
-    //   modules.find((m) => m.key === moduleKey)?.name || ""
-    // );
-    // if (newName && newName.trim()) {
-    //   setModules(
-    //     modules.map((m) =>
-    //       m.key === moduleKey ? { ...m, name: newName.trim() } : m
-    //     )
-    //   );
-    // }
+    form?.setFieldsValue({ name: module.name });
   };
   const [deleteTestCases, setDeleteTestCases] = useState(false);
   // 删除模块的函数
-  const deleteModule = (module: any) => {
-    const moduleToDelete = modules.find((m) => m.key === module.key);
-    console.log(module.key);
+  const handleDeleteModule = (module: Module) => {
+    setDeleteTestCases(false); // 重置复选框状态
 
-    if (moduleToDelete) {
-      // 使用 useState 来管理复选框状态
-
-      Modal.confirm({
-        title: (
+    Modal.confirm({
+      title: (
+        <div>
           <div>
-            <div>
-              确认删除模块{" "}
-              <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                {module.name}
-              </span>{" "}
-              吗？
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#666",
-                marginTop: "8px",
-              }}
-            >
-              模块删除后不可恢复
-            </div>
+            确认删除模块{" "}
+            <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+              {module.name}
+            </span>{" "}
+            吗？
           </div>
-        ),
-        content: (
-          <div style={{ marginTop: "16px" }}>
-            <Checkbox
-              checked={deleteTestCases}
-              onChange={(e) => {
-                setDeleteTestCases(e.target.checked);
-              }}
-            >
-              同时删除模块下的测试用例
-            </Checkbox>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "8px",
+            }}
+          >
+            模块删除后不可恢复
           </div>
-        ),
-        onOk: async () => {
-          // 删除模块
-          setModules(modules.filter((m) => m.key !== module.Key));
+        </div>
+      ),
+      content: (
+        <div style={{ marginTop: "16px" }}>
+          <Checkbox
+            checked={deleteTestCases}
+            onChange={(e) => {
+              setDeleteTestCases(e.target.checked);
+            }}
+          >
+            同时删除模块下的测试用例
+          </Checkbox>
+        </div>
+      ),
+      onOk: async () => {
+        setModuleLoading(true);
+        try {
+          // 调用后端删除接口
+          const response = await deleteModuleService(module.id);
 
-          // 如果删除的是当前选中的模块，清除选中状态
-          if (selectedModule === module.Key) {
-            setSelectedModule("");
-          }
+          if (response?.success) {
+            // 从本地状态中移除模块
+            setModules(modules.filter((m) => m.key !== module.key));
 
-          // 判断是否选中了删除测试用例的选项
-          if (deleteTestCases) {
-            console.log("用户选择同时删除模块下的测试用例:", module.name);
+            // 如果删除的是当前选中的模块，清除选中状态
+            if (selectedModule === module.key) {
+              setSelectedModule("");
+            }
 
-            try {
-              // TODO: 在这里添加删除该模块下所有测试用例的逻辑
-              // 例如：调用 API 删除该模块下的所有测试用例
-              // await deleteTestCasesByModule(module.Key);
+            // 刷新表格数据
+            if (actionRef.current) {
+              actionRef.current.reload();
+            }
 
-              // 显示成功提示;
-              Modal.success({
-                title: "删除成功",
-                // content: `已删除模块 "${module.name}" 及其下的所有测试用例`,
-              });
-            } catch (error) {
-              console.error("删除测试用例失败:", error);
-              Modal.error({
-                title: "删除失败",
-                content: "删除测试用例时发生错误，请重试",
-              });
+            message.success(`模块 "${module.name}" 删除成功`);
+
+            // 如果选择了同时删除测试用例，这里可以添加额外的逻辑
+            if (deleteTestCases) {
+              console.log("用户选择同时删除模块下的测试用例:", module.name);
+              // 后端应该在删除模块时同时处理相关测试用例
             }
           } else {
-            // 只删除模块，不删除测试用例
-            console.log("用户选择只删除模块，保留测试用例:", module.name);
-            Modal.success({
-              title: "删除成功",
-              content: `已删除模块 "${module.name}"，测试用例已移至无模块用例`,
-            });
+            message.error(response?.message || "删除模块失败");
           }
-        },
-      });
-    }
+        } catch (error) {
+          console.error("删除模块失败:", error);
+          message.error("删除模块时发生错误，请重试");
+        } finally {
+          setModuleLoading(false);
+        }
+      },
+    });
   };
 
   // 将模块数据转换为Tree组件格式
@@ -498,75 +686,149 @@ const TestCaseExample: React.FC = () => {
           padding: "8px 0",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flex: 1,
-            cursor: "pointer",
-          }}
-          onClick={() => {
-            console.log("选择模块:", module.name, "模块key:", module.key);
-            setSelectedModule(module.key);
-            // 选中模块后会自动触发表格数据刷新
-          }}
-        >
-          <FolderOutlined style={{ color: "#1890ff", fontSize: "16px" }} />
-          <span style={{ fontSize: "12px" }}>{module.name}</span>
-          <span style={{ fontSize: "12px" }}>{module.count}</span>
-        </div>
-        {/* {module.count > 0 && ( */}
-        <div style={{ marginLeft: "auto" }}>
-          <Popover
-            content={
-              <div>
-                <div
-                  style={{
-                    padding: "2px 6px",
-                    cursor: "pointer",
-                    // borderBottom: "1px solid #f0f0f0",
-                  }}
-                  onClick={() => {
-                    // editModuleName(module.key);
-                    setState({
-                      open: true,
-                      moudleValue: module,
-                    });
-                    form?.setFieldsValue(module);
-                  }}
-                >
-                  编辑
-                </div>
-                <div
-                  style={{
-                    padding: "2px 6px",
-                    cursor: "pointer",
-                    // color: "#ff4d4f",
-                  }}
-                  onClick={() => {
-                    deleteModule(module);
-                  }}
-                >
-                  删除
-                </div>
-              </div>
-            }
-            trigger="hover"
-            placement="bottomRight"
+        {editingModuleId === module.id ? (
+          // 编辑模式：显示输入框和保存/取消按钮
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flex: 1,
+            }}
           >
-            <MoreOutlined
-              style={{
-                opacity: 0.6,
-                cursor: "pointer",
-                fontSize: "16px",
-                color: "#666",
+            <FolderOutlined style={{ color: "#1890ff", fontSize: "16px" }} />
+            <Input
+              // size="small"
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onPressEnter={saveEditModuleName}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  cancelEditModuleName();
+                }
               }}
-              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: "12px", flex: 1 }}
+              autoFocus
             />
-          </Popover>
-        </div>
-        {/* )} */}
+            <span style={{ fontSize: "12px" }}>{module.count}</span>
+            {/* <div style={{ display: "flex", gap: "4px" }}>
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckOutlined />}
+                loading={moduleLoading}
+                style={{
+                  fontSize: "12px",
+                  padding: "2px 4px",
+                  height: "20px",
+                  color: "#52c41a",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveEditModuleName();
+                }}
+              />
+              <Button
+                type="text"
+                size="small"
+                icon={<CloseOutlined />}
+                style={{
+                  fontSize: "12px",
+                  padding: "2px 4px",
+                  height: "20px",
+                  color: "#666",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cancelEditModuleName();
+                }}
+              />
+            </div> */}
+          </div>
+        ) : (
+          // 正常模式：显示模块信息和操作按钮
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                flex: 1,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                console.log("选择模块:", module.name, "模块key:", module.key);
+
+                // 如果当前有其他模块在编辑状态，则退出编辑模式
+                exitEditModeIfNeeded(module.id);
+
+                setSelectedModule(module.key);
+                // 选中模块后会自动触发表格数据刷新
+              }}
+            >
+              <FolderOutlined style={{ color: "#1890ff", fontSize: "16px" }} />
+              <span style={{ fontSize: "12px" }}>{module.name}</span>
+              <span style={{ fontSize: "12px" }}>{module.count}</span>
+            </div>
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                color: "#999",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "2px",
+                  borderRadius: "4px",
+                  transition: "all 0.2s",
+                }}
+                className="tree-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditModuleName(module);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(24, 144, 255, 0.1)";
+                  e.currentTarget.style.color = "#1890ff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#999";
+                }}
+              >
+                <EditOutlined />
+              </div>
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "2px",
+                  borderRadius: "4px",
+                  transition: "all 0.2s",
+                }}
+                className="tree-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteModule(module);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(255, 77, 79, 0.1)";
+                  e.currentTarget.style.color = "#ff4d4f";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#999";
+                }}
+              >
+                <DeleteOutlined />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     ),
     key: module.key,
@@ -575,6 +837,8 @@ const TestCaseExample: React.FC = () => {
 
   useEffect(() => {
     setData(useCases);
+    // 初始化加载模块数据
+    fetchModules();
   }, []);
 
   // 当选中模块改变时，刷新表格数据
@@ -744,13 +1008,19 @@ const TestCaseExample: React.FC = () => {
               alignItems: "center",
               marginBottom: "20px",
               gap: "12px",
+              paddingLeft: "25px",
             }}
           >
-            <Search placeholder="用例模块" style={{ flex: 1 }} />
+            <Search
+              placeholder="用例模块"
+              style={{ flex: 1 }}
+              onFocus={() => exitEditModeIfNeeded()}
+            />
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={createNewModule}
+              loading={moduleLoading}
               title="创建新模块"
             />
           </div>
@@ -762,21 +1032,23 @@ const TestCaseExample: React.FC = () => {
               overflowX: "hidden",
             }}
           >
-            <Tree
-              treeData={treeData}
-              selectedKeys={selectedModule ? [selectedModule] : []}
-              expandedKeys={expandedKeys}
-              onSelect={onSelect}
-              onExpand={onExpand}
-              showLine={false}
-              showIcon={false}
-              blockNode
-              style={{
-                backgroundColor: "transparent",
-                padding: "8px 0",
-              }}
-              className="custom-tree"
-            />
+            <Spin spinning={loading} tip="加载模块中...">
+              <Tree
+                treeData={treeData}
+                selectedKeys={selectedModule ? [selectedModule] : []}
+                expandedKeys={expandedKeys}
+                onSelect={onSelect}
+                onExpand={onExpand}
+                showLine={false}
+                showIcon={false}
+                blockNode
+                style={{
+                  backgroundColor: "transparent",
+                  padding: "8px 0",
+                }}
+                className="custom-tree"
+              />
+            </Spin>
           </div>
         </div>
 
@@ -848,12 +1120,12 @@ const TestCaseExample: React.FC = () => {
                 <Button
                   key="button"
                   icon={<PlusOutlined />}
+                  type="primary"
                   onClick={() => {
                     setState({
                       isAddModalOpen: true,
                     });
                   }}
-                  type="primary"
                 >
                   新建
                 </Button>,
@@ -971,28 +1243,80 @@ const TestCaseExample: React.FC = () => {
         }}
         open={isTestModal}
       />
-      {/* 编辑用例模块 */}
+      {/* 编辑/新增用例模块 */}
       <Modal
-        title="编辑用例模块"
+        title={isEditMode ? "编辑用例模块" : "新增用例模块"}
         maskClosable={false}
         open={open}
+        confirmLoading={moduleLoading}
         onCancel={() => {
           setState({
             open: false,
+            isEditMode: false,
+            modulevalue: {},
           });
+          form?.resetFields();
         }}
         styles={{ body: { minHeight: 100, padding: 20 } }}
         width={"50%"}
-        onOk={() => {
-          setState({
-            open: false,
-          });
-          const params = form.getFieldsValue();
-          console.log("params", params);
+        onOk={async () => {
+          try {
+            const values = await form.validateFields();
+            setModuleLoading(true);
+
+            let response;
+            if (isEditMode) {
+              // 编辑模块
+              response = await updateModule({
+                id: modulevalue.id,
+                name: values.name,
+              });
+            } else {
+              // 新增模块
+              response = await createModule({
+                name: values.name,
+              });
+            }
+
+            if (response?.success) {
+              message.success(isEditMode ? "模块编辑成功" : "模块创建成功");
+              setState({
+                open: false,
+                isEditMode: false,
+                modulevalue: {},
+              });
+              form?.resetFields();
+
+              // 重新获取模块列表
+              await fetchModules();
+
+              // 如果是新增模块，选中新创建的模块
+              if (!isEditMode && response.data?.id) {
+                setSelectedModule(response.data.id);
+              }
+            } else {
+              message.error(
+                response?.message ||
+                  (isEditMode ? "编辑模块失败" : "创建模块失败")
+              );
+            }
+          } catch (error) {
+            console.error("操作失败:", error);
+            message.error("操作失败，请重试");
+          } finally {
+            setModuleLoading(false);
+          }
         }}
       >
         <Form {...layout} form={form} name="control-hooks">
-          <Form.Item name="name" label="模块名称" rules={[{ required: true }]}>
+          <Form.Item
+            name="name"
+            label="模块名称"
+            rules={[
+              { required: true, message: "请输入模块名称" },
+              { max: 50, message: "模块名称不能超过50个字符" },
+            ]}
+          >
             <Input placeholder="输入模块名称" />
           </Form.Item>
         </Form>
