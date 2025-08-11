@@ -1,15 +1,13 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Button, Col, Divider, Form, Input, Modal, Row, Select } from "antd";
+import { DemoService } from "@/services/case-management/test-sequence.service";
+import { Form, Input, message, Modal, Select, TreeSelect } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
-  onSelect?: () => void;
-  testData?: any;
-  type?: string;
   updateValue?: any;
+  currentNode?: string;
 }
 const { Option } = Select;
 
@@ -21,51 +19,42 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  onSelect,
-  testData,
-  type,
   updateValue,
+  currentNode,
 }) => {
-  const [title, setTitle] = useState("新建");
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [treeData, setTreeData] = useState<any>([]);
 
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
+  // 加载树数据
+  const loadTreeData = async () => {
     try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
+      const response = await DemoService.getTreeData();
+      if (response.code === 200) {
+        let list =
+          response.data.length > 0 &&
+          response.data.map((item) => ({
+            ...item,
+            selectable: false,
+          }));
+        setTreeData(list || []);
+      } else {
+        message.error(response.message);
       }
     } catch (error) {
-      console.error("获取用户列表失败:", error);
+      message.error("加载树数据失败");
     } finally {
-      setLoading(false);
+      // setTreeLoading(false);
     }
   };
 
   useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
-    setTitle(name);
+    console.log("currentNode", currentNode);
     if (open) {
+      loadTreeData();
       form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      fetchAllUsers();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        form?.setFieldsValue(updateValue);
-      }
+      updateValue &&
+        form?.setFieldsValue({ ...updateValue, gender: currentNode });
     }
-  }, [open, type, updateValue]);
+  }, [open, updateValue]);
 
   const [form] = Form.useForm();
 
@@ -74,7 +63,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   const handleOk = () => {
-    console.log("111");
     form
       .validateFields()
       .then((values) => {
@@ -90,130 +78,43 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title="创建用例"
+      title="新建测试序列"
       maskClosable={false}
       open={open}
       onCancel={() => {
         onCancel && onCancel();
       }}
       styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"60%"}
+      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="gender2" label="标题" rules={[{ required: true }]}>
-          <Input placeholder="输入标题" maxLength={32} />
+        <Form.Item name="name" label="序列名称" rules={[{ required: true }]}>
+          <Input placeholder="输入序列名称" maxLength={32} />
         </Form.Item>
-        <Form.Item name="note" label="前置条件">
-          <Input.TextArea
-            rows={4}
-            placeholder="输入前置条件"
-            maxLength={2048}
+
+        <Form.Item name="gender" label="序列类型">
+          <TreeSelect
+            fieldNames={{ label: "name", value: "id" }}
+            showSearch
+            style={{ width: "100%" }}
+            styles={{
+              popup: { root: { maxHeight: 400, overflow: "auto" } },
+            }}
+            placeholder="选择序列类型"
+            allowClear
+            treeDefaultExpandAll
+            treeData={treeData}
           />
         </Form.Item>
 
-        <Divider plain>用例步骤</Divider>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="stepDescription" label="步骤描述">
-              <Input.TextArea
-                rows={4}
-                placeholder="输入步骤描述"
-                // style={{ resize: "none" }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="expectedResult" label="预期结果">
-              <Input.TextArea
-                rows={4}
-                placeholder="输入预期结果"
-                // style={{ resize: "none" }}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Form.Item name="gender1" label="描述">
-          <Input.TextArea
-            rows={4}
-            placeholder="输入任务描述"
-            maxLength={2048}
-          />
+        <Form.Item name="status" label="测试流程">
+          <Select placeholder="选择测试流程">
+            <Option value="Pre测试">Pre测试</Option>
+            <Option value="UUT测试">UUT测试</Option>
+            <Option value="Post测试">Post测试</Option>
+          </Select>
         </Form.Item>
-
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item
-              name="gender9"
-              label="所属测试库"
-              rules={[{ required: true }]}
-            >
-              <Select
-                placeholder="选择所属测试库"
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              ></Select>
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item name="gender" label="模块">
-              <Select placeholder="选择模块">
-                <Option value="1">模块1</Option>
-                <Option value="2">模块2</Option>
-                <Option value="2">模块3</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            {" "}
-            <Form.Item name="gender5" label="重要程度">
-              <Select placeholder="选择重要程度">
-                <Option value="1">P0</Option>
-                <Option value="2">P1</Option>
-                <Option value="2">P2</Option>
-                <Option value="3">P3</Option>
-                <Option value="3">P4</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            {" "}
-            <Form.Item name="gender2" label="维护人">
-              <Select
-                placeholder="选择维护人"
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              >
-                <Option value="1">张三</Option>
-                <Option value="2">李四</Option>
-                <Option value="3">王五</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            {" "}
-            <Form.Item name="gender22" label="关联测试序列">
-              <Button
-                onClick={() => {
-                  onSelect && onSelect();
-                }}
-              >
-                {updateValue?.projectName || "选择测试序列"}
-
-                <span></span>
-              </Button>
-            </Form.Item>
-          </Col>
-        </Row>
       </Form>
     </Modal>
   );

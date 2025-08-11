@@ -44,11 +44,10 @@ export const schemasTitle: any = {
 };
 export const schemasColumns: any = [
   // {
-  //   title: "编号",
+  //   title: "序号",
   //   dataIndex: "index",
-  //   search: false,
-  //   key: "index",
-  //   // sorter: true,
+  //   valueType: "index",
+  //   width: 80,
   // },
   {
     title: "名称",
@@ -64,9 +63,9 @@ export const schemasColumns: any = [
     valueType: "select",
     fieldProps: {
       options: [
-        { label: "Pre测试", value: 1 },
-        { label: "UUT测试", value: 2 },
-        { label: "Post测试", value: 3 },
+        { label: "Pre测试", value: "Pre测试" },
+        { label: "UUT测试", value: "UUT测试" },
+        { label: "Post测试", value: "Post测试" },
       ],
     },
   },
@@ -88,17 +87,11 @@ export const schemasColumns: any = [
         status: "Error",
       },
     },
-
-    fieldProps: {
-      options: [
-        { label: "是", value: "success" },
-        { label: "否", value: "error" },
-      ],
-    },
-    // render: (_, record) => (
-    //   <span className={`status-badge ${record.status}`}>
-    //     {record.status === "success" ? "✓" : "✗"}
-    //   </span>
-    // ),
+    // fieldProps: {
+    //   options: [
+    //     { label: "是", value: "success" },
+    //     { label: "否", value: "error" },
+    //   ],
+    // },
   },
 ];

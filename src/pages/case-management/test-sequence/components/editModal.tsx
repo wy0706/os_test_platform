@@ -1,15 +1,14 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Input, Modal, Select } from "antd";
+import { DemoService } from "@/services/case-management/test-sequence.service";
+import { Form, Input, message, Modal, Select, TreeSelect } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
-  onSelect?: () => void;
-  testData?: any;
   type: string;
   updateValue?: any;
+  currentNode?: string;
 }
 const { Option } = Select;
 
@@ -17,53 +16,50 @@ const layout = {
   labelCol: { span: 24 },
 };
 
-const AddModal: React.FC<SetMemberModalProps> = ({
+const EditModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  onSelect,
-  testData,
   type,
   updateValue,
+  currentNode,
 }) => {
   const [title, setTitle] = useState("新建");
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [treeData, setTreeData] = useState<any>([]);
 
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
+  // 加载树数据
+  const loadTreeData = async () => {
     try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
+      const response = await DemoService.getTreeData();
+      if (response.code === 200) {
+        let list =
+          response.data.length > 0 &&
+          response.data.map((item) => ({
+            ...item,
+            selectable: false,
+          }));
+        setTreeData(list || []);
+      } else {
+        message.error(response.message);
       }
     } catch (error) {
-      console.error("获取用户列表失败:", error);
+      message.error("加载树数据失败");
     } finally {
-      setLoading(false);
+      // setTreeLoading(false);
     }
   };
 
   useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "移动";
+    console.log("currentNode", currentNode);
+
+    const name =
+      type === "edit" ? "编辑" : type === "copy" ? "复制序列" : "移动";
     setTitle(name);
     if (open) {
+      loadTreeData();
       form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      fetchAllUsers();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        form?.setFieldsValue(updateValue);
-      }
+      updateValue &&
+        form?.setFieldsValue({ ...updateValue, gender: currentNode });
     }
   }, [open, type, updateValue]);
 
@@ -90,7 +86,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title={`${title}测试库`}
+      title={`${title}序列`}
       maskClosable={false}
       open={open}
       onCancel={() => {
@@ -102,41 +98,38 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
         {type && type !== "remove" && (
-          <Form.Item name="gender1" label="标题" rules={[{ required: true }]}>
-            <Input placeholder="输入标题" maxLength={32} />
+          <Form.Item name="name" label="序列名称" rules={[{ required: true }]}>
+            <Input placeholder="输入序列名称" maxLength={32} />
           </Form.Item>
         )}
-
-        {type && type === "edit" && (
-          <Form.Item name="gender2" label="重要程度">
-            <Select placeholder="选择重要程度">
-              <Option value="1">P0</Option>
-              <Option value="2">P1</Option>
-              <Option value="2">P2</Option>
-              <Option value="3">P3</Option>
-              <Option value="3">P4</Option>
+        {/* 树级结构 二级 */}
+        {type && (type === "copy" || type === "remove") && (
+          <Form.Item name="gender" label="序列类型">
+            <TreeSelect
+              fieldNames={{ label: "name", value: "id" }}
+              showSearch
+              style={{ width: "100%" }}
+              styles={{
+                popup: { root: { maxHeight: 400, overflow: "auto" } },
+              }}
+              placeholder="选择序列类型"
+              allowClear
+              treeDefaultExpandAll
+              treeData={treeData}
+            />
+          </Form.Item>
+        )}
+        {type && type !== "remove" && (
+          <Form.Item name="status" label="是否发布">
+            <Select placeholder="选择是否发布">
+              <Option value="success">✓</Option>
+              <Option value="error">✗</Option>
             </Select>
           </Form.Item>
         )}
-
-        {(type && type === "copy") ||
-          (type === "remove" && (
-            <>
-              <Form.Item name="gender5" label="所属测试库">
-                <Select placeholder="选择测试库">
-                  <Option value="1">测试库1</Option>
-                </Select>
-              </Form.Item>
-              <Form.Item name="gender" label="模块">
-                <Select placeholder="选择模块">
-                  <Option value="1">测试库1</Option>
-                </Select>
-              </Form.Item>
-            </>
-          ))}
       </Form>
     </Modal>
   );
 };
 
-export default AddModal;
+export default EditModal;

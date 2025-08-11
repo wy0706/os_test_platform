@@ -1,6 +1,7 @@
 import {
   CheckCircleOutlined,
   DeleteOutlined,
+  EditOutlined,
   FileAddOutlined,
   PlusOutlined,
   SaveOutlined,
@@ -96,7 +97,7 @@ const PeripheralImport: React.FC = () => {
     selfCheckMessages: [], //自检信息列表
     isSelfChecking: false, //是否正在自检中
   });
-  const params = useParams();
+
   const {
     isTypeModalOpen,
     isModelModalOpen,
@@ -110,6 +111,7 @@ const PeripheralImport: React.FC = () => {
     selfCheckMessages,
     isSelfChecking,
   } = state;
+  const params = useParams();
   useEffect(() => {
     if (params.id && params.id !== "add") {
       const data = [
@@ -256,14 +258,17 @@ const PeripheralImport: React.FC = () => {
       width: 100,
       key: "option",
       render: (text, record, _, action) => [
-        <a
+        <Button
           key="editable"
+          variant="link"
+          color="primary"
+          icon={<EditOutlined />}
           onClick={() => {
             action?.startEditable?.(record.id);
           }}
         >
           编辑
-        </a>,
+        </Button>,
       ],
     },
   ];
@@ -311,14 +316,17 @@ const PeripheralImport: React.FC = () => {
       key: "option",
       width: 100,
       render: (text, record, _, action) => [
-        <a
+        <Button
           key="editable"
+          variant="link"
+          color="primary"
+          icon={<EditOutlined />}
           onClick={() => {
             action?.startEditable?.(record.id);
           }}
         >
           编辑
-        </a>,
+        </Button>,
       ],
     },
   ];
@@ -1000,8 +1008,8 @@ const PeripheralImport: React.FC = () => {
 
         {/* 主要内容区域 */}
         <div className="main-content">
-          {/* 左侧树结构 */}
-          <Card title="Instrument" className="tree-panel">
+          {/* 左侧树结构 Instrument */}
+          <Card title=" " className="tree-panel">
             <Tree
               treeData={treeData}
               onSelect={onSelect}

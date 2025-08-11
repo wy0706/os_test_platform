@@ -1,0 +1,128 @@
+export const schemasTitle: any = {
+  label: "序列编辑",
+  value: "testSequenceEdit",
+};
+
+export const schemasColumns: any = [
+  {
+    title: "名称",
+    dataIndex: "title",
+    ellipsis: true,
+    sorter: true,
+  },
+  {
+    title: "创建时间",
+    dataIndex: "createTime",
+    ellipsis: true,
+    sorter: true,
+  },
+];
+
+export const schemasForm: any = {
+  layoutType: "Form",
+  rowProps: {
+    gutter: [16, 16],
+  },
+  colProps: {
+    span: 12,
+  },
+  grid: true,
+  columns: [
+    {
+      title: "名称",
+      dataIndex: "title",
+      formItemProps: {
+        rules: [
+          {
+            required: true,
+            message: "此项为必填项",
+          },
+        ],
+      },
+    },
+
+    {
+      title: "创建时间",
+      dataIndex: "createTime",
+      formItemProps: {
+        rules: [
+          {
+            required: true,
+            message: "此项为必填项",
+          },
+        ],
+      },
+    },
+  ],
+};
+
+export const schemasDescriptions: any = [
+  {
+    title: "名称",
+    key: "title",
+    dataIndex: "title",
+    copyable: true,
+    ellipsis: true,
+  },
+  {
+    title: "创建时间",
+    key: "createTime",
+    dataIndex: "createTime",
+    copyable: true,
+    ellipsis: true,
+  },
+];
+
+// 模拟表格数据
+export const mockProcessData = [
+  {
+    id: 1,
+    configType: "配置",
+    status: "error",
+    command: "ReadESR_Acw",
+    inputParams: "sendcom_0",
+    outputParams: "sendstring",
+    description: "设置ESR 232字符串终止符",
+    tag: 1,
+  },
+  {
+    id: 2,
+    configType: "配置",
+    command: "ReadESR_Irl",
+    inputParams: "1,sendcom",
+    status: "success",
+    outputParams: "readstring",
+    tag: 1,
+    description: "写入ESR 232字符串格式",
+  },
+  {
+    id: 3,
+    configType: "配置",
+    tag: 1,
+    command: "ReadESR_232_ResponseStringData",
+    inputParams: "1,10000",
+    status: "success",
+    outputParams: "readstring",
+    description: "读取ESR 232响应字符串数据",
+  },
+  {
+    id: 4,
+    configType: "配置",
+    command: "ReadESR_Data",
+    inputParams: "ESR_Acw_Index, ESR_Test_Items",
+    status: "error",
+    outputParams: "ESR_Acw_I",
+    tag: 1,
+    description: "设置ESR ACW测试",
+  },
+  {
+    id: 5,
+    configType: "读取",
+    command: "SetESR_Acw",
+    inputParams: "Index, Count",
+    status: "success",
+    outputParams: "Data[]",
+    tag: 1,
+    description: "读取ESR数据",
+  },
+];

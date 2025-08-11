@@ -94,22 +94,8 @@ let source = [
   },
   {
     moduleName: "case-management",
-    label: "用例管理",
+    label: "测试设计",
     children: [
-      {
-        pageName: "case-library",
-        label: "用例执行",
-        fileds: [
-          {
-            title: "名称",
-            dataIndex: "title",
-          },
-          {
-            title: "创建时间",
-            dataIndex: "createTime",
-          },
-        ],
-      },
       {
         pageName: "test-case",
         label: "测试用例",
@@ -153,8 +139,36 @@ let source = [
         ],
       },
       {
+        pageName: "test-sequence-edit",
+        label: "序列编辑",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
         pageName: "test-sequence-integration",
         label: "序列集成",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "case-library",
+        label: "序列执行",
         fileds: [
           {
             title: "名称",

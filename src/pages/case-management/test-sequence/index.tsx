@@ -10,16 +10,19 @@ import {
   PlusOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import type { ActionType } from "@ant-design/pro-components";
-import { useSetState } from "ahooks";
+import { history } from "@umijs/max";
 
+import type { ActionType } from "@ant-design/pro-components";
 import {
   PageContainer,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
+import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Select, Spin } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import AddModal from "./components/addModal";
+import EditModal from "./components/editModal";
 import "./index.less";
 import { schemasColumns, schemasTitle, TestItem, TreeNode } from "./schemas";
 
@@ -33,22 +36,14 @@ const DemoPage: React.FC = () => {
   const [treeLoading, setTreeLoading] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<string[]>(["1", "2"]);
   const actionRef = useRef<ActionType>();
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
     updateValue: {},
-    selectTestData: {}, //已选择的测试序列
-    isTestModal: false, //关联测试序列modal
     isAddModalOpen: false, //新增modal
-    optionType: "edit", //默认是编辑edit｜ copy
-    detailsData: {}, //详情
-    isRowEditModal: false, //点击row出现的编辑框
-    rowValue: {}, //
-    isPreviewModalOpen: false,
-    detailsId: null,
-    open: false, //编辑用例模块
-    modulevalue: {}, //单个模块数据
+    optionType: "edit", //默认是｜edit｜ copy
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -63,28 +58,27 @@ const DemoPage: React.FC = () => {
             icon={<EditOutlined />}
             onClick={(e) => {
               e.stopPropagation();
-              // form.setFieldsValue(record);
-              // setState({
-              //   updateValue: record,
-              //   isUpdateModalOpen: true,
-              //   optionType: "edit",
-              // });
+              setState({
+                updateValue: record,
+                isUpdateModalOpen: true,
+                optionType: "edit",
+              });
             }}
           >
             编辑
           </Button>,
           <Button
-            key="preview"
+            key="copy"
             variant="link"
             color="primary"
             icon={<CopyOutlined />}
             onClick={(e) => {
               e.stopPropagation();
-              // setState({
-              //   detailsId: record.id,
-              //   isPreviewModalOpen: true,
-              //   detailsData: record,
-              // });
+              setState({
+                updateValue: record,
+                isUpdateModalOpen: true,
+                optionType: "copy",
+              });
             }}
           >
             复制
@@ -99,18 +93,17 @@ const DemoPage: React.FC = () => {
             <TableDropdown
               onSelect={(key: string) => {
                 console.log("key----", key);
-                console.log(key);
                 switch (key) {
                   case "delete":
                     Modal.confirm({
                       title: (
                         <div>
                           <div>
-                            确认删除测试库{" "}
+                            确认删除序列{" "}
                             <span
                               style={{ color: "#ff4d4f", fontWeight: "bold" }}
                             >
-                              {record.title}
+                              {record.name}
                             </span>{" "}
                             吗？
                           </div>
@@ -121,7 +114,7 @@ const DemoPage: React.FC = () => {
                               marginTop: "8px",
                             }}
                           >
-                            测试库删除后不可恢复，删除测试库会一起删除测试库内的执行用例
+                            序列删除后不可恢复
                           </div>
                         </div>
                       ),
@@ -134,22 +127,12 @@ const DemoPage: React.FC = () => {
                       },
                     });
                     return;
-                  case "copy":
-                    // form.setFieldsValue(record);
-                    // setState({
-                    //   updateValue: record,
-                    //   isUpdateModalOpen: true,
-                    //   optionType: "copy",
-                    // });
-
-                    return;
                   case "remove":
-                    // form.setFieldsValue(record);
-                    // setState({
-                    //   updateValue: record,
-                    //   isUpdateModalOpen: true,
-                    //   optionType: "copy",
-                    // });
+                    setState({
+                      updateValue: record,
+                      isUpdateModalOpen: true,
+                      optionType: "remove",
+                    });
 
                     return;
                   default:
@@ -157,10 +140,7 @@ const DemoPage: React.FC = () => {
                 }
               }}
               menus={[
-                // { key: "copy", name: "复制" },
                 { key: "remove", name: "移动" },
-
-                // { key: "example", name: "示例测试库" },
                 { key: "delete", name: "删除" },
               ]}
             />
@@ -174,18 +154,8 @@ const DemoPage: React.FC = () => {
     title,
     isUpdateModalOpen,
     updateValue,
-    formSchema,
-    isPreviewModalOpen,
-    detailsId,
-    descriptionsColumns,
     optionType,
-    detailsData,
     isAddModalOpen,
-    open,
-    isTestModal,
-    selectTestData,
-    isRowEditModal,
-    rowValue,
   } = state;
 
   // 递归查找节点
@@ -339,16 +309,35 @@ const DemoPage: React.FC = () => {
   };
 
   // 删除节点
-  const handleDeleteNode = (nodeId: string) => {
+  const handleDeleteNode = (record: any) => {
     Modal.confirm({
-      title: "确认删除",
-      content: "确定要删除这个节点吗？",
+      title: (
+        <div>
+          <div>
+            确认删除序列类型{" "}
+            <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+              {record.name}
+            </span>{" "}
+            吗？
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "8px",
+            }}
+          >
+            序列类型删除后不可恢复，同时删除类型下的测试序列
+          </div>
+        </div>
+      ),
+
       onOk: async () => {
         try {
-          const response = await DemoService.deleteTreeNode(nodeId);
+          const response = await DemoService.deleteTreeNode(record.id);
           if (response.code === 200) {
             await loadTreeData();
-            if (selectedNodeId === nodeId) {
+            if (selectedNodeId === record.id) {
               setSelectedNodeId("1-1");
             }
             message.success("删除成功");
@@ -451,7 +440,7 @@ const DemoPage: React.FC = () => {
                   className="action-btn delete-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteNode(node.id);
+                    handleDeleteNode(node);
                   }}
                 >
                   <DeleteOutlined />
@@ -495,8 +484,8 @@ const DemoPage: React.FC = () => {
   };
 
   // 获取当前选中节点信息
-  const getSelectedNodePath = () => {
-    const selectedNode = findNodeById(treeData, selectedNodeId);
+  const getSelectedNodePath = (selectedId: any) => {
+    const selectedNode = findNodeById(treeData, selectedId);
     if (!selectedNode) return "";
 
     // 找到父节点
@@ -519,7 +508,17 @@ const DemoPage: React.FC = () => {
     const parent = findParent(treeData, selectedNodeId);
     return parent ? `${parent.name} / ${selectedNode.name}` : selectedNode.name;
   };
+  const handleRowClick = (record: any, index: number) => {
+    console.log("点击的行数据:", record);
+    let name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
+    history.push({
+      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}`,
+      // search: `?de=123&name=Tom`, // 这里用 search
+    });
 
+    // 更新选中的行
+    setSelectedRow(record);
+  };
   return (
     <PageContainer>
       <div className="demo-container">
@@ -587,7 +586,16 @@ const DemoPage: React.FC = () => {
                   `第 ${range[0]}-${range[1]} 条/共计 ${total} 条`,
               }}
               toolBarRender={() => [
-                <Button key="add" type="primary" icon={<PlusOutlined />}>
+                <Button
+                  onClick={() => {
+                    setState({
+                      isAddModalOpen: true,
+                    });
+                  }}
+                  key="add"
+                  type="primary"
+                  icon={<PlusOutlined />}
+                >
                   新建
                 </Button>,
               ]}
@@ -596,11 +604,76 @@ const DemoPage: React.FC = () => {
                 density: true,
                 setting: true,
               }}
-              size="middle"
+              size="small"
+              onRow={(record, index) => ({
+                onClick: (e) => {
+                  // 检查点击的元素是否在操作栏内
+                  const target = e.target as HTMLElement;
+                  const isActionColumn =
+                    target.closest(".ant-table-cell:last-child") ||
+                    target.closest(".ant-btn") ||
+                    target.closest("button") ||
+                    target.closest("a") ||
+                    target.closest(".ant-dropdown") ||
+                    target.closest(".ant-dropdown-menu") ||
+                    target.closest(".ant-dropdown-menu-item") ||
+                    target.closest(".ant-dropdown-trigger");
+
+                  // 如果点击的是操作栏，则不跳转
+                  if (isActionColumn) {
+                    e.stopPropagation();
+                    return;
+                  }
+
+                  // 否则执行正常的行点击逻辑
+                  handleRowClick(record, index || 0);
+                },
+                style: {
+                  cursor: "pointer",
+                  backgroundColor:
+                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+                },
+              })}
             />
           </div>
         </div>
       </div>
+      {/* 编辑复制移动 */}
+      <EditModal
+        currentNode={selectedNodeId} //当前选中的树节点
+        type={optionType}
+        open={isUpdateModalOpen}
+        updateValue={updateValue}
+        onOk={(values) => {
+          setState({
+            isUpdateModalOpen: false,
+          });
+          console.log("values", values);
+        }}
+        onCancel={() => {
+          setState({
+            isUpdateModalOpen: false,
+          });
+        }}
+      />
+      {/* 新建测试序列 */}
+      <AddModal
+        open={isAddModalOpen}
+        onCancel={() => {
+          setState({ isAddModalOpen: false });
+        }}
+        onOk={(values) => {
+          console.log(values);
+
+          const { gender, name } = values;
+          let titles = gender
+            ? `${getSelectedNodePath(gender)} / ${name}`
+            : `${name}`;
+          history.push(
+            `/case-management/test-sequence-edit/add?name=${titles}`
+          );
+        }}
+      />
     </PageContainer>
   );
 };

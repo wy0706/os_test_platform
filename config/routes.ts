@@ -106,6 +106,17 @@ export default [
         name: "序列编辑",
         access: ["testSequence-preview", "testSequence-edit"],
         component: "./case-management/test-sequence",
+        hideFooter: true,
+      },
+
+      {
+        path: "/case-management/test-sequence-edit/:id",
+        name: "序列编辑",
+        access: ["testSequenceEdit-preview", "testSequenceEdit-edit"],
+        component: "./case-management/test-sequence-edit",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+        hideFooter: true,
       },
       {
         path: "/case-management/test-sequence-integration",
@@ -150,13 +161,6 @@ export default [
         access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
         component: "./equipment-management/equipment-library",
       },
-      // {
-      //   path: "/equipment-management/peripheral-import",
-      //   name: "外设导入",
-      //   access: ["peripheralImport-preview", "peripheralImport-edit"],
-      //   component: "./equipment-management/peripheral-import",
-      //   hideFooter: true,
-      // },
       {
         path: "/equipment-management/equipment-library-edit/:id",
         name: "外设导入",

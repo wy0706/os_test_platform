@@ -1,7 +1,7 @@
 
 export const schemasTitle: any = {
-  label: '序列执行',
-  value: 'caseLibrary',
+  label: '序列编辑',
+  value: 'testSequenceEdit',
 };
 
 export const schemasColumns: any = [

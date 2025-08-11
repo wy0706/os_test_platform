@@ -627,6 +627,8 @@ const TestCaseExample: React.FC = () => {
           <Checkbox
             checked={deleteTestCases}
             onChange={(e) => {
+              console.log("e", e);
+
               setDeleteTestCases(e.target.checked);
             }}
           >

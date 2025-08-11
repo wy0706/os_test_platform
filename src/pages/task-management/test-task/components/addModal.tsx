@@ -130,7 +130,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           </Select>
         </Form.Item>
 
-        <Form.Item name="gender3" label="选择测试文件">
+        <Form.Item name="gender3" label="关联测试文件">
           <div
             style={{
               display: "flex",
