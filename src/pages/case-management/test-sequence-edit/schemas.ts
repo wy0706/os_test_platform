@@ -126,3 +126,146 @@ export const mockProcessData = [
     description: "读取ESR数据",
   },
 ];
+export const mockTreeData = [
+  {
+    title: "testCommand",
+    key: "testCommand",
+
+    children: [
+      {
+        title: "AC_SOURCE",
+        key: "AC_SOURCE",
+
+        children: [
+          {
+            title: "ReadESR_232_ResponseStringData",
+            key: "ReadESR_232_ResponseStringData",
+          },
+        ],
+      },
+      // {
+      //   title: "DC_SOURCE",
+      //   key: "DC_SOURCE",
+      // },
+      // {
+      //   title: "LOAD",
+      //   key: "LOAD",
+
+      // },
+      // {
+      //   title: "Power Analyzer",
+      //   key: "Power_Analyzer",
+
+      // },
+      // {
+      //   title: "DSD",
+      //   key: "DSD",
+
+      // },
+      // {
+      //   title: "DMM",
+      //   key: "DMM",
+
+      // },
+      // {
+      //   title: "PATH",
+      //   key: "PATH",
+
+      // },
+      // {
+      //   title: "System",
+      //   key: "System",
+
+      // },
+      // {
+      //   title: "Timing/Rules Analyzer",
+      //   key: "Timing_Rules_Analyzer",
+
+      // },
+      // {
+      //   title: "Control Unit",
+      //   key: "Control_Unit",
+
+      // },
+      // {
+      //   title: "On / Off Controller",
+      //   key: "On_Off_Controller",
+
+      // },
+      // {
+      //   title: "Voltage/Freq Tester",
+      //   key: "Voltage_Freq_Tester",
+
+      // },
+      {
+        title: "RS232 Device",
+        key: "RS232_Device",
+
+        children: [
+          {
+            title: "ReadESR_Acw",
+            key: "ReadESR_Acw",
+          },
+          {
+            title: "ReadESR_Data",
+            key: "ReadESR_Data",
+          },
+          {
+            title: "ReadESR_Go",
+            key: "ReadESR_Go",
+          },
+          {
+            title: "ReadESR_Col",
+            key: "ReadESR_Col",
+          },
+          {
+            title: "ReadESR_Ir",
+            key: "ReadESR_Ir",
+          },
+          {
+            title: "ReadESR_Irl",
+            key: "ReadESR_Irl",
+          },
+          {
+            title: "ReadESR_StepResult",
+            key: "ReadESR_StepResult",
+          },
+          {
+            title: "ReadESR_TestResult",
+            key: "ReadESR_TestResult",
+          },
+          {
+            title: "ReadESR_TestState",
+            key: "ReadESR_TestState",
+          },
+          {
+            title: "SetESR_Acw",
+            key: "SetESR_Acw",
+          },
+          {
+            title: "SetESR_ACVTestData",
+            key: "SetESR_ACVTestData",
+          },
+          {
+            title: "SetESR_Data",
+            key: "SetESR_Data",
+          },
+          {
+            title: "SetESR_Dec",
+            key: "SetESR_Dec",
+          },
+        ],
+      },
+      {
+        title: "FSK",
+        key: "FSK",
+        children: [
+          {
+            title: "ReadESR_Acw111",
+            key: "ReadESR_Acw111",
+          },
+        ],
+      },
+    ],
+  },
+];

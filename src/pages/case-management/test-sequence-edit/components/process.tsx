@@ -8,8 +8,8 @@ import {
 import { ProTable } from "@ant-design/pro-components";
 import { Card, Tree, Typography, message } from "antd";
 import React, { useEffect, useState } from "react";
+import { mockTreeData } from "../schemas";
 import "./index.less";
-
 const { Title, Text } = Typography;
 
 // 模拟参数解释数据
@@ -100,179 +100,38 @@ const mockParamExplanation = {
   },
 };
 
-// 模拟树形结构数据
-const mockTreeData = [
-  {
-    title: "testCommand",
-    key: "testCommand",
-    icon: <FolderOutlined />,
-    children: [
-      {
-        title: "AC_SOURCE",
-        key: "AC_SOURCE",
-        icon: <FolderOutlined />,
-        children: [
-          {
-            title: "ReadESR_232_ResponseStringData",
-            key: "ReadESR_232_ResponseStringData",
-            icon: <FileTextOutlined />,
-          },
-        ],
-      },
-      // {
-      //   title: "DC_SOURCE",
-      //   key: "DC_SOURCE",
-      //   // icon: "📁",
-      // },
-      // {
-      //   title: "LOAD",
-      //   key: "LOAD",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "Power Analyzer",
-      //   key: "Power_Analyzer",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "DSD",
-      //   key: "DSD",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "DMM",
-      //   key: "DMM",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "PATH",
-      //   key: "PATH",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "System",
-      //   key: "System",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "Timing/Rules Analyzer",
-      //   key: "Timing_Rules_Analyzer",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "Control Unit",
-      //   key: "Control_Unit",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "On / Off Controller",
-      //   key: "On_Off_Controller",
-      //   icon: "📁",
-      // },
-      // {
-      //   title: "Voltage/Freq Tester",
-      //   key: "Voltage_Freq_Tester",
-      //   icon: "📁",
-      // },
-      {
-        title: "RS232 Device",
-        key: "RS232_Device",
-        icon: <FolderOutlined />,
-        children: [
-          {
-            title: "ReadESR_Acw",
-            key: "ReadESR_Acw",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_Data",
-            key: "ReadESR_Data",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_Go",
-            key: "ReadESR_Go",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_Col",
-            key: "ReadESR_Col",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_Ir",
-            key: "ReadESR_Ir",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_Irl",
-            key: "ReadESR_Irl",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_StepResult",
-            key: "ReadESR_StepResult",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_TestResult",
-            key: "ReadESR_TestResult",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "ReadESR_TestState",
-            key: "ReadESR_TestState",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "SetESR_Acw",
-            key: "SetESR_Acw",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "SetESR_ACVTestData",
-            key: "SetESR_ACVTestData",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "SetESR_Data",
-            key: "SetESR_Data",
-            icon: <FileTextOutlined />,
-          },
-          {
-            title: "SetESR_Dec",
-            key: "SetESR_Dec",
-            icon: <FileTextOutlined />,
-          },
-        ],
-      },
-      {
-        title: "FSK",
-        key: "FSK",
-        icon: <FolderOutlined />,
-        children: [
-          {
-            title: "ReadESR_Acw111",
-            key: "ReadESR_Acw111",
-            icon: <FileTextOutlined />,
-          },
-        ],
-      },
-    ],
-  },
-];
-
 interface ProcessProps {
   data?: any[]; //table数据
 }
 
+// 动态为树形数据添加图标的函数
+const addIconsToTreeData = (treeData: any[]): any[] => {
+  return treeData.map((node) => {
+    const newNode = { ...node };
+
+    // 根据是否有children来决定图标类型
+    if (node.children && node.children.length > 0) {
+      // 有子节点的是文件夹图标
+      newNode.icon = <FolderOutlined />;
+      // 递归处理子节点
+      newNode.children = addIconsToTreeData(node.children);
+    } else {
+      // 没有子节点的是文档图标
+      newNode.icon = <FileTextOutlined />;
+    }
+
+    return newNode;
+  });
+};
+
 const Process: React.FC<ProcessProps> = ({ data }) => {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
   const [selectedRowData, setSelectedRowData] = useState<any>(null);
-  const [tableData, setTableData] = useState<any[]>(data); // 表格数据状态管理，支持接口数据
+  const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedTreeKeys, setSelectedTreeKeys] = useState<string[]>([]);
   const [selectedCommand, setSelectedCommand] = useState<string>(""); // 当前选中的命令
+  const [processedTreeData, setProcessedTreeData] = useState<any[]>([]); // 处理后的树形数据（含图标）
 
   const [selectType, setType] = useState("COMMAND"); //默认展示测试命令 COMMAND | INPUT |OUT
 
@@ -320,16 +179,18 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
   const handleCommandClick = (command: string) => {
     setType("COMMAND");
     setSelectedCommand(command); // 设置当前选中的命令
-    const commandPath = findCommandInTree(command, mockTreeData);
-    if (commandPath) {
-      // 设置选中的节点
-      setSelectedTreeKeys([command]);
+    if (processedTreeData.length > 0) {
+      const commandPath = findCommandInTree(command, processedTreeData);
+      if (commandPath) {
+        // 设置选中的节点
+        setSelectedTreeKeys([command]);
 
-      // 确保展开到该命令的路径
-      const newExpandedKeys = [
-        ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-      ];
-      setExpandedKeys(newExpandedKeys);
+        // 确保展开到该命令的路径
+        const newExpandedKeys = [
+          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
+        ];
+        setExpandedKeys(newExpandedKeys);
+      }
     }
   };
 
@@ -359,10 +220,14 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
     }
   };
 
-  // 初始化时设置默认展开全部
+  // 初始化时处理树形数据并设置默认展开全部
   useEffect(() => {
+    // 为mockTreeData添加图标
+    const dataWithIcons = addIconsToTreeData(mockTreeData);
+    setProcessedTreeData(dataWithIcons);
+
     // 默认展开所有节点
-    const allKeys = getAllTreeKeys(mockTreeData);
+    const allKeys = getAllTreeKeys(dataWithIcons);
     setExpandedKeys(allKeys);
   }, []);
 
@@ -771,7 +636,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
           <div>
             <Card size="small" className="tree-card">
               <Tree
-                treeData={mockTreeData}
+                treeData={processedTreeData}
                 expandedKeys={expandedKeys}
                 onExpand={(keys) => setExpandedKeys(keys as string[])}
                 selectedKeys={selectedTreeKeys}

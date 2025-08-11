@@ -52,6 +52,11 @@ export const schemasColumns: any = [
     ellipsis: true,
     valueType: "dateTime",
   },
+  {
+    title: "关联测试序列",
+    dataIndex: "importance33",
+    ellipsis: true,
+  },
 ];
 
 export const schemasForm: any = {
