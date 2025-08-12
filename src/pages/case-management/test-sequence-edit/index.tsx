@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   BarsOutlined,
@@ -15,20 +15,21 @@ import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Modal, Space, Tabs } from "antd";
+import isEqual from "lodash/isEqual";
 import RunModal from "../components/runModal";
 import AddModal from "../test-sequence/components/addModal";
 import Conditions from "./components/conditions";
 import Process from "./components/process";
 import ResultPage from "./components/result";
 import TemporaryVariables from "./components/temporaryVariables";
-
 import "./index.less";
-import { mockProcessData } from "./schemas";
+import { mockConditionsData, mockProcessData } from "./schemas";
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     tabActiveKey: "1",
     processTable: [],
+    conditionsTable: [],
     isSaveModalOpen: false, //
     isRunModalOpen: false, //
     tabItems: [
@@ -61,18 +62,52 @@ const Page: React.FC = () => {
     tabItems,
     isSaveModalOpen,
     isRunModalOpen,
+    conditionsTable,
   } = state;
+  const [isDirty, setIsDirty] = useState(false); //是否修改
+  const [processTableData, setProcessData] = useState(processTable);
+  const [conditionsTableData, setConditionsData] = useState(conditionsTable);
+  // 初始数据记录（进入页面时存一份）
+  const [initialData] = useState({
+    processTableData: processTable,
+    conditionsTableData: conditionsTable,
+  });
+
+  // 检测是否修改
+  useEffect(() => {
+    const changed =
+      !isEqual(processTableData, initialData.processTableData) ||
+      !isEqual(conditionsTableData, initialData.conditionsTableData);
+    setIsDirty(changed);
+  }, [processTableData, conditionsTableData]);
+
   const params = useParams();
   const [searchParams] = useSearchParams();
   useEffect(() => {
+    console.log(mockConditionsData);
+
     setState({
       title: searchParams.get("name"),
       processTable: params.id === "add" ? [] : mockProcessData,
+      conditionsTable: params.id === "add" ? [] : mockConditionsData,
     });
     console.log("路由", params, "searchParams", searchParams.get("name"));
   }, []);
   const handleGoBack = () => {
-    history.back();
+    console.log(isDirty);
+
+    if (isDirty) {
+      Modal.confirm({
+        title: "当前编辑的测试项目已修改，请选择是否保存?",
+        // okText: "保存",
+        // cancelText: "不保存",
+        onOk: () => {},
+        onCancel: () => {},
+      });
+    } else {
+      return;
+      history.back();
+    }
   };
   const tabChange = (key: any) => {
     setState({ tabActiveKey: key });
@@ -159,30 +194,21 @@ const Page: React.FC = () => {
             {tabActiveKey == 1 && (
               <Process
                 data={processTable}
-                onMoveRow={(index, data) => {
-                  console.log(
-                    "onMoveRow",
-                    index,
-                    data,
-                    "processTable",
-                    processTable
-                  );
-                }}
-                onSaveData={(data) => {
-                  console.log("onSaveData", data, "processTable", processTable);
-                }}
-                onAddRow={(index, data) => {
-                  console.log(
-                    "onAddRow",
-                    index,
-                    data,
-                    "processTable",
-                    processTable
-                  );
+                onChange={(data) => {
+                  console.log("data", data);
+                  setProcessData(data);
                 }}
               />
             )}
-            {tabActiveKey == 2 && <Conditions />}
+            {tabActiveKey == 2 && (
+              <Conditions
+                data={conditionsTable}
+                onChange={(data) => {
+                  console.log("data", data);
+                  setConditionsData(data);
+                }}
+              />
+            )}
             {tabActiveKey == 3 && <ResultPage />}
             {tabActiveKey == 4 && <TemporaryVariables />}
           </div>

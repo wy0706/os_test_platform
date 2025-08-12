@@ -73,7 +73,7 @@ export const schemasDescriptions: any = [
   },
 ];
 
-// 模拟表格数据
+// 模拟 测试流程数据
 export const mockProcessData = [
   {
     id: 1,
@@ -215,5 +215,72 @@ export const mockTreeData = [
         ],
       },
     ],
+  },
+];
+//测试条件数据
+export const mockConditionsData = [
+  {
+    id: 1,
+    key: 1,
+    extensionName: "输入电压",
+    variableName: "供电典型值",
+    dataType: "Double",
+    editType: "EditBox",
+    minValue: 0.0,
+    maxValue: 20000.0,
+    defaultValue: 5.0,
+    precision: 0.2,
+    project: 1,
+    arraySize: 1,
+    unit: "V",
+    visible: "error",
+  },
+  {
+    id: 2,
+    key: 2,
+    extensionName: "CAN报文",
+    variableName: "CAN_MSG",
+    dataType: "Byte[]",
+    editType: "EditBox",
+    minValue: "0, 0, 0, 0, ff, ff, ff, ff",
+    maxValue: "0, 5, 0, 5, 0, 0, 0, 0",
+    defaultValue: "0, 5, 0, 5, 0, 0, 0, 0",
+    precision: 0.2,
+    project: 6,
+    arraySize: 6,
+    unit: "",
+    visible: "success",
+  },
+  {
+    id: 3,
+    key: 3,
+    extensionName: "CAN通道使能",
+    variableName: "CAN通道",
+    dataType: "Integer[]",
+    editType: "EditBox",
+    minValue: "0, 0",
+    maxValue: "1, 1",
+    defaultValue: "1, 1",
+    precision: 0.2,
+    project: 2,
+    arraySize: 2,
+    unit: "",
+    visible: "success",
+  },
+  {
+    id: 4,
+    key: 4,
+    extensionName: "设置电子负载",
+    variableName: "",
+    dataType: "Double",
+    editType: "EditBox",
+    minValue: 0.0,
+    maxValue: 20000.0,
+    defaultValue: 10000.0,
+    precision: 0.2,
+    project: 1,
+    arraySize: 1,
+    unit: "V/A/W",
+    visible: "error",
   },
 ];

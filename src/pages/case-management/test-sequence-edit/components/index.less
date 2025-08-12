@@ -52,8 +52,9 @@
 
     .param-explanation-card {
       box-sizing: border-box;
-      min-height: 100px;
-      max-height: 200px;
+      height: 200px;
+      // min-height: 100px;
+      // max-height: 200px;
       overflow-y: auto;
     }
 
@@ -103,6 +104,49 @@
       .tree-card {
         flex: 1;
         height: 400px;
+      }
+    }
+  }
+}
+
+// 数组设置弹框样式
+.array-setting-modal {
+  .array-info {
+    margin-bottom: 16px;
+    padding: 12px;
+    color: #666;
+    font-size: 14px;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+
+  .array-table {
+    .ant-table-thead > tr > th {
+      font-weight: 600;
+      text-align: center;
+      background: #fafafa;
+    }
+
+    .ant-table-tbody > tr > td {
+      padding: 8px;
+      text-align: center;
+    }
+
+    .ant-table-tbody > tr > td:first-child {
+      padding-left: 16px;
+      font-weight: 500;
+      text-align: left;
+      background: #f9f9f9;
+    }
+
+    .ant-input {
+      text-align: center;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+
+      &:focus {
+        border-color: #1677ff;
+        box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
       }
     }
   }

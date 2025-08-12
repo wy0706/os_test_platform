@@ -275,7 +275,7 @@ const CanModal: React.FC<SetMemberModalProps> = ({
         onOk={handleOk}
       >
         <Form {...layout} form={form} name="control-hooks">
-          <Divider>基础设置</Divider>
+          {/* <Divider>基础设置</Divider> */}
           <Form.Item name="name1" label="总线协议">
             <Select
               placeholder="选择总线协议"

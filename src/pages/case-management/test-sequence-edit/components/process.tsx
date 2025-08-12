@@ -1,15 +1,18 @@
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
+  DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
   FolderOutlined,
 } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
-import { Card, Tree, Typography, message } from "antd";
+import { useSetState } from "ahooks";
+import { Card, Modal, Tree, Typography, message } from "antd";
 import React, { useEffect, useState } from "react";
 import { mockTreeData } from "../schemas";
 import "./index.less";
+import ProcessModal from "./processModal";
 const { Title, Text } = Typography;
 
 // 模拟参数解释数据
@@ -105,6 +108,7 @@ interface ProcessProps {
   onMoveRow?: (index: number, data: any[]) => void; //table上移下移
   onAddRow?: (index: number, data: any[]) => void; //table新增行
   onSaveData?: (data: any[]) => void; //table保存
+  onChange?: (data: any[]) => void; //table变化
 }
 
 // 动态为树形数据添加图标的函数
@@ -132,7 +136,13 @@ const Process: React.FC<ProcessProps> = ({
   onMoveRow,
   onAddRow,
   onSaveData,
+  onChange,
 }) => {
+  const [state, setState] = useSetState<any>({
+    isProcessModalOpen: false,
+    updateValue: {},
+  });
+  const { isProcessModalOpen, updateValue } = state;
   const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
   const [selectedRowData, setSelectedRowData] = useState<any>(null);
   const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
@@ -216,6 +226,7 @@ const Process: React.FC<ProcessProps> = ({
 
     setTableData(newData);
     onMoveRow && onMoveRow(index, newData);
+    onChange && onChange(newData);
     // 更新选中行索引和数据
     if (selectedRowIndex === index) {
       setSelectedRowIndex(targetIndex);
@@ -224,6 +235,65 @@ const Process: React.FC<ProcessProps> = ({
       setSelectedRowIndex(index);
       setSelectedRowData(newData[index]);
     }
+  };
+
+  // 删除行
+  const deleteRow = (index: number) => {
+    Modal.confirm({
+      title: "确认删除吗 ？",
+      onOk: () => {
+        const newData = [...tableData];
+
+        // 删除指定索引的行
+        newData.splice(index, 1);
+
+        // 重新计算序号
+        newData.forEach((item, newIndex) => {
+          item.sequence = newIndex + 1;
+        });
+
+        setTableData(newData);
+        onChange && onChange(newData);
+
+        // 处理选中状态
+        if (newData.length === 0) {
+          // 如果没有数据了，清空选中状态
+          setSelectedRowIndex(-1);
+          setSelectedRowData(null);
+          setSelectedCommand("");
+        } else {
+          // 如果删除的是当前选中的行
+          if (selectedRowIndex === index) {
+            // 如果删除的是最后一行，选中上一行
+            if (index === newData.length) {
+              const newSelectedIndex = index - 1;
+              setSelectedRowIndex(newSelectedIndex);
+              setSelectedRowData(newData[newSelectedIndex]);
+              // 如果当前是命令模式，更新命令选择
+              if (
+                selectType === "COMMAND" &&
+                newData[newSelectedIndex]?.command
+              ) {
+                handleCommandClick(newData[newSelectedIndex].command);
+              }
+            } else {
+              // 否则选中当前位置的行
+              setSelectedRowIndex(index);
+              setSelectedRowData(newData[index]);
+              // 如果当前是命令模式，更新命令选择
+              if (selectType === "COMMAND" && newData[index]?.command) {
+                handleCommandClick(newData[index].command);
+              }
+            }
+          } else if (selectedRowIndex > index) {
+            // 如果删除的行在选中行之前，选中行索引需要减1
+            setSelectedRowIndex(selectedRowIndex - 1);
+          }
+        }
+
+        message.success("删除成功");
+      },
+    });
   };
 
   // 初始化时处理树形数据并设置默认展开全部
@@ -294,6 +364,7 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "tag",
       ellipsis: true,
       editable: () => true,
+      width: 100,
     },
     {
       title: "测试命令",
@@ -301,6 +372,7 @@ const Process: React.FC<ProcessProps> = ({
       key: "command",
       editable: false,
       ellipsis: true,
+      width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -321,6 +393,7 @@ const Process: React.FC<ProcessProps> = ({
       key: "inputParams",
       editable: false,
       ellipsis: true,
+      width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -340,6 +413,7 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "outputParams",
       ellipsis: true,
       editable: false,
+      width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -359,12 +433,14 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "description",
       editable: () => true,
       ellipsis: true,
+      width: 150,
     },
     {
       title: "操作",
       valueType: "option",
       key: "option",
-      width: 100,
+      width: 130,
+      fixed: "right",
       render: (
         text: any,
         record: { id: any },
@@ -378,7 +454,8 @@ const Process: React.FC<ProcessProps> = ({
           <a
             key="editable"
             onClick={() => {
-              action?.startEditable?.(record.id);
+              // action?.startEditable?.(record.id);
+              setState({ isProcessModalOpen: true, updateValue: record });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
           >
@@ -417,6 +494,16 @@ const Process: React.FC<ProcessProps> = ({
             }}
           >
             <ArrowDownOutlined style={{ marginRight: 4 }} />
+          </a>,
+          <a
+            key="delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteRow(index);
+            }}
+            style={{ color: "#ff4d4f" }}
+          >
+            <DeleteOutlined style={{ marginRight: 4 }} />
           </a>,
         ];
       },
@@ -494,6 +581,7 @@ const Process: React.FC<ProcessProps> = ({
 
     setTableData(newTableData);
     onAddRow && onAddRow(insertIndex, newTableData);
+    onChange && onChange(newTableData);
     // 选中新插入的行
     setSelectedRowIndex(insertIndex);
     setSelectedRowData(newRowData);
@@ -542,6 +630,7 @@ const Process: React.FC<ProcessProps> = ({
       {/* 左侧表格区域 */}
       <div className="process-left">
         <ProTable
+          scroll={{ x: 1020 }}
           columns={columns}
           dataSource={tableData}
           rowKey="id"
@@ -549,34 +638,6 @@ const Process: React.FC<ProcessProps> = ({
           pagination={false}
           toolBarRender={false}
           size="small"
-          editable={{
-            type: "single",
-            actionRender: (row, config, defaultDoms) => {
-              return [defaultDoms.save, defaultDoms.cancel];
-            },
-            onSave: async (rowKey, data, row) => {
-              // 更新table数据
-              const newData = tableData.map((item) => {
-                if (item.id === rowKey) {
-                  return { ...item, ...data };
-                }
-                return item;
-              });
-              setTableData(newData);
-              onSaveData && onSaveData(newData);
-              // 如果修改的是当前选中的行，同时更新选中的数据
-              if (selectedRowData?.id === rowKey) {
-                setSelectedRowData({ ...selectedRowData, ...data });
-              }
-
-              message.success("保存成功");
-              return true;
-            },
-            onCancel: async (rowKey, record, originRow) => {
-              message.info("已取消编辑");
-              return true;
-            },
-          }}
           onRow={(record, index) => ({
             onClick: () => handleRowClick(record, index || 0),
             className: selectedRowIndex === index ? "selected-row" : "",
@@ -660,29 +721,55 @@ const Process: React.FC<ProcessProps> = ({
         ) : selectType === "INPUT" ? (
           <Card title="输入参数" size="small" className="param-detail-card">
             <div className="param-detail-content">
-              <Text strong>当前输入参数: </Text>
+              {/* <Text strong>当前输入参数: </Text>
               <Text code>{selectedRowData?.inputParams}</Text>
               <div style={{ marginTop: 8 }}>
                 <Text type="secondary">
                   这里可以显示输入参数的详细配置和说明
                 </Text>
-              </div>
+              </div> */}
             </div>
           </Card>
         ) : selectType === "OUT" ? (
           <Card title="输出参数" size="small" className="param-detail-card">
             <div className="param-detail-content">
-              <Text strong>当前输出参数: </Text>
+              {/* <Text strong>当前输出参数: </Text>
               <Text code>{selectedRowData?.outputParams}</Text>
               <div style={{ marginTop: 8 }}>
                 <Text type="secondary">
                   这里可以显示输出参数的详细配置和说明
                 </Text>
-              </div>
+              </div> */}
             </div>
           </Card>
         ) : null}
       </div>
+      <ProcessModal
+        open={isProcessModalOpen}
+        updateValue={updateValue}
+        onCancel={() => setState({ isProcessModalOpen: false })}
+        onOk={(value) => {
+          // 更新表格数据
+          const newData = tableData.map((item) => {
+            if (item.id === updateValue.id) {
+              return { ...item, ...value };
+            }
+            return item;
+          });
+          setTableData(newData);
+          onSaveData && onSaveData(newData);
+          onChange && onChange(newData);
+
+          // 如果修改的是当前选中的行，同时更新选中的数据
+          if (selectedRowData?.id === updateValue.id) {
+            setSelectedRowData({ ...selectedRowData, ...value });
+          }
+
+          // 关闭模态框并显示成功消息
+          setState({ isProcessModalOpen: false });
+          message.success("保存成功");
+        }}
+      />
     </div>
   );
 };
