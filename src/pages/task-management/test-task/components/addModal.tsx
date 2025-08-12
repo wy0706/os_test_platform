@@ -1,5 +1,5 @@
 import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Button, Form, Input, Modal, Select } from "antd";
+import { Button, Checkbox, Form, Input, Modal, Select } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
@@ -144,15 +144,18 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 onSelect && onSelect();
               }}
             >
-              选择文件
+              {testData?.id ? testData?.title : "选择文件"}
             </Button>
 
-            {testData?.id ? (
+            {/* {testData?.id ? (
               <span style={{ marginLeft: 5 }}> {testData?.title}</span>
             ) : (
               <span style={{ marginLeft: 5 }}>请选择</span>
-            )}
+            )} */}
           </div>
+        </Form.Item>
+        <Form.Item name="auto" label="">
+          <Checkbox>自动规划用例</Checkbox>
         </Form.Item>
       </Form>
     </Modal>

@@ -5,7 +5,11 @@ import {
 } from "@/services/task-management/test-task-one.service";
 import { history } from "@umijs/max";
 
-import { PlusOutlined, SwapLeftOutlined } from "@ant-design/icons";
+import {
+  LeftCircleOutlined,
+  PlusOutlined,
+  SwapLeftOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -77,7 +81,7 @@ const Page: React.FC = () => {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 100,
+        width: 180,
         render: (text: any, record: any, index: any, action: any) => [
           <Button
             color="primary"
@@ -85,10 +89,6 @@ const Page: React.FC = () => {
             key="preview"
             icon={<SwapLeftOutlined />}
             onClick={() => {
-              // setState({
-              //   detailsId: record.id,
-              //   isPreviewModalOpen: true,
-              // });
               Modal.confirm({
                 title: (
                   <div>
@@ -112,45 +112,25 @@ const Page: React.FC = () => {
           >
             移出
           </Button>,
-          // <Button
-          //   color="primary"
-          //   variant="link"
-          //   key="edit"
-          //   icon={<EditOutlined />}
-          //   onClick={() => {
-          //     form.setFieldsValue(record);
-          //     setState({
-          //       updateValue: record,
-          //       isUpdate: true,
-          //       isAddModalOpen: true,
-          //     });
-          //   }}
-          // >
-          //   编辑
-          // </Button>,
-          // <TableDropdown
-          //   key={index}
-          //   onSelect={(key: string) => {
-          //     console.log("key----", key);
-          //     console.log(key);
-          //     switch (key) {
-          //       case "delete":
-          //         Modal.confirm({
-          //           title: "确认删除吗？",
-          //           onOk: async () => {
-          //             await deleteOne(record.id);
-          //             if (actionRef.current) {
-          //               actionRef.current.reload();
-          //             }
-          //           },
-          //         });
-          //         return;
-          //       default:
-          //         return;
-          //     }
-          //   }}
-          //   menus={[{ key: "delete", name: "删除" }]}
-          // />,
+          <Button
+            color="primary"
+            variant="link"
+            key="edit"
+            icon={<LeftCircleOutlined />}
+            onClick={() => {
+              Modal.confirm({
+                title: " 测试结果不更新页面上，是否运行?",
+                okText: "是",
+                cancelText: "否",
+                onOk: () => {
+                  // 跳转到运行界面
+                  console.log("试运行", record);
+                },
+              });
+            }}
+          >
+            试运行
+          </Button>,
         ],
       },
     ]),

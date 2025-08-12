@@ -78,6 +78,8 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
     }
   }, [open]);
   const handleCancel = () => {
+    setSelectedRowData(null);
+    setSelectedRowKeys([]);
     if (onCancel) {
       onCancel();
       return;
@@ -140,7 +142,7 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
         onCancel={handleCancel}
         width={"60%"}
         onOk={() => {
-          if (onOk && selectedRowData) {
+          if (onOk) {
             onOk(selectedRowData);
           }
         }}

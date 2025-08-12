@@ -268,7 +268,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
     {
       title: "激活",
       dataIndex: "status",
-      width: 100,
+      width: 80,
       key: "status",
       valueType: "select",
       valueEnum: {
