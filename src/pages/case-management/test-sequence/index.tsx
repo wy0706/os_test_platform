@@ -662,6 +662,7 @@ const DemoPage: React.FC = () => {
         onCancel={() => {
           setState({ isAddModalOpen: false });
         }}
+        type="add"
         onOk={(values) => {
           console.log(values);
 

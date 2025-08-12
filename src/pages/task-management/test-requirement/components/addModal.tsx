@@ -172,7 +172,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 pagination={{
                   pageSize: 20,
                 }}
-                headerTitle="已选择测试文件列表"
+                headerTitle="已关联测试文件列表"
               />
             ) : (
               <span></span>

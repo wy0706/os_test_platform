@@ -1,16 +1,15 @@
 .process-page {
   display: flex;
   gap: 16px;
+  box-sizing: border-box;
   height: 100%;
-  // height: calc(100vh - 160px);
   padding: 16px;
-
   .process-left {
     flex: 1;
     box-sizing: border-box;
-    height: 100%;
+    // height: 100%;
     overflow: hidden;
-    background: #fff;
+    // background: #fff;
     border-radius: 8px;
     // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
@@ -50,208 +49,21 @@
     width: 350px;
     height: 100%;
     overflow: hidden; // 防止整体溢出
+
     .param-explanation-card {
-      height: 250px;
-
-      // 重写Ant Design卡片样式
-      &.ant-card {
-        display: flex;
-        flex-direction: column;
-        height: 150px;
-      }
-
-      // 参数内容样式
-      .param-title {
-        margin: 0 0 8px 0 !important;
-        padding-bottom: 4px;
-        color: #495057;
-        font-size: 14px !important;
-        border-bottom: 1px solid #e9ecef;
-      }
-
-      .param-item {
-        margin-bottom: 8px;
-        padding: 6px;
-        background: #f8f9fa;
-        border-left: 3px solid #17a2b8;
-        border-radius: 4px;
-
-        &.output-params {
-          background: #e8f5e8;
-          border-left-color: #28a745;
-        }
-
-        .ant-typography {
-          display: block;
-          margin-bottom: 2px !important;
-
-          &:first-child {
-            color: #2c3e50;
-            font-weight: 600;
-            font-size: 13px;
-          }
-        }
-
-        .param-details {
-          margin: 4px 0;
-
-          .ant-typography {
-            display: inline;
-            margin: 0 !important;
-            font-size: 12px;
-          }
-
-          code {
-            padding: 1px 4px;
-            color: #856404;
-            font-size: 11px;
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 2px;
-          }
-        }
-
-        .param-description {
-          margin-top: 2px;
-          color: #6c757d;
-          font-size: 12px;
-          line-height: 1.3;
-        }
-
-        .param-section {
-          margin-bottom: 16px;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-        }
-
-        .param-section-title {
-          margin-bottom: 8px;
-          padding-bottom: 4px;
-          border-bottom: 1px solid #e8e8e8;
-
-          .ant-typography {
-            margin: 0 !important;
-            color: #2c3e50;
-            font-weight: 600;
-            font-size: 14px;
-          }
-        }
-
-        .param-line {
-          margin-bottom: 8px;
-          padding: 4px 0;
-          padding-left: 8px;
-          border-left: 2px solid #e8e8e8;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          .param-name {
-            display: block;
-            margin-bottom: 2px !important;
-            color: #2c3e50;
-            font-weight: 500;
-            font-size: 12px;
-          }
-
-          .param-type {
-            display: block;
-            margin-bottom: 2px !important;
-            color: #666;
-            font-size: 11px;
-          }
-
-          .param-desc {
-            display: block;
-            margin: 0 !important;
-            color: #888;
-            font-size: 11px;
-            line-height: 1.2;
-          }
-        }
-      }
-
-      .selected-command-info {
-        margin-top: 6px;
-        padding: 6px;
-        background: #fff3cd;
-        border-left: 3px solid #ffc107;
-        border-radius: 4px;
-
-        .ant-typography {
-          margin: 0 !important;
-          color: #856404 !important;
-          font-size: 11px;
-          line-height: 1.2;
-        }
-      }
+      box-sizing: border-box;
+      min-height: 100px;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .tree-card {
-      display: flex;
       flex: 1;
-      flex-direction: column;
       box-sizing: border-box;
       min-height: 0; // 确保flex子元素可以正确计算高度
-      overflow: hidden;
-      .ant-card-head {
-        flex-shrink: 0;
-        background: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-
-        .ant-card-head-title {
-          color: #343a40;
-          font-weight: 600;
-        }
-      }
-
-      .ant-card-body {
-        flex: 1;
-        min-height: 0; // 确保flex子元素可以正确计算高度
-        padding: 12px;
-        overflow-x: hidden; // 隐藏水平滚动
-        overflow-y: auto; // 垂直滚动
-      }
-
+      // margin-bottom: 10px;
+      overflow-y: auto;
       .command-tree {
-        .ant-tree-node-content-wrapper {
-          padding: 2px 4px;
-          border-radius: 4px;
-          transition: all 0.2s;
-
-          &:hover {
-            background-color: #f5f5f5;
-          }
-
-          &.ant-tree-node-selected {
-            color: #1890ff;
-            font-weight: 500;
-            background-color: #bae7ff !important;
-          }
-        }
-
-        .ant-tree-switcher {
-          width: 20px;
-          height: 20px;
-          line-height: 20px;
-        }
-
-        .ant-tree-title {
-          font-size: 13px;
-
-          // &::before {
-          //   margin-right: 6px;
-          //   content: "📁";
-          // }
-        }
-
-        // .ant-tree-treenode-leaf-last .ant-tree-title::before {
-        //   content: "📄";
-        // }
-
         // 特殊样式：选中的节点
         .ant-tree-node-content-wrapper.ant-tree-node-selected .ant-tree-title {
           color: #1890ff;

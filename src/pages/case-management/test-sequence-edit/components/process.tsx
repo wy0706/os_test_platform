@@ -102,6 +102,9 @@ const mockParamExplanation = {
 
 interface ProcessProps {
   data?: any[]; //table数据
+  onMoveRow?: (index: number, data: any[]) => void; //table上移下移
+  onAddRow?: (index: number, data: any[]) => void; //table新增行
+  onSaveData?: (data: any[]) => void; //table保存
 }
 
 // 动态为树形数据添加图标的函数
@@ -124,7 +127,12 @@ const addIconsToTreeData = (treeData: any[]): any[] => {
   });
 };
 
-const Process: React.FC<ProcessProps> = ({ data }) => {
+const Process: React.FC<ProcessProps> = ({
+  data,
+  onMoveRow,
+  onAddRow,
+  onSaveData,
+}) => {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
   const [selectedRowData, setSelectedRowData] = useState<any>(null);
   const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
@@ -132,9 +140,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
   const [selectedTreeKeys, setSelectedTreeKeys] = useState<string[]>([]);
   const [selectedCommand, setSelectedCommand] = useState<string>(""); // 当前选中的命令
   const [processedTreeData, setProcessedTreeData] = useState<any[]>([]); // 处理后的树形数据（含图标）
-
   const [selectType, setType] = useState("COMMAND"); //默认展示测试命令 COMMAND | INPUT |OUT
-
   // 获取所有树节点的keys用于默认展开
   const getAllTreeKeys = (treeData: any[]): string[] => {
     const keys: string[] = [];
@@ -209,7 +215,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
     ];
 
     setTableData(newData);
-
+    onMoveRow && onMoveRow(index, newData);
     // 更新选中行索引和数据
     if (selectedRowIndex === index) {
       setSelectedRowIndex(targetIndex);
@@ -268,7 +274,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
     {
       title: "激活",
       dataIndex: "status",
-      width: 80,
+      width: 100,
       key: "status",
       valueType: "select",
       valueEnum: {
@@ -455,7 +461,6 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
   // 处理树节点双击事件，在选中行下方插入新行
   const handleTreeDoubleClick = (keys: any[], info: any) => {
     if (keys.length === 0) return;
-
     const clickedNodeKey = keys[0];
     const clickedNode = info.node;
 
@@ -488,7 +493,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
     });
 
     setTableData(newTableData);
-
+    onAddRow && onAddRow(insertIndex, newTableData);
     // 选中新插入的行
     setSelectedRowIndex(insertIndex);
     setSelectedRowData(newRowData);
@@ -558,7 +563,7 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
                 return item;
               });
               setTableData(newData);
-
+              onSaveData && onSaveData(newData);
               // 如果修改的是当前选中的行，同时更新选中的数据
               if (selectedRowData?.id === rowKey) {
                 setSelectedRowData({ ...selectedRowData, ...data });
@@ -633,27 +638,25 @@ const Process: React.FC<ProcessProps> = ({ data }) => {
         {/* 树形结构区域 */}
 
         {selectType === "COMMAND" ? (
-          <div>
-            <Card size="small" className="tree-card">
-              <Tree
-                treeData={processedTreeData}
-                expandedKeys={expandedKeys}
-                onExpand={(keys) => setExpandedKeys(keys as string[])}
-                selectedKeys={selectedTreeKeys}
-                onSelect={(keys) => {
-                  setSelectedTreeKeys(keys as string[]);
-                  if (keys.length > 0) {
-                    setSelectedCommand(keys[0] as string);
-                  }
-                }}
-                onDoubleClick={(e, node) => {
-                  handleTreeDoubleClick([node.key], { node });
-                }}
-                showIcon={true}
-                className="command-tree"
-              />
-            </Card>
-          </div>
+          <Card size="small" className="tree-card">
+            <Tree
+              treeData={processedTreeData}
+              expandedKeys={expandedKeys}
+              onExpand={(keys) => setExpandedKeys(keys as string[])}
+              selectedKeys={selectedTreeKeys}
+              onSelect={(keys) => {
+                setSelectedTreeKeys(keys as string[]);
+                if (keys.length > 0) {
+                  setSelectedCommand(keys[0] as string);
+                }
+              }}
+              onDoubleClick={(e, node) => {
+                handleTreeDoubleClick([node.key], { node });
+              }}
+              showIcon={true}
+              className="command-tree"
+            />
+          </Card>
         ) : selectType === "INPUT" ? (
           <Card title="输入参数" size="small" className="param-detail-card">
             <div className="param-detail-content">

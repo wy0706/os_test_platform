@@ -143,62 +143,10 @@ export const mockTreeData = [
           },
         ],
       },
-      // {
-      //   title: "DC_SOURCE",
-      //   key: "DC_SOURCE",
-      // },
-      // {
-      //   title: "LOAD",
-      //   key: "LOAD",
 
-      // },
-      // {
-      //   title: "Power Analyzer",
-      //   key: "Power_Analyzer",
-
-      // },
-      // {
-      //   title: "DSD",
-      //   key: "DSD",
-
-      // },
-      // {
-      //   title: "DMM",
-      //   key: "DMM",
-
-      // },
-      // {
-      //   title: "PATH",
-      //   key: "PATH",
-
-      // },
-      // {
-      //   title: "System",
-      //   key: "System",
-
-      // },
-      // {
-      //   title: "Timing/Rules Analyzer",
-      //   key: "Timing_Rules_Analyzer",
-
-      // },
-      // {
-      //   title: "Control Unit",
-      //   key: "Control_Unit",
-
-      // },
-      // {
-      //   title: "On / Off Controller",
-      //   key: "On_Off_Controller",
-
-      // },
-      // {
-      //   title: "Voltage/Freq Tester",
-      //   key: "Voltage_Freq_Tester",
-
-      // },
       {
         title: "RS232 Device",
+
         key: "RS232_Device",
 
         children: [

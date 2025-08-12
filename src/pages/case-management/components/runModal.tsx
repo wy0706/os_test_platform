@@ -1,5 +1,14 @@
 import { DemoService } from "@/services/case-management/test-sequence.service";
-import { Form, Input, message, Modal, Select, TreeSelect } from "antd";
+import {
+  DatePicker,
+  type DatePickerProps,
+  Form,
+  Input,
+  message,
+  Modal,
+  Select,
+} from "antd";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
@@ -8,7 +17,6 @@ interface SetMemberModalProps {
   onCancel?: () => void;
   updateValue?: any;
   currentNode?: string;
-  type: "add" | "save";
 }
 const { Option } = Select;
 
@@ -16,16 +24,17 @@ const layout = {
   labelCol: { span: 24 },
 };
 
-const AddModal: React.FC<SetMemberModalProps> = ({
+const RunModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
   updateValue,
   currentNode,
-  type,
 }) => {
   const [treeData, setTreeData] = useState<any>([]);
   const [title, setTitle] = useState("add");
+
+  const [userList, setUserList] = useState<any>([]);
   // 加载树数据
   const loadTreeData = async () => {
     try {
@@ -50,8 +59,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     console.log("currentNode", currentNode);
-    const name = type === "add" ? "新建" : "另存为";
-    setTitle(name);
+
     if (open) {
       loadTreeData();
       form?.resetFields();
@@ -82,7 +90,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title={`${title}测试序列`}
+      title="测试程序文件信息"
       maskClosable={false}
       open={open}
       onCancel={() => {
@@ -93,30 +101,51 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="name" label="序列名称" rules={[{ required: true }]}>
-          <Input placeholder="输入序列名称" maxLength={32} />
+        <Form.Item name="name" label="型号" rules={[{ required: true }]}>
+          <Input placeholder="输入型号" maxLength={32} allowClear />
         </Form.Item>
-
-        <Form.Item name="gender" label="序列类型">
-          <TreeSelect
-            fieldNames={{ label: "name", value: "id" }}
-            showSearch
-            style={{ width: "100%" }}
-            styles={{
-              popup: { root: { maxHeight: 400, overflow: "auto" } },
-            }}
-            placeholder="选择序列类型"
+        <Form.Item name="gender2" label="作者">
+          <Select
+            placeholder="选择作者"
             allowClear
-            treeDefaultExpandAll
-            treeData={treeData}
+            showSearch
+            filterOption={(input, option) =>
+              (option?.children as unknown as string)
+                ?.toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          >
+            {userList.map((user: any) => (
+              <Option key={user.id} value={user.id}>
+                {user.name ||
+                  user.username ||
+                  user.realName ||
+                  user.displayName}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item name="time" label="时间">
+          <DatePicker
+            showTime
+            defaultValue={dayjs()}
+            onChange={(value, dateString) => {
+              console.log("Selected Time: ", value);
+              console.log("Formatted Selected Time: ", dateString);
+            }}
+            onOk={(value: DatePickerProps["value"]) => {
+              console.log("time", value);
+            }}
           />
         </Form.Item>
-
-        <Form.Item name="status" label="测试流程">
-          <Select placeholder="选择测试流程">
-            <Option value="Pre测试">Pre测试</Option>
-            <Option value="UUT测试">UUT测试</Option>
-            <Option value="Post测试">Post测试</Option>
+        <Form.Item name="message" label="说明">
+          <Input.TextArea rows={4} placeholder="输入说明" />
+        </Form.Item>
+        <Form.Item name="status" label="配置文件">
+          <Select placeholder="选择配置文件" allowClear>
+            <Option value="Pre测试">配置文件1.hwc</Option>
+            <Option value="UUT测试">配置文件2.hwc</Option>
+            <Option value="Post测试">配置文件3.hwc</Option>
           </Select>
         </Form.Item>
       </Form>
@@ -124,4 +153,4 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   );
 };
 
-export default AddModal;
+export default RunModal;
