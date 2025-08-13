@@ -1,124 +1,47 @@
-import {
-  createOne,
-  deleteOne,
-  getList,
-  getOne,
-  updateOne,
-} from "@/services/case-management/case-library.service";
-import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { getList } from "@/services/case-management/case-library.service";
 import {
   ActionType,
-  BetaSchemaForm,
   PageContainer,
-  ProDescriptions,
   ProTable,
-  TableDropdown,
 } from "@ant-design/pro-components";
+import { history } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
-import React, { useRef } from "react";
-import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
-} from "./schemas";
-
+import React, { useRef, useState } from "react";
+import RunModal from "../components/runModal";
+import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
-    isUpdate: false,
-    isUpdateModalOpen: false,
-    updateValue: {},
-    formSchema: schemasForm,
-    isPreviewModalOpen: false,
-    detailsId: null,
-    descriptionsColumns: schemasDescriptions,
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            key="preview"
-            variant="link"
-            color="primary"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
-            }}
-          >
-            详情
-          </Button>,
-          <Button
-            key="edit"
-            variant="link"
-            color="primary"
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: "确认删除吗？",
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-
-                default:
-                  return;
-              }
-            }}
-            menus={[{ key: "delete", name: "删除" }]}
-          />,
-        ],
-      },
-    ]),
+    isRunModalOpen: false,
+    details: null,
+    columns: schemasColumns,
   });
-  const {
-    columns,
-    title,
-    isUpdate,
-    isUpdateModalOpen,
-    updateValue,
-    formSchema,
-    isPreviewModalOpen,
-    detailsId,
-    descriptionsColumns,
-  } = state;
+  const { columns, title, isRunModalOpen, details } = state;
+
+  //   处理行点击事件
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+
   const requestData: any = async (...args: any) => {
     try {
       const res = await getList({ params: args[0], sort: args[1] });
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
+        data: [
+          {
+            id: 1,
+            title: "os测试.tpf",
+            status: "success",
+            createTime: "2025-08-01 10:23:00",
+          },
+          {
+            id: 2,
+            title: "os测试1.tpf",
+            status: "error",
+            createTime: "2025-08-02 10:23:00",
+          },
+        ],
         total: 1,
         success: true,
       };
@@ -138,88 +61,31 @@ const Page: React.FC = () => {
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                isUpdate: false,
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
-        ]}
+        onRow={(record, index) => ({
+          onClick: () => {
+            setSelectedRow(record);
+            setState({ isRunModalOpen: true, details: record });
+          },
+          style: {
+            cursor: "pointer",
+            backgroundColor:
+              selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+          },
+        })}
       />
-      <Modal
-        title={isUpdate ? "编辑" : "新建"}
-        open={isUpdateModalOpen}
+      <RunModal
+        open={isRunModalOpen}
         onCancel={() => {
-          setState({ isUpdateModalOpen: false });
+          setState({ isRunModalOpen: false });
         }}
-        footer={null}
-        width={800}
-      >
-        <BetaSchemaForm<any>
-          {...formSchema}
-          defaultValue={updateValue}
-          form={form}
-          onFinish={async (value) => {
-            if (isUpdate) {
-              value.id = updateValue.id;
-              const res: any = await updateOne({
-                ...value,
-                id: updateValue.id,
-              });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            } else {
-              const res: any = await createOne({ ...value, config: "{}" });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            }
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}
-        />
-      </Modal>
+        onOk={() => {
+          setState({ isRunModalOpen: false });
 
-      <Modal
-        title="详情"
-        open={isPreviewModalOpen}
-        onCancel={() => {
-          setState({ isPreviewModalOpen: false });
+          history.push(
+            `/case-management/case-run/${details.id}?name=${details.title}`
+          );
         }}
-        footer={null}
-        width={800}
-      >
-        <ProDescriptions
-          columns={descriptionsColumns}
-          request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                success: true,
-              };
-            }
-          }}
-        ></ProDescriptions>
-      </Modal>
+      />
     </PageContainer>
   );
 };

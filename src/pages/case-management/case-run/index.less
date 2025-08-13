@@ -1,0 +1,116 @@
+.case-run-edit {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 180px);
+  // background-color: #f5f5f5;
+
+  .operation-bar {
+    margin-bottom: 16px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    .ant-btn {
+      margin-right: 8px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .run-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    .main-info {
+      flex: 1;
+      overflow: hidden;
+    }
+  }
+}
+
+// 断点Switch的红色样式
+.breakpoint-switch {
+  &.ant-switch-checked {
+    background-color: #ff4d4f !important;
+
+    &:hover:not(.ant-switch-disabled) {
+      background-color: #ff7875 !important;
+    }
+
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+    }
+  }
+}
+
+// 运行信息卡片样式
+.ant-card {
+  .ant-card-head {
+    min-height: auto;
+    padding: 8px 16px;
+
+    .ant-card-head-title {
+      padding: 4px 0;
+      font-weight: 500;
+      font-size: 14px;
+    }
+  }
+
+  .ant-card-body {
+    padding: 12px 16px;
+  }
+}
+
+// 进度条样式优化
+.ant-progress {
+  .ant-progress-text {
+    color: #666;
+    font-size: 12px;
+  }
+}
+
+// Tag样式优化
+.ant-tag {
+  margin: 2px;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 4px;
+}
+
+// 控制台样式
+.console-output {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+
+  div {
+    margin-bottom: 2px;
+    word-break: break-all;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

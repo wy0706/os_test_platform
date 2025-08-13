@@ -15,7 +15,6 @@ import { mockTreeData } from "../schemas";
 import "./index.less";
 import ProcessModal from "./processModal";
 const { Title, Text } = Typography;
-
 // 模拟参数解释数据
 const mockParamExplanation = {
   1: {

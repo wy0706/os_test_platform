@@ -1,36 +1,28 @@
 export const schemasTitle: any = {
   label: "用例执行",
-  value: "caseLibrary",
+  value: "caseRun",
 };
 
 export const schemasColumns: any = [
   {
-    title: "文件名",
+    title: "项目名称",
     dataIndex: "title",
     ellipsis: true,
-    // sorter: true,
   },
   {
-    title: "是否发布",
-    dataIndex: "status",
+    title: "项目名称/项目说明",
+    dataIndex: "describe",
     ellipsis: true,
-    valueType: "select",
-    valueEnum: {
-      success: {
-        text: "✓",
-        status: "Success",
-      },
-      error: {
-        text: "✗",
-        status: "Error",
-      },
-    },
   },
   {
-    title: "创建时间",
-    dataIndex: "createTime",
+    title: "命令参数",
+    dataIndex: "schemas",
     ellipsis: true,
-    // sorter: true,
+  },
+  {
+    title: "是否合格",
+    dataIndex: "qualified",
+    ellipsis: true,
   },
 ];
 

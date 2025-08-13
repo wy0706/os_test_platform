@@ -65,6 +65,7 @@ export default [
         hideInMenu: true,
         hideInBreadcrumb: true,
       },
+
       // {
       //   path: "/task-management/test-execution",
       //   name: "测试执行",
@@ -129,7 +130,7 @@ export default [
       },
       {
         path: "/case-management/case-library",
-        name: "用例执行",
+        name: "序列执行",
         access: ["caseLibrary-preview", "caseLibrary-edit"],
         component: "./case-management/case-library",
       },
@@ -142,6 +143,15 @@ export default [
         hideInMenu: true,
         hideInBreadcrumb: true,
         hideFooter: true,
+      },
+      {
+        path: "/case-management/case-run/:id",
+        name: "用例执行",
+        access: ["caseRun-preview", "caseRun-edit"],
+        component: "./case-management/case-run",
+        hideInMenu: true,
+        hideFooter: true,
+        hideInBreadcrumb: true,
       },
     ],
   },

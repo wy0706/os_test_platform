@@ -125,10 +125,10 @@ const RunModal: React.FC<SetMemberModalProps> = ({
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="time" label="时间">
+        <Form.Item name="time" label="时间" initialValue={dayjs()}>
           <DatePicker
             showTime
-            defaultValue={dayjs()}
+            style={{ width: "100%" }}
             onChange={(value, dateString) => {
               console.log("Selected Time: ", value);
               console.log("Formatted Selected Time: ", dateString);

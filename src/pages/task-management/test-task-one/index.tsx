@@ -6,7 +6,7 @@ import {
 import { history } from "@umijs/max";
 
 import {
-  LeftCircleOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
   SwapLeftOutlined,
 } from "@ant-design/icons";
@@ -116,7 +116,7 @@ const Page: React.FC = () => {
             color="primary"
             variant="link"
             key="edit"
-            icon={<LeftCircleOutlined />}
+            icon={<PlayCircleOutlined />}
             onClick={() => {
               Modal.confirm({
                 title: " 测试结果不更新页面上，是否运行?",

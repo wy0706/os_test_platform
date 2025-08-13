@@ -180,6 +180,20 @@ let source = [
           },
         ],
       },
+      {
+        pageName: "case-run",
+        label: "用例执行",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
     ],
   },
   {

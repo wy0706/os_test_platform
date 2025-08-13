@@ -988,7 +988,7 @@ const PeripheralImport: React.FC = () => {
         {/* 操作栏 */}
         <Card className="operation-bar">
           <Space className="operation-buttons">
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            <Button icon={<PlusOutlined />} onClick={handleAdd}>
               新建
             </Button>
             {/* <Button icon={<FolderOpenOutlined />} onClick={handleImport}>
@@ -1051,7 +1051,22 @@ const PeripheralImport: React.FC = () => {
                           : "暂无自检信息"}
                       </div>
                     ) : (
-                      <div className="messages-list">
+                      <div
+                        className="messages-list"
+                        style={{
+                          // height: "120px",
+                          height: "100%",
+                          overflowY: "auto",
+                          backgroundColor: "#f8f9fa",
+                          // border: "1px solid #e9ecef",
+                          borderRadius: "4px",
+                          padding: "8px",
+                          fontFamily:
+                            'Monaco, Consolas, "Courier New", monospace',
+                          fontSize: "11px",
+                          lineHeight: "1.4",
+                        }}
+                      >
                         {selfCheckMessages
                           .filter(
                             (message: SelfCheckMessage) =>

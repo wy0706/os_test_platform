@@ -1,36 +1,22 @@
+
 export const schemasTitle: any = {
-  label: "用例执行",
-  value: "caseLibrary",
+  label: '用例执行',
+  value: 'caseRun',
 };
 
 export const schemasColumns: any = [
+  
   {
-    title: "文件名",
+    title: "名称",
     dataIndex: "title",
     ellipsis: true,
-    // sorter: true,
-  },
-  {
-    title: "是否发布",
-    dataIndex: "status",
-    ellipsis: true,
-    valueType: "select",
-    valueEnum: {
-      success: {
-        text: "✓",
-        status: "Success",
-      },
-      error: {
-        text: "✗",
-        status: "Error",
-      },
-    },
+    sorter: true,
   },
   {
     title: "创建时间",
     dataIndex: "createTime",
     ellipsis: true,
-    // sorter: true,
+    sorter: true,
   },
 ];
 
@@ -44,6 +30,7 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
+    
     {
       title: "名称",
       dataIndex: "title",
@@ -56,7 +43,7 @@ export const schemasForm: any = {
         ],
       },
     },
-
+  
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -69,10 +56,12 @@ export const schemasForm: any = {
         ],
       },
     },
+  
   ],
 };
 
 export const schemasDescriptions: any = [
+  
   {
     title: "名称",
     key: "title",
@@ -88,3 +77,4 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
+

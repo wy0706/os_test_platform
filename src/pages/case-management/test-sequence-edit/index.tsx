@@ -6,15 +6,15 @@ import {
   CloseCircleOutlined,
   FileAddOutlined,
   FunctionOutlined,
-  Loading3QuartersOutlined,
   NodeIndexOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
 import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Card, Modal, Space, Tabs } from "antd";
+import { Button, Card, message, Modal, Space, Tabs } from "antd";
 import isEqual from "lodash/isEqual";
 import RunModal from "../components/runModal";
 import AddModal from "../test-sequence/components/addModal";
@@ -81,21 +81,40 @@ const Page: React.FC = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
   useEffect(() => {
+    const initialProcessData = params.id === "add" ? [] : mockProcessData;
+    const initialConditionsData = params.id === "add" ? [] : mockConditionsData;
+    const initialResultData = params.id === "add" ? [] : mockResultTable;
+    const initialTempData = params.id === "add" ? [] : mockTempTable;
     setState({
       title: searchParams.get("name"),
-      processTable: params.id === "add" ? [] : mockProcessData,
-      conditionsTable: params.id === "add" ? [] : mockConditionsData,
-      resultTable: params.id === "add" ? [] : mockResultTable,
-      tempTable: params.id === "add" ? [] : mockTempTable,
+      processTable: initialProcessData,
+      conditionsTable: initialConditionsData,
+      resultTable: initialResultData,
+      tempTable: initialTempData,
     });
+
+    // 同时设置实际使用的数据状态
+    setProcessData(initialProcessData);
+    setConditionsData(initialConditionsData);
+    setResultData(initialResultData);
+    setTempData(initialTempData);
+
+    // 设置初始数据用于脏数据检测
+    setInitialData({
+      processTableData: initialProcessData,
+      conditionsTableData: initialConditionsData,
+      resultTableData: initialResultData,
+      tempTableData: initialTempData,
+    });
+
     // console.log("路由", params, "searchParams", searchParams.get("name"));
   }, []);
   // 初始数据记录（进入页面时存一份）
-  const [initialData] = useState({
-    processTableData: processTable,
-    conditionsTableData: conditionsTable,
-    resultTableData: resultTable,
-    tempTableData: tempTable,
+  const [initialData, setInitialData] = useState<any>({
+    processTableData: [],
+    conditionsTableData: [],
+    resultTableData: [],
+    tempTableData: [],
   });
 
   // 检测是否修改
@@ -106,7 +125,13 @@ const Page: React.FC = () => {
       !isEqual(resultTableData, initialData.resultTableData) ||
       !isEqual(tempTableData, initialData.tempTableData);
     setIsDirty(changed);
-  }, [processTableData, conditionsTableData, resultTableData]);
+  }, [
+    processTableData,
+    conditionsTableData,
+    resultTableData,
+    tempTableData,
+    initialData,
+  ]);
 
   const handleGoBack = () => {
     console.log(isDirty);
@@ -114,10 +139,15 @@ const Page: React.FC = () => {
     if (isDirty) {
       Modal.confirm({
         title: "当前编辑的测试项目已修改，请选择是否保存?",
-        // okText: "保存",
-        // cancelText: "不保存",
-        onOk: () => {},
-        onCancel: () => {},
+        okText: "保存",
+        cancelText: "不保存",
+        onOk: () => {
+          message.success("保存成功");
+          history.back();
+        },
+        onCancel: () => {
+          history.back();
+        },
       });
     } else {
       history.back();
@@ -168,7 +198,7 @@ const Page: React.FC = () => {
         {/* 操作栏 */}
         <Card className="operation-bar">
           <Space className="operation-buttons">
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            <Button icon={<PlusOutlined />} onClick={handleAdd}>
               新建
             </Button>
             <Button icon={<SaveOutlined />} onClick={handleExport}>
@@ -181,7 +211,7 @@ const Page: React.FC = () => {
               错误检查
             </Button>
             <Button
-              icon={<Loading3QuartersOutlined />}
+              icon={<PlayCircleOutlined />}
               onClick={() => {
                 setState({ isRunModalOpen: true });
               }}
@@ -207,33 +237,41 @@ const Page: React.FC = () => {
           >
             {tabActiveKey == 1 && (
               <Process
-                data={processTable}
+                data={processTableData}
                 onChange={(data) => {
                   setProcessData(data);
+                  // 同时更新state中的数据，保持同步
+                  setState({ processTable: data });
                 }}
               />
             )}
             {tabActiveKey == 2 && (
               <Conditions
-                data={conditionsTable}
+                data={conditionsTableData}
                 onChange={(data) => {
                   setConditionsData(data);
+                  // 同时更新state中的数据，保持同步
+                  setState({ conditionsTable: data });
                 }}
               />
             )}
             {tabActiveKey == 3 && (
               <ResultPage
-                data={resultTable}
+                data={resultTableData}
                 onChange={(data) => {
                   setResultData(data);
+                  // 同时更新state中的数据，保持同步
+                  setState({ resultTable: data });
                 }}
               />
             )}
             {tabActiveKey == 4 && (
               <TemporaryVariables
-                data={tempTable}
+                data={tempTableData}
                 onChange={(data) => {
                   setTempData(data);
+                  // 同时更新state中的数据，保持同步
+                  setState({ tempTable: data });
                 }}
               />
             )}

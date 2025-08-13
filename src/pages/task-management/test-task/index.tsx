@@ -4,7 +4,7 @@ import {
 } from "@/services/task-management/test-task.service";
 import {
   EditOutlined,
-  LeftCircleOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import {
@@ -43,7 +43,7 @@ const Page: React.FC = () => {
             key="preview"
             variant="link"
             color="primary"
-            icon={<LeftCircleOutlined />}
+            icon={<PlayCircleOutlined />}
             onClick={(e) => {
               e.stopPropagation();
               // message.("查看详情");
