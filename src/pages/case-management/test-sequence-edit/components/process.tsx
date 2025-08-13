@@ -5,10 +5,11 @@ import {
   EditOutlined,
   FileTextOutlined,
   FolderOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Card, Modal, Tree, Typography, message } from "antd";
+import { Button, Card, Modal, Tree, Typography, message } from "antd";
 import React, { useEffect, useState } from "react";
 import { mockTreeData } from "../schemas";
 import "./index.less";
@@ -545,16 +546,10 @@ const Process: React.FC<ProcessProps> = ({
     }
   };
 
-  // 处理树节点双击事件，在选中行下方插入新行
-  const handleTreeDoubleClick = (keys: any[], info: any) => {
-    if (keys.length === 0) return;
-    const clickedNodeKey = keys[0];
-    const clickedNode = info.node;
-
-    // 检查是否为父节点（有子节点），父节点不允许双击插入
-    if (clickedNode.children && clickedNode.children.length > 0) {
-      // "${clickedNode.title}" 是父级节点，
-      message.warning(`请选择具体的测试命令进行插入`);
+  // 通用插入函数，供双击和按钮点击使用
+  const insertTreeNode = (nodeKey: string, nodeTitle: string) => {
+    if (tableData.length > 299) {
+      message.warning("表格中的命令数量已达到最大限度，不可插入");
       return;
     }
 
@@ -562,10 +557,10 @@ const Process: React.FC<ProcessProps> = ({
     const newRowData = {
       id: Date.now(), // 使用时间戳作为唯一ID
       sequence: tableData.length + 1,
-      command: clickedNodeKey,
+      command: nodeKey,
       inputParams: "输入参数: 待配置",
       outputParams: "输出参数: 待配置",
-      description: `新增测试步骤: ${clickedNode.title}`,
+      description: `新增测试步骤: ${nodeTitle}`,
     };
 
     // 在选中行下方插入新行
@@ -588,12 +583,68 @@ const Process: React.FC<ProcessProps> = ({
 
     // 如果当前是命令模式，更新命令选择
     if (selectType === "COMMAND") {
-      handleCommandClick(clickedNodeKey);
+      handleCommandClick(nodeKey);
     }
 
-    message.success(
-      `已在第${insertIndex + 1}行插入新的测试步骤: ${clickedNode.title}`
-    );
+    message.success(`已在第${insertIndex + 1}行插入新的测试步骤: ${nodeTitle}`);
+  };
+
+  // 处理插入按钮点击事件
+  const handleInsertClick = () => {
+    // 检查是否有选中的tree节点
+    if (selectedTreeKeys.length === 0) {
+      message.warning("请先选择要插入的测试命令");
+      return;
+    }
+
+    const selectedNodeKey = selectedTreeKeys[0];
+
+    // 在树形数据中查找选中的节点
+    const findNodeInTree = (treeData: any[], key: string): any => {
+      for (const node of treeData) {
+        if (node.key === key) {
+          return node;
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findNodeInTree(node.children, key);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const selectedNode = findNodeInTree(processedTreeData, selectedNodeKey);
+
+    if (!selectedNode) {
+      message.warning("未找到选中的测试命令");
+      return;
+    }
+
+    // 检查是否为父节点（有子节点），父节点不允许插入
+    if (selectedNode.children && selectedNode.children.length > 0) {
+      message.warning(`请选择具体的测试命令进行插入`);
+      return;
+    }
+
+    // 调用通用插入函数
+    insertTreeNode(selectedNodeKey, selectedNode.title);
+  };
+
+  // 处理树节点双击事件，在选中行下方插入新行
+  const handleTreeDoubleClick = (keys: any[], info: any) => {
+    if (keys.length === 0) return;
+    const clickedNodeKey = keys[0];
+    const clickedNode = info.node;
+
+    // 检查是否为父节点（有子节点），父节点不允许双击插入
+    if (clickedNode.children && clickedNode.children.length > 0) {
+      // "${clickedNode.title}" 是父级节点，
+      message.warning(`请选择具体的测试命令进行插入`);
+      return;
+    }
+
+    // 调用通用插入函数
+    insertTreeNode(clickedNodeKey, clickedNode.title);
   };
 
   // 根据选中的命令获取参数解释
@@ -635,8 +686,18 @@ const Process: React.FC<ProcessProps> = ({
           dataSource={tableData}
           rowKey="id"
           search={false}
+          options={false}
           pagination={false}
-          toolBarRender={false}
+          toolBarRender={() => [
+            <Button
+              key="button"
+              icon={<PlusOutlined />}
+              onClick={handleInsertClick}
+              // type="primary"
+            >
+              插入
+            </Button>,
+          ]}
           size="small"
           onRow={(record, index) => ({
             onClick: () => handleRowClick(record, index || 0),

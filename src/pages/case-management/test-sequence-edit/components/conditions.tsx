@@ -36,19 +36,17 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       {
         title: "数据类型",
         dataIndex: "dataType",
-        // editable: () => true,
-        valueType: "select",
-        valueEnum: {
-          Double: { text: "Double" },
-          Integer: { text: "Integer" },
-          Byte: { text: "Byte" },
-          "Double[]": { text: "Double[]" },
-          "Integer[]": { text: "Integer[]" },
-          "Byte[]": { text: "Byte[]" },
-          String: { text: "String" },
-          LineInVector: { text: "LineInVector" },
-          LoadVector: { text: "LoadVector" },
-        },
+        // valueEnum: {
+        //   Double: { text: "Double" },
+        //   Integer: { text: "Integer" },
+        //   Byte: { text: "Byte" },
+        //   "Double[]": { text: "Double[]" },
+        //   "Integer[]": { text: "Integer[]" },
+        //   "Byte[]": { text: "Byte[]" },
+        //   String: { text: "String" },
+        //   LineInVector: { text: "LineInVector" },
+        //   LoadVector: { text: "LoadVector" },
+        // },
         render: (text: any, record: any, index: any) => {
           console.log(text, record, index);
           return record.dataType === "Double[]" ||

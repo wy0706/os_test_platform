@@ -23,13 +23,20 @@ import Process from "./components/process";
 import ResultPage from "./components/result";
 import TemporaryVariables from "./components/temporaryVariables";
 import "./index.less";
-import { mockConditionsData, mockProcessData } from "./schemas";
+import {
+  mockConditionsData,
+  mockProcessData,
+  mockResultTable,
+  mockTempTable,
+} from "./schemas";
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     tabActiveKey: "1",
     processTable: [],
     conditionsTable: [],
+    resultTable: [],
+    tempTable: [],
     isSaveModalOpen: false, //
     isRunModalOpen: false, //
     tabItems: [
@@ -63,36 +70,44 @@ const Page: React.FC = () => {
     isSaveModalOpen,
     isRunModalOpen,
     conditionsTable,
+    resultTable,
+    tempTable,
   } = state;
   const [isDirty, setIsDirty] = useState(false); //是否修改
   const [processTableData, setProcessData] = useState(processTable);
   const [conditionsTableData, setConditionsData] = useState(conditionsTable);
+  const [resultTableData, setResultData] = useState(resultTable);
+  const [tempTableData, setTempData] = useState(tempTable);
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    setState({
+      title: searchParams.get("name"),
+      processTable: params.id === "add" ? [] : mockProcessData,
+      conditionsTable: params.id === "add" ? [] : mockConditionsData,
+      resultTable: params.id === "add" ? [] : mockResultTable,
+      tempTable: params.id === "add" ? [] : mockTempTable,
+    });
+    // console.log("路由", params, "searchParams", searchParams.get("name"));
+  }, []);
   // 初始数据记录（进入页面时存一份）
   const [initialData] = useState({
     processTableData: processTable,
     conditionsTableData: conditionsTable,
+    resultTableData: resultTable,
+    tempTableData: tempTable,
   });
 
   // 检测是否修改
   useEffect(() => {
     const changed =
       !isEqual(processTableData, initialData.processTableData) ||
-      !isEqual(conditionsTableData, initialData.conditionsTableData);
+      !isEqual(conditionsTableData, initialData.conditionsTableData) ||
+      !isEqual(resultTableData, initialData.resultTableData) ||
+      !isEqual(tempTableData, initialData.tempTableData);
     setIsDirty(changed);
-  }, [processTableData, conditionsTableData]);
+  }, [processTableData, conditionsTableData, resultTableData]);
 
-  const params = useParams();
-  const [searchParams] = useSearchParams();
-  useEffect(() => {
-    console.log(mockConditionsData);
-
-    setState({
-      title: searchParams.get("name"),
-      processTable: params.id === "add" ? [] : mockProcessData,
-      conditionsTable: params.id === "add" ? [] : mockConditionsData,
-    });
-    console.log("路由", params, "searchParams", searchParams.get("name"));
-  }, []);
   const handleGoBack = () => {
     console.log(isDirty);
 
@@ -105,13 +120,10 @@ const Page: React.FC = () => {
         onCancel: () => {},
       });
     } else {
-      return;
       history.back();
     }
   };
-  const tabChange = (key: any) => {
-    setState({ tabActiveKey: key });
-  };
+
   const handleErrorCheck = () => {
     // 如果均检查正确
     // Modal.info({
@@ -184,7 +196,9 @@ const Page: React.FC = () => {
           <Tabs
             defaultActiveKey={tabActiveKey}
             items={tabItems}
-            onChange={tabChange}
+            onChange={(key: any) => {
+              setState({ tabActiveKey: key });
+            }}
           />
 
           <div
@@ -195,7 +209,6 @@ const Page: React.FC = () => {
               <Process
                 data={processTable}
                 onChange={(data) => {
-                  console.log("data", data);
                   setProcessData(data);
                 }}
               />
@@ -204,13 +217,26 @@ const Page: React.FC = () => {
               <Conditions
                 data={conditionsTable}
                 onChange={(data) => {
-                  console.log("data", data);
                   setConditionsData(data);
                 }}
               />
             )}
-            {tabActiveKey == 3 && <ResultPage />}
-            {tabActiveKey == 4 && <TemporaryVariables />}
+            {tabActiveKey == 3 && (
+              <ResultPage
+                data={resultTable}
+                onChange={(data) => {
+                  setResultData(data);
+                }}
+              />
+            )}
+            {tabActiveKey == 4 && (
+              <TemporaryVariables
+                data={tempTable}
+                onChange={(data) => {
+                  setTempData(data);
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
