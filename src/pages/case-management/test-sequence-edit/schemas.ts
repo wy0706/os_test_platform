@@ -83,7 +83,7 @@ export const mockProcessData = [
     inputParams: "sendcom_0",
     outputParams: "sendstring",
     description: "设置ESR 232字符串终止符",
-    tag: 1,
+    tag: "COM",
   },
   {
     id: 2,
@@ -92,13 +92,13 @@ export const mockProcessData = [
     inputParams: "1,sendcom",
     status: "success",
     outputParams: "readstring",
-    tag: 1,
+    tag: "1",
     description: "写入ESR 232字符串格式",
   },
   {
     id: 3,
     configType: "配置",
-    tag: 1,
+    tag: "",
     command: "ReadESR_232_ResponseStringData",
     inputParams: "1,10000",
     status: "success",
@@ -112,7 +112,7 @@ export const mockProcessData = [
     inputParams: "ESR_Acw_Index, ESR_Test_Items",
     status: "error",
     outputParams: "ESR_Acw_I",
-    tag: 1,
+    tag: "",
     description: "设置ESR ACW测试",
   },
   {
@@ -122,7 +122,7 @@ export const mockProcessData = [
     inputParams: "Index, Count",
     status: "success",
     outputParams: "Data[]",
-    tag: 1,
+    tag: "",
     description: "读取ESR数据",
   },
 ];

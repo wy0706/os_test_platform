@@ -31,6 +31,14 @@ import {
 } from "antd";
 import React, { useEffect, useRef } from "react";
 import "./index.less";
+interface SelfCheckMessage {
+  id: number;
+  deviceType: string;
+  serialNumber: string;
+  errorCode: string;
+  message: string;
+  timestamp: Date;
+}
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [searchParams] = useSearchParams();
@@ -46,6 +54,9 @@ const Page: React.FC = () => {
     currentStatus: "PASS", // 当前运行状态：PASS, FAIL, BREAK, TEST, ERROR
     tabActiveKey: "1",
     dataSource: [],
+    isSelfCheck: false, //是否点击自检
+    selfCheckMessages: [], //自检信息列表
+    isSelfChecking: false, //是否正在自检中
     stepMode: null, // 步骤模式：null(未选择), 1(项目单步), 2(命令单步)
     tabItems: [
       {
@@ -106,7 +117,35 @@ const Page: React.FC = () => {
     currentStatus,
     stepMode,
     items,
+    isSelfCheck,
+    selfCheckMessages,
+    isSelfChecking,
   } = state;
+
+  // 处理下拉菜单点击事件
+  const handleMenuClick = ({ key }: { key: string }) => {
+    console.log("点击的菜单项key:", key);
+    switch (key) {
+      case "1":
+        console.log("点击了测试信息");
+
+        break;
+      case "2":
+        console.log("点击了报告信息");
+
+        break;
+      case "3":
+        console.log("点击了VECTOR通道配置");
+
+        break;
+      case "4":
+        console.log("点击了自检");
+        setState({ isSelfCheck: true });
+        break;
+      default:
+        break;
+    }
+  };
 
   // 处理断点切换
   const handleBreakpointChange = (record: any, checked: boolean) => {
@@ -344,7 +383,14 @@ const Page: React.FC = () => {
           >
             <Space className="operation-buttons">
               {/* <div> */}
-              <Button icon={<PlayCircleOutlined />}>执行</Button>
+              <Button
+                icon={<PlayCircleOutlined />}
+                onClick={() => {
+                  setState({ isSelfCheck: false, isSelfChecking: false });
+                }}
+              >
+                执行
+              </Button>
               <Button icon={<StopOutlined />}>停止</Button>
               {/* 如果不是序列跳转的 ，就不展示div中的button */}
               <div style={{ display: "flex", alignItems: "center" }}>
@@ -373,8 +419,37 @@ const Page: React.FC = () => {
               {/* 命令单步  */}
               {/* </div> */}
             </Space>
-            <div style={{ minWidth: 200 }}>
-              项目编号：<span style={{ color: "#1890ff" }}>0266</span>
+            <div
+              style={{
+                minWidth: 200,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                {" "}
+                项目编号：<span style={{ color: "#1890ff" }}>0266</span>
+              </div>
+              <div>
+                {" "}
+                <div style={{ cursor: "pointer" }}>
+                  <Dropdown
+                    menu={{
+                      items,
+                      onClick: handleMenuClick,
+                    }}
+                    placement="bottom"
+                  >
+                    <a
+                      onClick={(e) => {
+                        e.preventDefault();
+                      }}
+                    >
+                      <SettingOutlined />
+                    </a>
+                  </Dropdown>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -384,9 +459,6 @@ const Page: React.FC = () => {
               <div
                 style={{
                   marginBottom: 10,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  paddingRight: 10,
                 }}
               >
                 <Checkbox
@@ -416,13 +488,6 @@ const Page: React.FC = () => {
                 >
                   按命令展开所有项目
                 </Checkbox>
-                <div style={{ cursor: "pointer" }}>
-                  <Dropdown menu={{ items }} placement="bottom">
-                    <a onClick={(e) => e.preventDefault()}>
-                      <SettingOutlined />
-                    </a>
-                  </Dropdown>
-                </div>
               </div>
               <Table<any>
                 bordered
@@ -465,119 +530,172 @@ const Page: React.FC = () => {
                     !!(record.children && record.children.length > 0),
                 }}
               />
-
-              {/* 运行信息卡片 */}
-              <Card
-                size="small"
-                style={{ marginTop: 16 }}
-                title={
-                  <Space>
-                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                    <span>Message</span>
-                  </Space>
-                }
-                bordered={true}
-              >
-                <div
-                  className="console-output"
-                  style={{
-                    height: "120px",
-                    overflowY: "auto",
-                    backgroundColor: "#f8f9fa",
-                    border: "1px solid #e9ecef",
-                    borderRadius: "4px",
-                    padding: "8px",
-                    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                    fontSize: "11px",
-                    lineHeight: "1.4",
-                  }}
-                >
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:15] 开始执行测试序列...
+              {isSelfCheck ? (
+                <Card className="table-card" style={{ marginTop: 10 }}>
+                  {" "}
+                  <div className="self-check-container">
+                    <div className="self-check-header">
+                      <h3>自检信息</h3>
+                      {isSelfCheck && (
+                        <div className="self-check-status">
+                          <span className="loading-dot"></span>
+                          自检中...
+                        </div>
+                      )}
+                    </div>
+                    <div className="self-check-content">
+                      {!selfCheckMessages || selfCheckMessages.length === 0 ? (
+                        <div className="no-messages">
+                          {isSelfChecking
+                            ? "正在获取自检信息..."
+                            : "暂无自检信息"}
+                        </div>
+                      ) : (
+                        <div
+                          className="messages-list"
+                          style={{
+                            // height: "120px",
+                            height: "100%",
+                            overflowY: "auto",
+                            backgroundColor: "#f8f9fa",
+                            // border: "1px solid #e9ecef",
+                            borderRadius: "4px",
+                            padding: "8px",
+                            fontFamily:
+                              'Monaco, Consolas, "Courier New", monospace',
+                            fontSize: "11px",
+                            lineHeight: "1.4",
+                          }}
+                        >
+                          {selfCheckMessages
+                            .filter(
+                              (message: SelfCheckMessage) =>
+                                message && message.deviceType
+                            )
+                            .map((message: SelfCheckMessage) => (
+                              <div key={message.id} className="message-line">
+                                <span className="device-name">
+                                  {message.deviceType} {message.serialNumber}
+                                </span>
+                                <span className="error-message">
+                                  {message.message}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:16] 初始化测试环境
-                  </div>
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:17] 执行 test add - PreTestItemProcessing
-                  </div>
-                  <div style={{ color: "#cf1322" }}>
-                    [2023-12-07 14:32:18] 错误: 参数1.000000,2.000000,b 验证失败
-                  </div>
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:19] test add 执行完成
-                  </div>
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:20] 正在执行 test add -
-                    PreTestItemProcessing2...
-                  </div>
-                  <div style={{ color: "#cf1322" }}>
-                    [2023-12-07 14:32:21] 异常: 连接超时，正在重试...
-                  </div>
-                  <div style={{ color: "#6c757d" }}>
-                    [2023-12-07 14:32:22] 重试成功，继续执行
-                  </div>
-                </div>
-              </Card>
-
-              {/* 执行进度卡片 */}
-              <Card
-                size="small"
-                style={{ marginTop: 12 }}
-                title={
-                  <Space>
-                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                    <span>Progress</span>
-                  </Space>
-                }
-                bordered={true}
-              >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Progress
-                    percent={65}
+                </Card>
+              ) : (
+                <div>
+                  {/* 运行信息卡片 */}
+                  <Card
                     size="small"
-                    strokeColor="#52c41a"
-                    showInfo={true}
-                    // format={(percent) => `${percent}% (3/5)`}
-                  />
-                  {/* <div style={{ fontSize: "12px", color: "#999" }}>
+                    style={{ marginTop: 16 }}
+                    title={
+                      <Space>
+                        <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                        <span>Message</span>
+                      </Space>
+                    }
+                    bordered={true}
+                  >
+                    <div
+                      className="console-output"
+                      style={{
+                        height: "120px",
+                        overflowY: "auto",
+                        backgroundColor: "#f8f9fa",
+                        border: "1px solid #e9ecef",
+                        borderRadius: "4px",
+                        padding: "8px",
+                        fontFamily:
+                          'Monaco, Consolas, "Courier New", monospace',
+                        fontSize: "11px",
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      <div style={{ color: "#6c757d" }}>
+                        [2023-12-07 14:32:15] 开始执行测试序列...
+                      </div>
+
+                      <div style={{ color: "#6c757d" }}>
+                        [2023-12-07 14:32:16] 初始化测试环境
+                      </div>
+                      <div style={{ color: "#6c757d" }}>
+                        [2023-12-07 14:32:17] 执行 test add -
+                        PreTestItemProcessing
+                      </div>
+                      <div style={{ color: "#cf1322" }}>
+                        [2023-12-07 14:32:18] 错误: 参数1.000000,2.000000,b
+                        验证失败
+                      </div>
+                      <div style={{ color: "#6c757d" }}>
+                        [2023-12-07 14:32:19] test add 执行完成
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* 执行进度卡片 */}
+                  <Card
+                    size="small"
+                    style={{ marginTop: 12 }}
+                    title={
+                      <Space>
+                        <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                        <span>Progress</span>
+                      </Space>
+                    }
+                    bordered={true}
+                  >
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Progress
+                        percent={65}
+                        size="small"
+                        strokeColor="#52c41a"
+                        showInfo={true}
+                        // format={(percent) => `${percent}% (3/5)`}
+                      />
+                      {/* <div style={{ fontSize: "12px", color: "#999" }}>
                 当前执行: test add - PreTestItemProcessing2
               </div> */}
-                </Space>
-              </Card>
+                    </Space>
+                  </Card>
 
-              {/* 运行结果卡片 */}
-              <Card
-                size="small"
-                style={{ marginTop: 12 }}
-                title={
-                  <Space>
-                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                    <span>Result</span>
-                  </Space>
-                }
-                bordered={true}
-              >
-                <div style={{ textAlign: "center", padding: "8px 0" }}>
-                  <Tag
-                    color={getStatusConfig(currentStatus).color}
-                    style={{ fontSize: "14px", padding: "4px 12px" }}
+                  {/* 运行结果卡片 */}
+                  <Card
+                    size="small"
+                    style={{ marginTop: 12 }}
+                    title={
+                      <Space>
+                        <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                        <span>Result</span>
+                      </Space>
+                    }
+                    bordered={true}
                   >
-                    {getStatusConfig(currentStatus).text}
-                  </Tag>
+                    <div style={{ textAlign: "center", padding: "8px 0" }}>
+                      <Tag
+                        color={getStatusConfig(currentStatus).color}
+                        style={{ fontSize: "14px", padding: "4px 12px" }}
+                      >
+                        {getStatusConfig(currentStatus).text}
+                      </Tag>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: "12px",
+                        color: "#666",
+                        textAlign: "center",
+                      }}
+                    >
+                      {getStatusConfig(currentStatus).description}
+                    </div>
+                  </Card>
                 </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: "12px",
-                    color: "#666",
-                    textAlign: "center",
-                  }}
-                >
-                  {getStatusConfig(currentStatus).description}
-                </div>
-              </Card>
+              )}
             </Col>
             <Col span={12}>
               <div

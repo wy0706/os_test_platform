@@ -157,14 +157,14 @@ const TempModal: React.FC<SetMemberModalProps> = ({
               <Select placeholder="选择单位" options={unitOptions} />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          {/* <Col span={12}>
             <Form.Item name="visible" label="是否可见">
               <Select placeholder="选择是否可见">
                 <Option value="success">✓</Option>
                 <Option value="error">✗</Option>
               </Select>
             </Form.Item>
-          </Col>
+          </Col> */}
         </Row>
       </Form>
     </Modal>

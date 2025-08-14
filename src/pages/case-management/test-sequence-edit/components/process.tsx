@@ -13,6 +13,7 @@ import { Button, Card, Modal, Tree, Typography, message } from "antd";
 import React, { useEffect, useState } from "react";
 import { mockTreeData } from "../schemas";
 import "./index.less";
+import ParamForm from "./paramForm";
 import ProcessModal from "./processModal";
 const { Title, Text } = Typography;
 // 模拟参数解释数据
@@ -102,7 +103,36 @@ const mockParamExplanation = {
     outputParams: "输出参数: 1个参数",
   },
 };
+const mockFormData = [
+  {
+    id: "1",
+    name: "stepCon2", //名称
+    unit: "", //单位
+    dataType: "字符串终止符 (string)",
+    type: "",
+    conditionType: 1, //输入参数还是输出参数 1，表示输入 2表示输出
+    description: "设置232字符串终止符参数",
+  },
 
+  {
+    id: "3",
+    name: "sendString",
+    unit: "",
+    dataType: "结果参数 (integer)",
+    type: "",
+    conditionType: 1,
+    description: "设置232字符串终止符参数",
+  },
+  {
+    id: "2",
+    name: "0",
+    unit: "",
+    conditionType: 2,
+    description: "设置232字符串终止符参数",
+    dataType: "结果参数 (integer)",
+    type: "",
+  },
+];
 interface ProcessProps {
   data?: any[]; //table数据
   onMoveRow?: (index: number, data: any[]) => void; //table上移下移
@@ -140,9 +170,10 @@ const Process: React.FC<ProcessProps> = ({
 }) => {
   const [state, setState] = useSetState<any>({
     isProcessModalOpen: false,
+    isparamShow: false,
     updateValue: {},
   });
-  const { isProcessModalOpen, updateValue } = state;
+  const { isProcessModalOpen, updateValue, isparamShow } = state;
   const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
   const [selectedRowData, setSelectedRowData] = useState<any>(null);
   const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
@@ -151,6 +182,7 @@ const Process: React.FC<ProcessProps> = ({
   const [selectedCommand, setSelectedCommand] = useState<string>(""); // 当前选中的命令
   const [processedTreeData, setProcessedTreeData] = useState<any[]>([]); // 处理后的树形数据（含图标）
   const [selectType, setType] = useState("COMMAND"); //默认展示测试命令 COMMAND | INPUT |OUT
+  const [paramType, setParamType] = useState<any>(""); // 参数表单数据
   // 获取所有树节点的keys用于默认展开
   const getAllTreeKeys = (treeData: any[]): string[] => {
     const keys: string[] = [];
@@ -194,6 +226,7 @@ const Process: React.FC<ProcessProps> = ({
   // 处理点击测试命令
   const handleCommandClick = (command: string) => {
     setType("COMMAND");
+    setState({ isparamShow: false });
     setSelectedCommand(command); // 设置当前选中的命令
     if (processedTreeData.length > 0) {
       const commandPath = findCommandInTree(command, processedTreeData);
@@ -215,6 +248,10 @@ const Process: React.FC<ProcessProps> = ({
     const newData = [...tableData];
     const targetIndex = direction === "up" ? index - 1 : index + 1;
 
+    console.log("selectedRowIndex", selectedRowIndex);
+    console.log("targetIndex", targetIndex);
+    console.log("index", index);
+
     // 边界检查
     if (targetIndex < 0 || targetIndex >= newData.length) return;
 
@@ -227,14 +264,16 @@ const Process: React.FC<ProcessProps> = ({
     setTableData(newData);
     onMoveRow && onMoveRow(index, newData);
     onChange && onChange(newData);
-    // 更新选中行索引和数据
-    if (selectedRowIndex === index) {
-      setSelectedRowIndex(targetIndex);
-      setSelectedRowData(newData[targetIndex]);
-    } else if (selectedRowIndex === targetIndex) {
-      setSelectedRowIndex(index);
-      setSelectedRowData(newData[index]);
-    }
+    setSelectedRowIndex(targetIndex);
+    setSelectedRowData(newData[targetIndex]);
+    // // 更新选中行索引和数据
+    // if (selectedRowIndex === index) {
+    //   setSelectedRowIndex(targetIndex);
+    //   setSelectedRowData(newData[targetIndex]);
+    // } else if (selectedRowIndex === targetIndex) {
+    //   setSelectedRowIndex(index);
+    //   setSelectedRowData(newData[index]);
+    // }
   };
 
   // 删除行
@@ -307,29 +346,36 @@ const Process: React.FC<ProcessProps> = ({
     setExpandedKeys(allKeys);
   }, []);
 
-  // 监听tableData变化，设置默认选中第一行
+  // // 监听tableData变化，设置默认选中第一行
+  // useEffect(() => {
+  //   // 如果有数据且当前没有选中任何行，则默认选中第一行
+  //   if (tableData.length > 0 && selectedRowIndex === -1) {
+  //     const firstRow = tableData[0];
+  //     setSelectedRowIndex(0);
+  //     setSelectedRowData(firstRow);
+
+  //     // 触发第一行的测试命令点击事件
+  //     if (firstRow?.command) {
+  //       handleCommandClick(firstRow.command);
+  //     }
+  //   }
+  // }, [tableData, selectedRowIndex]);
   useEffect(() => {
-    // 如果有数据且当前没有选中任何行，则默认选中第一行
-    if (tableData.length > 0 && selectedRowIndex === -1) {
-      const firstRow = tableData[0];
+    // 初次进入选中第一条数据
+    if (tableData.length > 0) {
       setSelectedRowIndex(0);
-      setSelectedRowData(firstRow);
-
-      // 触发第一行的测试命令点击事件
-      if (firstRow?.command) {
-        handleCommandClick(firstRow.command);
-      }
+      setSelectedRowData(tableData[0]);
+      setSelectedTreeKeys([tableData[0]?.command]);
     }
-  }, [tableData, selectedRowIndex]);
-
-  // 监听外部数据变化
+  }, [tableData]);
+  // // 监听外部数据变化
   useEffect(() => {
     if (data && data.length > 0) {
       setTableData(data);
-      // 重置选中状态，让后续的useEffect处理默认选中
-      setSelectedRowIndex(-1);
-      setSelectedRowData(null);
-      setSelectedCommand("");
+      // // 重置选中状态，让后续的useEffect处理默认选中
+      // setSelectedRowIndex(-1);
+      // setSelectedRowData(null);
+      // setSelectedCommand("");
     }
   }, [data]);
 
@@ -401,6 +447,7 @@ const Process: React.FC<ProcessProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               handleColumnClickWithRowSelect(record, index, "INPUT");
+              setParamType("INPUT");
             }}
           >
             {record.inputParams}
@@ -420,6 +467,7 @@ const Process: React.FC<ProcessProps> = ({
             style={{ cursor: "pointer", color: "#1677ff" }}
             onClick={(e) => {
               e.stopPropagation();
+              setParamType("OUT");
               handleColumnClickWithRowSelect(record, index, "OUT");
             }}
           >
@@ -542,6 +590,7 @@ const Process: React.FC<ProcessProps> = ({
       handleCommandClick(record.command);
     } else {
       setType(mode);
+      setState({ isparamShow: true });
     }
   };
 
@@ -577,15 +626,18 @@ const Process: React.FC<ProcessProps> = ({
     onAddRow && onAddRow(insertIndex, newTableData);
     onChange && onChange(newTableData);
     // 选中新插入的行
+
+    console.log("insertIndex", insertIndex);
+
     setSelectedRowIndex(insertIndex);
     setSelectedRowData(newRowData);
 
-    // 如果当前是命令模式，更新命令选择
+    // // 如果当前是命令模式，更新命令选择
     if (selectType === "COMMAND") {
       handleCommandClick(nodeKey);
     }
 
-    message.success(`已在第${insertIndex + 1}行插入新的测试步骤: ${nodeTitle}`);
+    message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
   };
 
   // 处理插入按钮点击事件
@@ -700,7 +752,7 @@ const Process: React.FC<ProcessProps> = ({
           size="small"
           onRow={(record, index) => ({
             onClick: () => handleRowClick(record, index || 0),
-            className: selectedRowIndex === index ? "selected-row" : "",
+            // className: selectedRowIndex === index ? "selected-row" : "",
           })}
           rowClassName={(record, index) =>
             selectedRowIndex === index ? "selected-row" : ""
@@ -755,55 +807,35 @@ const Process: React.FC<ProcessProps> = ({
             )}
           </div>
         </Card>
-
         {/* 树形结构区域 */}
-
-        {selectType === "COMMAND" ? (
-          <Card size="small" className="tree-card">
-            <Tree
-              treeData={processedTreeData}
-              expandedKeys={expandedKeys}
-              onExpand={(keys) => setExpandedKeys(keys as string[])}
-              selectedKeys={selectedTreeKeys}
-              onSelect={(keys) => {
-                setSelectedTreeKeys(keys as string[]);
-                if (keys.length > 0) {
-                  setSelectedCommand(keys[0] as string);
-                }
-              }}
-              onDoubleClick={(e, node) => {
-                handleTreeDoubleClick([node.key], { node });
-              }}
-              showIcon={true}
-              className="command-tree"
-            />
-          </Card>
-        ) : selectType === "INPUT" ? (
-          <Card title="输入参数" size="small" className="param-detail-card">
-            <div className="param-detail-content">
-              {/* <Text strong>当前输入参数: </Text>
-              <Text code>{selectedRowData?.inputParams}</Text>
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  这里可以显示输入参数的详细配置和说明
-                </Text>
-              </div> */}
-            </div>
-          </Card>
-        ) : selectType === "OUT" ? (
-          <Card title="输出参数" size="small" className="param-detail-card">
-            <div className="param-detail-content">
-              {/* <Text strong>当前输出参数: </Text>
-              <Text code>{selectedRowData?.outputParams}</Text>
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  这里可以显示输出参数的详细配置和说明
-                </Text>
-              </div> */}
-            </div>
-          </Card>
-        ) : null}
+        <Card size="small" className="tree-card">
+          <Tree
+            treeData={processedTreeData}
+            expandedKeys={expandedKeys}
+            onExpand={(keys) => setExpandedKeys(keys as string[])}
+            selectedKeys={selectedTreeKeys}
+            onSelect={(keys) => {
+              setSelectedTreeKeys(keys as string[]);
+              if (keys.length > 0) {
+                setSelectedCommand(keys[0] as string);
+              }
+            }}
+            onDoubleClick={(e, node) => {
+              handleTreeDoubleClick([node.key], { node });
+            }}
+            showIcon={true}
+            className="command-tree"
+          />
+        </Card>
+        :
       </div>
+      <ParamForm
+        type={paramType}
+        open={isparamShow}
+        initialData={mockFormData}
+        onCancel={() => setState({ isparamShow: false })}
+        onOk={() => setState({ isparamShow: false })}
+      />
       <ProcessModal
         open={isProcessModalOpen}
         updateValue={updateValue}
