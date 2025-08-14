@@ -396,7 +396,14 @@ const Page: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center" }}>
                 <Button icon={<CaretRightOutlined />}>继续</Button>
                 <Button icon={<PauseOutlined />}>暂停</Button>
-                <Button icon={<CloseOutlined />}>取消所有断点</Button>
+                <Button
+                  onClick={() => {
+                    setState({ breakpoints: [] });
+                  }}
+                  icon={<CloseOutlined />}
+                >
+                  取消所有断点
+                </Button>
                 <div>
                   <Radio.Group
                     value={stepMode}
