@@ -64,19 +64,67 @@ export const schemasForm: any = {
   ],
 };
 
-export const schemasDescriptions: any = [
+export const testInfoDescriptions: any = [
   {
-    title: "名称",
+    title: "测试程序",
     key: "title",
     dataIndex: "title",
+    ellipsis: true,
     copyable: true,
+  },
+  {
+    title: "编程人员",
+    key: "name",
+    dataIndex: "name",
     ellipsis: true,
   },
   {
-    title: "创建时间",
-    key: "createTime",
-    dataIndex: "createTime",
-    copyable: true,
+    title: "编程日期",
+    key: "programDate",
+    dataIndex: "programDate",
+    ellipsis: true,
+  },
+  {
+    title: "编程时间",
+    key: "programTime",
+    dataIndex: "programTime",
+
+    ellipsis: true,
+  },
+  {
+    title: "设备配置",
+    key: "configure",
+    dataIndex: "configure",
+    ellipsis: true,
+  },
+  {
+    title: "报表格式",
+    key: "format",
+    dataIndex: "format",
+    ellipsis: true,
+  },
+  {
+    title: "产品类型",
+    key: "testType",
+    dataIndex: "testType",
+    ellipsis: true,
+  },
+  {
+    title: "产品输出种类",
+    key: "type",
+    dataIndex: "type",
+    ellipsis: true,
+  },
+  {
+    title: "产品序列号",
+    key: "order",
+    dataIndex: "order",
+    ellipsis: true,
+  },
+  {
+    title: "测试开始时间",
+    key: "startTime",
+    dataIndex: "startTime",
     ellipsis: true,
   },
 ];

@@ -4,6 +4,7 @@ import {
   BookOutlined,
   CaretRightOutlined,
   CloseOutlined,
+  EnterOutlined,
   HomeOutlined,
   InfoCircleOutlined,
   PauseOutlined,
@@ -20,6 +21,7 @@ import {
   Checkbox,
   Col,
   Dropdown,
+  message,
   Progress,
   Radio,
   Row,
@@ -30,6 +32,11 @@ import {
   Tag,
 } from "antd";
 import React, { useEffect, useRef } from "react";
+import ReportInfoModal from "./components/reportInfoModal";
+import TestInfo from "./components/testInfo";
+import TestInfoModal from "./components/testInfoModal";
+import TestResult from "./components/testResult";
+import VectorInfoModal from "./components/vectorInfoModal";
 import "./index.less";
 interface SelfCheckMessage {
   id: number;
@@ -43,10 +50,15 @@ const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [searchParams] = useSearchParams();
   useEffect(() => {
-    setState({ title: searchParams.get("name") || "-" });
+    setState({
+      title: searchParams.get("name") || "-",
+      isShowAllBtn: searchParams.get("status") === "all",
+    });
+
     requestData();
   }, []);
   const [state, setState] = useSetState<any>({
+    isShowAllBtn: false, //是否展示全部操作按钮 ，从任务列表跳转的不需要展示某些按钮
     title: null,
     isExpandAll: false, //是否展开所有命令
     expandedRowKeys: [], //当前展开的行keys
@@ -58,6 +70,9 @@ const Page: React.FC = () => {
     selfCheckMessages: [], //自检信息列表
     isSelfChecking: false, //是否正在自检中
     stepMode: null, // 步骤模式：null(未选择), 1(项目单步), 2(命令单步)
+    isReportInfoModalOpen: false,
+    isTestInfoModalOpen: false,
+    isVectorInfoModalOpen: false,
     tabItems: [
       {
         key: "1",
@@ -120,6 +135,10 @@ const Page: React.FC = () => {
     isSelfCheck,
     selfCheckMessages,
     isSelfChecking,
+    isShowAllBtn,
+    isReportInfoModalOpen,
+    isTestInfoModalOpen,
+    isVectorInfoModalOpen,
   } = state;
 
   // 处理下拉菜单点击事件
@@ -128,15 +147,15 @@ const Page: React.FC = () => {
     switch (key) {
       case "1":
         console.log("点击了测试信息");
-
+        setState({ isTestInfoModalOpen: true });
         break;
       case "2":
         console.log("点击了报告信息");
-
+        setState({ isReportInfoModalOpen: true });
         break;
       case "3":
         console.log("点击了VECTOR通道配置");
-
+        setState({ isVectorInfoModalOpen: true });
         break;
       case "4":
         console.log("点击了自检");
@@ -392,32 +411,37 @@ const Page: React.FC = () => {
                 执行
               </Button>
               <Button icon={<StopOutlined />}>停止</Button>
+              <Button icon={<EnterOutlined />}>单项测试</Button>
               {/* 如果不是序列跳转的 ，就不展示div中的button */}
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <Button icon={<CaretRightOutlined />}>继续</Button>
-                <Button icon={<PauseOutlined />}>暂停</Button>
-                <Button
-                  onClick={() => {
-                    setState({ breakpoints: [] });
-                  }}
-                  icon={<CloseOutlined />}
-                >
-                  取消所有断点
-                </Button>
-                <div>
-                  <Radio.Group
-                    value={stepMode}
-                    onChange={(e) => handleStepModeChange(e.target.value)}
+              {isShowAllBtn && (
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <Button icon={<CaretRightOutlined />}>继续</Button>
+                  <Button icon={<PauseOutlined />}>暂停</Button>
+                  <Button
+                    disabled={breakpoints.length == 0}
+                    onClick={() => {
+                      setState({ breakpoints: [] });
+                      message.success("操作成功");
+                    }}
+                    icon={<CloseOutlined />}
                   >
-                    <Radio value={1} onClick={() => handleStepModeChange(1)}>
-                      项目单步
-                    </Radio>
-                    <Radio value={2} onClick={() => handleStepModeChange(2)}>
-                      命令单步
-                    </Radio>
-                  </Radio.Group>
+                    取消所有断点
+                  </Button>
+                  <div>
+                    <Radio.Group
+                      value={stepMode}
+                      onChange={(e) => handleStepModeChange(e.target.value)}
+                    >
+                      <Radio value={1} onClick={() => handleStepModeChange(1)}>
+                        项目单步
+                      </Radio>
+                      <Radio value={2} onClick={() => handleStepModeChange(2)}>
+                        命令单步
+                      </Radio>
+                    </Radio.Group>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* <Button icon={<FileAddOutlined />}>单项测试</Button> */}
 
@@ -718,14 +742,32 @@ const Page: React.FC = () => {
                     setState({ tabActiveKey: key });
                   }}
                 />
-                {tabActiveKey === "1" && <div>测试信息</div>}
-                {tabActiveKey === "2" && <div>测试结果</div>}
+                {tabActiveKey === "1" && <TestInfo />}
+                {tabActiveKey === "2" && <TestResult />}
                 {tabActiveKey === "3" && <div>测试条件</div>}
               </div>
             </Col>
           </Row>
         </div>
       </div>
+      <TestInfoModal
+        open={isTestInfoModalOpen}
+        onCancel={() => {
+          setState({ isTestInfoModalOpen: false });
+        }}
+      />
+      <ReportInfoModal
+        open={isReportInfoModalOpen}
+        onCancel={() => {
+          setState({ isReportInfoModalOpen: false });
+        }}
+      />
+      <VectorInfoModal
+        open={isVectorInfoModalOpen}
+        onCancel={() => {
+          setState({ isVectorInfoModalOpen: false });
+        }}
+      />
     </PageContainer>
   );
 };

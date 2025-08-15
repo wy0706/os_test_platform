@@ -20,7 +20,7 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
   }, [open]);
   return (
     <Modal
-      title="测试库详情"
+      title="序列集成详情"
       open={open}
       onCancel={() => {
         onCancel && onCancel();
@@ -34,14 +34,7 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
           <div className={s.name}>名称:</div>
           <div>{data?.title || "-"}</div>
         </div>
-        <div className={s.items}>
-          <div className={s.name}>标识:</div>
-        </div>
 
-        <div className={s.items}>
-          <div className={s.name}>负责人:</div>
-          <div>{data?.title3 || "-"}</div>
-        </div>
         <div className={s.items}>
           <div className={s.name}>描述: </div>
           <div>{data?.title4 || "-"}</div>

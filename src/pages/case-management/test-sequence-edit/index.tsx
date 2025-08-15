@@ -304,6 +304,11 @@ const Page: React.FC = () => {
           setState({
             isRunModalOpen: false,
           });
+          // 这里需要判断是新建还是编辑，新建情况下 需要保存后获取id正在进行跳转
+          // 编辑正常也是需要更新数据保存后再进行跳转
+          history.push(
+            `/case-management/case-run/${params.id}?status=all&name=${title}`
+          );
           // 确认后跳转到运行页
         }}
       />

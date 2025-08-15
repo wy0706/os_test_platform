@@ -1,40 +1,22 @@
+
 export const schemasTitle: any = {
-  label: "序列集成",
-  value: "testSequenceIntegration",
+  label: '测试流程',
+  value: 'testSequenceProcess',
 };
 
 export const schemasColumns: any = [
+  
   {
     title: "名称",
     dataIndex: "title",
     ellipsis: true,
-    // sorter: true,
-  },
-  {
-    title: "发布",
-    dataIndex: "status",
-    ellipsis: true,
-    // sorter: true,
-    valueType: "select",
-
-    valueEnum: {
-      success: {
-        text: "✓",
-        status: "success",
-      },
-      error: {
-        text: "✗",
-        status: "error",
-      },
-    },
-    search: false,
+    sorter: true,
   },
   {
     title: "创建时间",
     dataIndex: "createTime",
     ellipsis: true,
-    search: false,
-    // sorter: true,
+    sorter: true,
   },
 ];
 
@@ -48,6 +30,7 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
+    
     {
       title: "名称",
       dataIndex: "title",
@@ -60,7 +43,7 @@ export const schemasForm: any = {
         ],
       },
     },
-
+  
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -73,10 +56,12 @@ export const schemasForm: any = {
         ],
       },
     },
+  
   ],
 };
 
 export const schemasDescriptions: any = [
+  
   {
     title: "名称",
     key: "title",
@@ -92,3 +77,4 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
+

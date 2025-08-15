@@ -167,6 +167,20 @@ let source = [
         ],
       },
       {
+        pageName: "test-sequence-process",
+        label: "测试流程",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
         pageName: "case-library",
         label: "序列执行",
         fileds: [

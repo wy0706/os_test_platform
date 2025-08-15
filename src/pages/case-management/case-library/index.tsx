@@ -80,9 +80,9 @@ const Page: React.FC = () => {
         }}
         onOk={() => {
           setState({ isRunModalOpen: false });
-
+          //表示运行界面的按钮 显示全部或者部分 status：all/part 从任务跳转的只显示部分按钮
           history.push(
-            `/case-management/case-run/${details.id}?name=${details.title}`
+            `/case-management/case-run/${details.id}?status=all&name=${details.title}`
           );
         }}
       />

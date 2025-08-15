@@ -355,14 +355,9 @@ const ParamForm: React.FC<ParamFormProps> = ({
         dataIndex: "name",
         width: 120,
       },
+
       {
-        title: "参数单位",
-        dataIndex: "unit",
-        width: 100,
-        render: (text: string) => text || "-",
-      },
-      {
-        title: "参数类型",
+        title: "符合要求的参数列表",
         dataIndex: "type1",
         width: 100,
         render: (text: string, record: ParamItem, index: number) => {
@@ -420,16 +415,23 @@ const ParamForm: React.FC<ParamFormProps> = ({
         },
       });
     }
-
     // 添加值列
-    baseColumns.push({
-      title: "值",
-      dataIndex: "value",
-      width: 200,
-      render: (text: any, record: ParamItem, index: number) => {
-        return renderInputComponent(record, index);
+    baseColumns.push(
+      {
+        title: "值",
+        dataIndex: "value",
+        width: 200,
+        render: (text: any, record: ParamItem, index: number) => {
+          return renderInputComponent(record, index);
+        },
       },
-    });
+      {
+        title: "参数单位",
+        dataIndex: "unit",
+        width: 100,
+        render: (text: string) => text || "-",
+      }
+    );
 
     return baseColumns;
   };

@@ -129,6 +129,15 @@ export default [
         component: "./case-management/test-sequence-integration",
       },
       {
+        path: "/case-management/test-sequence-process/:id",
+        name: "测试流程",
+        access: ["testSequenceProcess-preview", "testSequenceProcess-edit"],
+        component: "./case-management/test-sequence-process",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+        hideFooter: true,
+      },
+      {
         path: "/case-management/case-library",
         name: "序列执行",
         access: ["caseLibrary-preview", "caseLibrary-edit"],

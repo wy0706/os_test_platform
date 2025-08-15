@@ -1,3 +1,4 @@
+import RunModal from "@/pages/case-management/components/runModal";
 import {
   deleteOne,
   getList,
@@ -32,118 +33,11 @@ const Page: React.FC = () => {
     isPreviewModalOpen: false,
     detailsId: null,
     detailsData: {},
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            key="preview"
-            variant="link"
-            color="primary"
-            icon={<PlayCircleOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              // message.("查看详情");
-            }}
-          >
-            运行
-          </Button>,
-          <Button
-            key="edit"
-            variant="link"
-            color="primary"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              // form.setFieldsValue(record);
-              console.log("edit");
-              setState({
-                updateValue: record,
-                isUpdateModalOpen: true,
-                optionType: "edit",
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <div onClick={(e) => e.stopPropagation()}>
-            <TableDropdown
-              key={index}
-              onSelect={(key: string) => {
-                switch (key) {
-                  case "delete":
-                    console.log("record", record);
-
-                    Modal.confirm({
-                      title: (
-                        <div>
-                          <div>
-                            确认删除测试任务{" "}
-                            <span
-                              style={{ color: "#ff4d4f", fontWeight: "bold" }}
-                            >
-                              {record.title}
-                            </span>{" "}
-                            吗？
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "#666",
-                              marginTop: "8px",
-                            }}
-                          >
-                            测试任务删除后不可恢复，删除测试任务会一起删除测试任务内的执行用例
-                          </div>
-                        </div>
-                      ),
-                      // content: (
-                      //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                      //     {record.title}
-                      //   </div>
-                      // ),
-                      onOk: async () => {
-                        await deleteOne(record.id);
-                        if (actionRef.current) {
-                          actionRef.current.reload();
-                        }
-                      },
-                    });
-                    return;
-                  case "copy":
-                    setState({
-                      updateValue: record,
-                      isUpdateModalOpen: true,
-                      optionType: "copy",
-                    });
-                    return;
-                  case "preview":
-                    setState({
-                      detailsId: record.id,
-                      isPreviewModalOpen: true,
-                      detailsData: record,
-                    });
-                    return;
-                  default:
-                    return;
-                }
-              }}
-              menus={[
-                { key: "copy", name: "复制" },
-                { key: "preview", name: "详情" },
-                { key: "delete", name: "删除" },
-              ]}
-            />
-          </div>,
-        ],
-      },
-    ]),
+    isShowProcess: false, //是否显示测试过程
+    isRunModalOpen: false,
+    runData: {},
   });
   const {
-    columns,
     title,
     isUpdateModalOpen,
     updateValue,
@@ -151,7 +45,124 @@ const Page: React.FC = () => {
     detailsId,
     optionType,
     detailsData,
+    isShowProcess,
+    isRunModalOpen,
+    runData,
   } = state;
+
+  // 动态生成 columns，这样可以访问到最新的状态
+  const columns = schemasColumns.concat([
+    {
+      title: "操作",
+      valueType: "option",
+      key: "option",
+      width: 200,
+      render: (text: any, record: any, index: any, action: any) => [
+        <Button
+          key="preview"
+          variant="link"
+          color="primary"
+          icon={<PlayCircleOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setState({
+              isRunModalOpen: isShowProcess,
+              runData: isShowProcess ? record : {},
+            });
+          }}
+        >
+          运行
+        </Button>,
+        <Button
+          key="edit"
+          variant="link"
+          color="primary"
+          icon={<EditOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            // form.setFieldsValue(record);
+            console.log("edit");
+            setState({
+              updateValue: record,
+              isUpdateModalOpen: true,
+              optionType: "edit",
+            });
+          }}
+        >
+          编辑
+        </Button>,
+        <div onClick={(e) => e.stopPropagation()}>
+          <TableDropdown
+            key={index}
+            onSelect={(key: string) => {
+              switch (key) {
+                case "delete":
+                  console.log("record", record);
+
+                  Modal.confirm({
+                    title: (
+                      <div>
+                        <div>
+                          确认删除测试任务{" "}
+                          <span
+                            style={{ color: "#ff4d4f", fontWeight: "bold" }}
+                          >
+                            {record.title}
+                          </span>{" "}
+                          吗？
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#666",
+                            marginTop: "8px",
+                          }}
+                        >
+                          测试任务删除后不可恢复，删除测试任务会一起删除测试任务内的执行用例
+                        </div>
+                      </div>
+                    ),
+                    // content: (
+                    //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                    //     {record.title}
+                    //   </div>
+                    // ),
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                  return;
+                case "copy":
+                  setState({
+                    updateValue: record,
+                    isUpdateModalOpen: true,
+                    optionType: "copy",
+                  });
+                  return;
+                case "preview":
+                  setState({
+                    detailsId: record.id,
+                    isPreviewModalOpen: true,
+                    detailsData: record,
+                  });
+                  return;
+                default:
+                  return;
+              }
+            }}
+            menus={[
+              { key: "copy", name: "复制" },
+              { key: "preview", name: "详情" },
+              { key: "delete", name: "删除" },
+            ]}
+          />
+        </div>,
+      ],
+    },
+  ]);
   const requestData: any = async (...args: any) => {
     try {
       const res = await getList({ params: args[0], sort: args[1] });
@@ -220,7 +231,8 @@ const Page: React.FC = () => {
             <div style={{ marginRight: 20 }}>
               <Checkbox
                 onChange={(e) => {
-                  console.log(" e.target.checked;", e.target.checked);
+                  console.log(e.target.checked);
+                  setState({ isShowProcess: e.target.checked });
                 }}
               >
                 显示测试过程
@@ -249,7 +261,11 @@ const Page: React.FC = () => {
               target.closest(".ant-table-cell:last-child") ||
               target.closest(".ant-btn") ||
               target.closest("button") ||
-              target.closest("a");
+              target.closest("a") ||
+              target.closest(".ant-dropdown") ||
+              target.closest(".ant-dropdown-menu") ||
+              target.closest(".ant-dropdown-menu-item") ||
+              target.closest(".ant-dropdown-trigger");
 
             // 如果点击的是操作栏，则不跳转
             if (isActionColumn) {
@@ -302,6 +318,19 @@ const Page: React.FC = () => {
           console.log("values", values);
           setTestData(values);
           setTestDataListOpen(false);
+        }}
+      />
+      {/* 运行弹框 */}
+      <RunModal
+        open={isRunModalOpen}
+        onCancel={() => {
+          setState({ isRunModalOpen: false });
+        }}
+        onOk={() => {
+          setState({ isRunModalOpen: false });
+          history.push(
+            `/case-management/case-run/${runData.id}?status=part&name=${runData.title}`
+          );
         }}
       />
     </PageContainer>
