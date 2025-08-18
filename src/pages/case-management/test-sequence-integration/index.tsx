@@ -134,9 +134,17 @@ const Page: React.FC = () => {
             title: "测试数据1",
             createTime: "2025-08-15",
             status: "success",
+            isExistAll: true,
+          },
+          {
+            id: 2,
+            title: "测试数据2",
+            createTime: "2025-08-25",
+            status: "success",
+            isExistAll: false,
           },
         ],
-        total: 1,
+        total: 2,
         success: true,
       };
     }
@@ -145,11 +153,62 @@ const Page: React.FC = () => {
 
   const handleRowClick = (record: any, index: number) => {
     console.log("点击的行数据:", record);
+    // 如果打开项目中测试项目全部存在 跳转编辑页，如果有项目不存在，弹出提示界面
+
     setSelectedRow(record);
-    return;
-    history.push(
-      `/case-management/test-sequence-process/${record.id}?name=${record.title}`
-    );
+    if (record.isExistAll) {
+      history.push(
+        `/case-management/test-sequence-process/${record.id}?name=${record.title}`
+      );
+    } else {
+      let list = [
+        "KD6630_DSM_DPP_2",
+        "KD6630_DSM_DPP_PARITY_3",
+        "KD6630_EQM_DPP_21KD6630",
+        "ESCH_DPP_6",
+        "KD6630_IQM_DPP_8",
+        "KD6630_ISCH_DPP_10",
+        "KD6630_ISCH_DPP_PARITY_11",
+        "KD6630_LIN_DPP_26",
+        "KD6630_LIN_DPP_PARITY_27",
+        "KD6630_LIN_ONE_HOT_28",
+        "KD6630_PES_DPP_22",
+        "KD6630_PFS_CL_DPP_13",
+        "KD6630_PFS_L3_DPP_16",
+        "KD6630_PFS_PS_POL_DPP_18",
+        "KD6630_PFS_PS_POL_DPP_PARITY_19",
+      ];
+      Modal.confirm({
+        title: "错误",
+        content: (
+          <div
+            style={{ maxHeight: 300, overflowY: "auto", paddingBottom: "10px" }}
+          >
+            <h3>以下测试项目不存在</h3>
+            {list.length > 0 &&
+              list.map((item, index) => (
+                <div
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    width: "100%",
+                    padding: "5px 10px",
+                  }}
+                  key={index}
+                >
+                  {item}
+                </div>
+              ))}
+          </div>
+        ),
+        cancelButtonProps: { style: { display: "none" } }, // 隐藏取消按钮
+        onOk() {
+          console.log("确认操作");
+        },
+      });
+    }
+
     // message.success(`已选择: ${record.title}`);
   };
   return (
@@ -219,7 +278,6 @@ const Page: React.FC = () => {
         }}
         onOk={(values) => {
           console.log("values", values);
-          return;
           history.push(`/case-management/test-sequence-process/add`);
         }}
       />
