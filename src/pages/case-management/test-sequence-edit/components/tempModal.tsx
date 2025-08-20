@@ -38,23 +38,23 @@ const TempModal: React.FC<SetMemberModalProps> = ({
 
   // 判断是否需要显示精度选项
   const shouldShowPrecision = (dataType: string) => {
-    return ["Double", "Double[]", "LoadVector"].includes(dataType);
+    return ["Float", "Float[]", "LoadVector"].includes(dataType);
   };
 
   // 判断是否需要启用数组大小字段
   const shouldEnableArraySize = (dataType: string) => {
-    return ["Double[]", "Integer[]", "Byte[]"].includes(dataType);
+    return ["Float[]", "int[]", "bytearray"].includes(dataType);
   };
 
   // 判断是否可以编辑最大值最小值
   const canEditMinMaxValue = (dataType: string) => {
     // 数组类型和特定类型不可以编辑最小值和最大值
     return ![
-      "Double[]",
-      "Integer[]",
-      "Byte[]",
-      "Byte",
-      "String",
+      "Float[]",
+      "int[]",
+      "bytearray",
+      "bytes",
+      "str",
       "LineInVector",
       "LoadVector",
     ].includes(dataType);
@@ -63,7 +63,7 @@ const TempModal: React.FC<SetMemberModalProps> = ({
   // 判断是否可以编辑默认值
   const canEditDefaultValue = (dataType: string) => {
     // 数组类型不可以编辑默认值
-    return !["Double[]", "Integer[]", "Byte[]"].includes(dataType);
+    return !["Float[]", "int[]", "bytearray"].includes(dataType);
   };
 
   // 处理数据类型变化

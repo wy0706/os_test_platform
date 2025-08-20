@@ -21,7 +21,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
   const [title, setTitle] = useState("新建");
   const [treeData, setTreeData] = useState<any>([]);
   const [selectedDataType, setSelectedDataType] = useState<string>("");
-
+  const [selectEdittype, setEditType] = useState<string>("");
   // 加载树数据
 
   useEffect(() => {
@@ -30,40 +30,46 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
       if (updateValue) {
         form?.setFieldsValue({ ...updateValue });
         setSelectedDataType(updateValue.dataType || "");
+        setEditType(updateValue.editType || "");
       } else {
         setSelectedDataType("");
+        setEditType("");
       }
     }
   }, [open, type, updateValue]);
 
   // 判断是否需要显示精度选项
   const shouldShowPrecision = (dataType: string) => {
-    return ["Double", "Double[]", "LoadVector"].includes(dataType);
+    return ["Float", "Float[]", "LoadVector"].includes(dataType);
   };
 
   // 判断是否需要启用数组大小字段
   const shouldEnableArraySize = (dataType: string) => {
-    return ["Double[]", "Integer[]", "Byte[]"].includes(dataType);
+    return ["Float[]", "int[]", "bytearray"].includes(dataType);
   };
 
   // 判断是否可以编辑最大值最小值
   const canEditMinMaxValue = (dataType: string) => {
     // 数组类型和特定类型不可以编辑最小值和最大值
     return ![
-      "Double[]",
-      "Integer[]",
-      "Byte[]",
-      "Byte",
-      "String",
+      "Float[]",
+      "int[]",
+      "bytearray",
+      "bytes",
+      "str",
       "LineInVector",
       "LoadVector",
     ].includes(dataType);
   };
+  // 是否可以选择编辑类型
 
+  const canSeletctEditType = (dataType: string) => {
+    return !["int", "int[]"].includes(dataType);
+  };
   // 判断是否可以编辑默认值
   const canEditDefaultValue = (dataType: string) => {
     // 数组类型不可以编辑默认值
-    return !["Double[]", "Integer[]", "Byte[]"].includes(dataType);
+    return !["Float[]", "int[]", "bytearray"].includes(dataType);
   };
 
   // 处理数据类型变化
@@ -104,7 +110,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
@@ -142,6 +148,24 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
+            {/* 数据类型为int int[]时支持选择 编辑类型 */}
+            <Form.Item name="editType" label="编辑类型">
+              <Select
+                placeholder="选择编辑类型"
+                disabled={canSeletctEditType(selectedDataType)}
+                onChange={(value) => {
+                  setEditType(value);
+                }}
+              >
+                <Option value="EditBox">EditBox</Option>
+                <Option value="ComboList">ComboList</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
             <Form.Item name="precision" label="精度">
               <Select
                 placeholder="选择精度"
@@ -150,9 +174,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="minValue" label="最小值">
               <Input
@@ -161,6 +183,9 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="maxValue" label="最大值">
               <Input
@@ -169,17 +194,28 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
+          {/* 如果是int editbox默认值为输入框
+              如果int combolist 默认值为选择框，选择框的内容为枚举项目
+          */}
+          <Col span={12}>
+            <Form.Item name="defaultValue" label="默认值">
+              {selectedDataType !== "int" ||
+              (selectedDataType == "int" && selectEdittype == "EditBox") ? (
+                <Input
+                  placeholder="默认值"
+                  disabled={!canEditDefaultValue(selectedDataType)}
+                />
+              ) : (
+                <Select>
+                  <Option value="1">aa</Option>
+                  <Option value="2">bb</Option>
+                </Select>
+              )}
+            </Form.Item>
+          </Col>
         </Row>
 
         <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="defaultValue" label="默认值">
-              <Input
-                placeholder="默认值"
-                disabled={!canEditDefaultValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
           <Col span={12}>
             <Form.Item name="arraySize" label="数组大小">
               <InputNumber
@@ -188,14 +224,13 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="unit" label="单位">
               <Select placeholder="选择单位" options={unitOptions} />
             </Form.Item>
           </Col>
+        </Row>
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="visible" label="是否可见">
               <Select placeholder="选择是否可见">

@@ -78,7 +78,7 @@ const mockParamExplanation = {
       {
         name: "Parameter: ESR_Test_Items",
         type: "安规测试项目",
-        dataType: "Double[]",
+        dataType: "Float[]",
         description: "测试项目数组",
       },
     ],

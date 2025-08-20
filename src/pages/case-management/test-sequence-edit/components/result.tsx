@@ -9,7 +9,9 @@ import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Table } from "antd";
 import React, { useEffect, useState } from "react";
+import "./index.less";
 import ResultModal from "./resultModal";
+
 interface ResultPageProps {
   data?: any[]; //table数据
   onChange?: (data: any[]) => void; //table变化
@@ -55,13 +57,12 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
     },
     {
       title: "数据类型",
-      ellipsis: true,
       dataIndex: "dataType",
       render: (text: any, record: any, index: any) => {
         console.log(text, record, index);
-        return record.dataType === "Double[]" ||
-          record.dataType === "Integer[]" ||
-          record.dataType === "Byte[]" ? (
+        return record.dataType == "Float[]" ||
+          record.dataType == "int[]" ||
+          record.dataType == "bytearray" ? (
           <a
             onClick={() => {
               setState({
@@ -70,7 +71,6 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
               });
             }}
           >
-            {" "}
             {text}
           </a>
         ) : (
@@ -429,9 +429,9 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
         key: `col${index}`,
         width: 80,
         render: (text: string, record: any) => {
-          // 当数据类型为 Byte[] 时，除了默认值外其他都不可编辑
+          // 当数据类型为 bytearray 时，除了默认值外其他都不可编辑
           const isDisabled =
-            precisionValue.dataType === "Byte[]" &&
+            precisionValue.dataType === "bytearray" &&
             (record.key === "MinOffValue" ||
               record.key === "MinHighValue" ||
               record.key === "MaxOffValue" ||
@@ -520,14 +520,14 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
         return;
       }
 
-      // 对于 Byte[] 类型，最大值和最小值保持原值不变
+      // 对于 bytearray 类型，最大值和最小值保持原值不变
       let minOffValue,
         minHighValue,
         minDefaultValue,
         maxOffValue,
         maxHighValue,
         maxDefaultValue;
-      if (precisionValue.dataType === "Byte[]") {
+      if (precisionValue.dataType === "bytearray") {
         // 保持原来的值
         minOffValue = precisionValue.minOffValue || "";
         minHighValue = precisionValue.minHighValue || "";

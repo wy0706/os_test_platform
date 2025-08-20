@@ -10,22 +10,26 @@ export const schemas = {
 };
 // 数据类型
 export const dataTypeOptions = [
-  { value: "Double", label: "Double" },
-  { value: "Integer", label: "Integer" },
-  { value: "Byte", label: "Byte" },
+  { value: "Float", label: "Float" },
+  { value: "int", label: "int" },
+  { value: "bytes", label: "bytes" },
   {
-    value: "Double[]",
-    label: "Double[]",
+    value: "Float[]",
+    label: "Float[]",
   },
   {
-    value: "Integer[]",
-    label: "Integer[]",
+    value: "int[]",
+    label: "int[]",
   },
+  // {
+  //   value: "bytearray",
+  //   label: "bytearray",
+  // },
   {
-    value: "Byte[]",
-    label: "Byte[]",
+    value: "bytearray",
+    label: "bytearray",
   },
-  { value: "String", label: "String" },
+  { value: "str", label: "str" },
   { value: "LineInVector", label: "LineInVector" },
   {
     value: "LoadVector",
@@ -70,3 +74,11 @@ export const unitOptions = [
   { value: "℃", label: "℃" },
   { value: "r/min", label: "r/min" },
 ];
+
+export const parseOptionString = (optionStr: string) => {
+  if (!optionStr) return [];
+  return optionStr.split(",").map((item) => {
+    const [label, value] = item.split("=");
+    return { label: label?.trim(), value: value?.trim() };
+  });
+};

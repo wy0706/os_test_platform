@@ -19,7 +19,7 @@ interface ParamItem {
   type: string;
   type1?: string;
   conditionType?: number; // 测试条件类型
-  constantType?: string; // 常量类型：Integer、Double、Byte、HexString、String
+  constantType?: string; // 常量类型：int、Float、Byte、HexString、String
   value?: any; // 输入的值
 }
 
@@ -46,8 +46,8 @@ const ParamForm: React.FC<ParamFormProps> = ({
 
   // 常量类型选项
   const constantTypeOptions = [
-    { value: "Integer", label: "整数" },
-    { value: "Double", label: "双精度型" },
+    { value: "int", label: "整数" },
+    { value: "Float", label: "双精度型" },
     { value: "Byte", label: "字节型" },
     { value: "HexString", label: "十六进制字符" },
     { value: "String", label: "字符型" },
@@ -140,7 +140,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
 
       // 根据常量类型决定输入组件类型
       switch (item.constantType) {
-        case "Integer":
+        case "int":
           return (
             <Form.Item name={["params", index, "value"]} noStyle>
               <InputNumber
@@ -151,7 +151,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
               />
             </Form.Item>
           );
-        case "Double":
+        case "Float":
           return (
             <Form.Item name={["params", index, "value"]} noStyle>
               <InputNumber

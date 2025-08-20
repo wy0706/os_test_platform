@@ -7,10 +7,12 @@ import {
 } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Input, message, Modal, Table } from "antd";
+import { Button, Input, message, Modal, Select, Table } from "antd";
 import React, { useEffect, useState } from "react";
 import ConditionModal from "./conditionModal";
+import EditTypeModal from "./editTypeModal";
 import "./index.less";
+import { parseOptionString } from "./schemas";
 interface ConditionsProps {
   data?: any[]; //table数据
   onChange?: (data: any[]) => void; //table变化
@@ -20,7 +22,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
   const [tableData, setTableData] = useState<any>(data);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
   const [selectedRowData, setSelectedRowData] = useState<any>(null);
-
   // 监听外部数据变化
   useEffect(() => {
     if (data && data.length > 0) {
@@ -34,14 +35,17 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     precisionValue: {}, //当前点击数据类型的整行数据
     isEditModalOpen: false,
     editValue: {},
+    isEditTypeModalOpen: false,
+    projectOption: [], //数组类型int[]并且CombiList ，把枚举项目转换成数组（符合select的）
   });
   const {
     title,
-
+    isEditTypeModalOpen,
     isPrecisionModalOpen,
     precisionValue,
     editValue,
     isEditModalOpen,
+    projectOption,
   } = state;
   const columns = [
     {
@@ -62,28 +66,29 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "数据类型",
       dataIndex: "dataType",
-      // valueEnum: {
-      //   Double: { text: "Double" },
-      //   Integer: { text: "Integer" },
-      //   Byte: { text: "Byte" },
-      //   "Double[]": { text: "Double[]" },
-      //   "Integer[]": { text: "Integer[]" },
-      //   "Byte[]": { text: "Byte[]" },
-      //   String: { text: "String" },
-      //   LineInVector: { text: "LineInVector" },
-      //   LoadVector: { text: "LoadVector" },
-      // },
       render: (text: any, record: any, index: any) => {
         console.log(text, record, index);
-        return record.dataType === "Double[]" ||
-          record.dataType === "Integer[]" ||
-          record.dataType === "Byte[]" ? (
+        return record.dataType === "Float[]" ||
+          record.dataType === "int[]" ||
+          record.dataType === "bytearray" ? (
           <a
             onClick={() => {
+              console.log("record", record);
               setState({
                 isPrecisionModalOpen: true,
                 precisionValue: record,
               });
+
+              if (
+                record.dataType === "int[]" &&
+                record.editType === "ComboList"
+              ) {
+                const options = parseOptionString(record.project);
+                setState({
+                  projectOption: options,
+                });
+                // record.optionStr = "aa=1,bb=3,ff=5"
+              }
             }}
           >
             {" "}
@@ -97,6 +102,21 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "编辑类型",
       dataIndex: "editType",
+      render: (text: any, record: any, index: any) => {
+        return record.editType === "ComboList" ? (
+          <a
+            onClick={() => {
+              setState({
+                isEditTypeModalOpen: true,
+              });
+            }}
+          >
+            {text}
+          </a>
+        ) : (
+          text
+        );
+      },
     },
     {
       title: "最小值",
@@ -115,10 +135,10 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       dataIndex: "precision",
 
       // render: (text: any, record: any) => {
-      //   // 只有当数据类型为 Double、Double[] 或 LoadVector 时才显示精度
+      //   // 只有当数据类型为 Float、Float[] 或 LoadVector 时才显示精度
       //   const shouldShow =
-      //     record.dataType === "Double" ||
-      //     record.dataType === "Double[]" ||
+      //     record.dataType === "Float" ||
+      //     record.dataType === "Float[]" ||
       //     record.dataType === "LoadVector";
       //   return shouldShow ? text : "-";
       // },
@@ -349,7 +369,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         sequence: currentTableData.length + 1,
         extensionName: "",
         variableName: "",
-        dataType: "Byte[]",
+        dataType: "",
         arraySize: 1,
         unit: "",
         visible: "success",
@@ -402,10 +422,21 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     setArrayTableData(data);
   };
 
-  // 解析数组字符串，如 "0, 0, 0, 0, ff, ff, ff, ff" 或 "1, 1"
+  // 解析数组字符串，如 "0, 0, 0, 0, ff, ff, ff, ff" 或 "1, 1" 或者 1 或者"1"
   const parseArrayString = (arrayString: string) => {
-    if (!arrayString) return [];
-    return arrayString.split(",").map((item) => item.trim());
+    if (arrayString === undefined || arrayString === null) return [];
+    // 统一转为字符串
+    const str = String(arrayString).trim();
+    if (!str) return [];
+    // 如果包含逗号，按逗号切分
+    if (str.includes(",")) {
+      return str
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    // 如果没有逗号，直接返回单个元素数组
+    return [str];
   };
 
   // 生成数组列的数据对象
@@ -420,8 +451,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
   // 渲染数组设置表格
   const renderArraySettingTable = () => {
     if (!precisionValue) return null;
-
-    const arraySize = precisionValue.arraySize || 1;
+    const arraySize = precisionValue.arraySize || 1; //数组
 
     // 动态生成表格列
     const columns = [
@@ -436,12 +466,37 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         title: `${index + 1}`,
         dataIndex: `col${index}`,
         key: `col${index}`,
-        width: 80,
+        width: 120,
         render: (text: string, record: any) => {
-          // 当数据类型为 Byte[] 时，最大值和最小值不可编辑
+          // 规则：不可编辑条件
           const isDisabled =
-            precisionValue.dataType === "Byte[]" &&
-            (record.key === "MinValue" || record.key === "MaxValue");
+            // bytearray 的 Min / Max 不可编辑
+            (precisionValue.dataType === "bytearray" &&
+              (record.key === "MinValue" || record.key === "MaxValue")) ||
+            // int[] + ComboList 的 Min / Max 不可编辑
+            (precisionValue.dataType === "int[]" &&
+              precisionValue.editType === "ComboList" &&
+              (record.key === "MinValue" || record.key === "MaxValue"));
+
+          // int[] + ComboList 的 DefaultValue → 用 Select
+          const useSelect =
+            precisionValue.dataType === "int[]" &&
+            precisionValue.editType === "ComboList" &&
+            record.key === "DefaultValue";
+
+          if (useSelect) {
+            return (
+              <Select
+                value={text}
+                onChange={(value) =>
+                  handleArrayCellChange(record.key, `col${index}`, value)
+                }
+                size="small"
+                style={{ width: "100%" }}
+                options={projectOption}
+              />
+            );
+          }
 
           return (
             <Input
@@ -459,6 +514,33 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           );
         },
       })),
+      // ...Array.from({ length: arraySize }, (_, index) => ({
+      //   title: `${index + 1}`,
+      //   dataIndex: `col${index}`,
+      //   key: `col${index}`,
+      //   width: 80,
+      //   render: (text: string, record: any) => {
+      //     // 当数据类型为 bytearray 时，最大值和最小值不可编辑
+      //     const isDisabled =
+      //       precisionValue.dataType === "bytearray" &&
+      //       (record.key === "MinValue" || record.key === "MaxValue");
+
+      //     return (
+      //       <Input
+      //         value={text}
+      //         onChange={(e) =>
+      //           handleArrayCellChange(record.key, `col${index}`, e.target.value)
+      //         }
+      //         size="small"
+      //         style={{
+      //           textAlign: "center",
+      //           backgroundColor: isDisabled ? "#f5f5f5" : "white",
+      //         }}
+      //         disabled={isDisabled}
+      //       />
+      //     );
+      //   },
+      // })),
     ];
 
     return (
@@ -510,9 +592,9 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         return;
       }
 
-      // 对于 Byte[] 类型，最大值和最小值保持原值不变
+      // 对于 bytearray 类型，最大值和最小值保持原值不变
       let minValue, maxValue;
-      if (precisionValue.dataType === "Byte[]") {
+      if (precisionValue.dataType === "bytearray") {
         // 保持原来的最大值和最小值
         minValue = precisionValue.minValue || "";
         maxValue = precisionValue.maxValue || "";
@@ -548,7 +630,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
 
       setTableData(newData);
       onChange && onChange(newData);
-      setState({ isPrecisionModalOpen: false });
+      setState({ isPrecisionModalOpen: false, projectOption: [] });
       message.success("数组设置保存成功");
     } catch (error) {
       console.error("保存数组设置时出错:", error);
@@ -593,7 +675,9 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         footer={[
           <Button
             key="cancel"
-            onClick={() => setState({ isPrecisionModalOpen: false })}
+            onClick={() =>
+              setState({ isPrecisionModalOpen: false, projectOption: [] })
+            }
           >
             取消
           </Button>,
@@ -629,6 +713,27 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           onChange && onChange(newData);
           setState({ isEditModalOpen: false });
           message.success("保存成功");
+        }}
+      />
+      <EditTypeModal
+        open={isEditTypeModalOpen}
+        onCancel={() => {
+          setState({
+            isEditTypeModalOpen: false,
+          });
+        }}
+        onOk={(values: any) => {
+          console.log("values", values);
+          setState({
+            isEditTypeModalOpen: false,
+          });
+        }}
+        // 模拟后端返回的默认数据
+        updateValue={{
+          project: [
+            { first: "aa", last: "3" },
+            { first: "bb", last: "4" },
+          ],
         }}
       />
       {/* <Modal title="编辑测试条件" open={isEditModalOpen}></Modal> */}

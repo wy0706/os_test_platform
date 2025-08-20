@@ -258,7 +258,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ data, onChange }) => {
         sequence: currentTableData.length + 1,
         extensionName: "",
         variableName: "",
-        dataType: "Byte[]",
+        dataType: "bytearray",
         arraySize: 1,
         unit: "",
         visible: "success",
