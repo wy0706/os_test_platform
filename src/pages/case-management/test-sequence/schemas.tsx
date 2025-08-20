@@ -70,6 +70,12 @@ export const schemasColumns: any = [
     },
   },
   {
+    title: "关联测试序列",
+    dataIndex: "name2",
+    // sorter: true,
+    ellipsis: true,
+  },
+  {
     title: "是否发布",
     dataIndex: "status",
     key: "status",

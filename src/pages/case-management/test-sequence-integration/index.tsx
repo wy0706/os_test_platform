@@ -185,7 +185,7 @@ const Page: React.FC = () => {
         "KD6630_PFS_PS_POL_DPP_18",
         "KD6630_PFS_PS_POL_DPP_PARITY_19",
       ];
-      Modal.confirm({
+      Modal.error({
         title: "错误",
         content: (
           <div
@@ -209,7 +209,7 @@ const Page: React.FC = () => {
               ))}
           </div>
         ),
-        cancelButtonProps: { style: { display: "none" } }, // 隐藏取消按钮
+        okText: "确定",
         onOk() {
           console.log("确认操作");
         },
