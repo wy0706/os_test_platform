@@ -1,24 +1,52 @@
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
+  CiOutlined,
+  CopyFilled,
+  CopyOutlined,
   DeleteOutlined,
   EditOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
-import { message, Modal } from "antd";
+import { useSetState } from "ahooks";
+import { Button, message, Modal } from "antd";
 import React, { useEffect, useState } from "react";
+import EditModal from "./editModal";
+
 interface PreProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   updateValue?: any;
   onEdit?: (values: any, type: string) => void;
   data?: any; //table数据
-  onChange?: (data: any[]) => void; //table变化
+  onChange?: (data: any[], index?: number) => void; //table变化
+  selectedRowKeys?: any;
+  onInsert?: () => void; //插入
+  onCopy?: () => void; //复制 ,复制当前选中行数据
+  onPaste?: () => void; //粘贴，把复制到的数据粘贴到当前选中行下方
+  onCut?: () => void; //剪切，剪切当前选中行数据，并插入到当前行下方
+  onRowClick?: (record: any, index: number) => void;
 }
 
-const PrePage: React.FC<PreProps> = ({ data, onEdit, onChange }) => {
+const PrePage: React.FC<PreProps> = ({
+  data,
+  onEdit,
+  onChange,
+  selectedRowKeys,
+  onInsert,
+  onCopy,
+  onPaste,
+  onCut,
+  onRowClick,
+}) => {
   const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
-
+  const [state, setState] = useSetState<any>({
+    updateValue: {},
+    isEditModalOpen: false,
+    currentValue: {},
+  });
+  const { updateValue, isEditModalOpen, currentValue } = state;
   const columns = [
     {
       title: "激活",
@@ -82,7 +110,10 @@ const PrePage: React.FC<PreProps> = ({ data, onEdit, onChange }) => {
             key="editable"
             onClick={() => {
               // action?.startEditable?.(record.id);
-              onEdit && onEdit(record, "pre");
+              setState({
+                isEditModalOpen: true,
+                updateValue: record,
+              });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
           >
@@ -170,13 +201,11 @@ const PrePage: React.FC<PreProps> = ({ data, onEdit, onChange }) => {
           const newData = [...currentTableData];
           // 删除指定索引的行
           newData.splice(index, 1);
-
           // 重新计算序号
           newData.forEach((item, newIndex) => {
             item.sequence = newIndex + 1;
           });
-
-          onChange && onChange(newData);
+          onChange && onChange(newData, index);
           return newData;
         });
         message.success("删除成功");
@@ -190,10 +219,65 @@ const PrePage: React.FC<PreProps> = ({ data, onEdit, onChange }) => {
         columns={columns}
         search={false}
         options={false}
-        cardBordered
+        // cardBordered
         dataSource={tableData}
         rowKey="id"
         pagination={false}
+        toolBarRender={() => [
+          <Button
+            key="button"
+            icon={<PlusOutlined />}
+            onClick={() => onInsert && onInsert()}
+          >
+            插入
+          </Button>,
+          <Button
+            key="button"
+            icon={<CopyFilled />}
+            onClick={() => onCopy && onCopy()}
+          >
+            复制
+          </Button>,
+          <Button
+            key="button"
+            icon={<CopyOutlined />}
+            onClick={() => onPaste && onPaste()}
+          >
+            粘贴
+          </Button>,
+          <Button
+            key="button"
+            icon={<CiOutlined />}
+            onClick={() => onCut && onCut()}
+          >
+            剪切
+          </Button>,
+        ]}
+        size="small"
+        onRow={(record, index) => ({
+          onClick: () => onRowClick && onRowClick(record, index || 0),
+        })}
+        rowClassName={(record, index) =>
+          selectedRowKeys === index ? "selected-row" : ""
+        }
+      />
+
+      <EditModal
+        open={isEditModalOpen}
+        updateValue={updateValue}
+        type="pre"
+        onCancel={() => {
+          setState({ isEditModalOpen: false });
+        }}
+        onOk={(values, type) => {
+          setState({ isEditModalOpen: false });
+          const newData = [...tableData];
+          let list = newData.map((item) =>
+            item.id === values.id ? values : item
+          );
+          setTableData(list);
+          onChange && onChange(list);
+        }}
       />
     </div>
   );

@@ -143,8 +143,15 @@ const Page: React.FC = () => {
             status: "success",
             isExistAll: false,
           },
+          {
+            id: 3,
+            title: "测试数据2",
+            createTime: "2025-08-25",
+            status: "error",
+            isExistAll: true,
+          },
         ],
-        total: 2,
+        total: 3,
         success: true,
       };
     }
@@ -158,7 +165,7 @@ const Page: React.FC = () => {
     setSelectedRow(record);
     if (record.isExistAll) {
       history.push(
-        `/case-management/test-sequence-process/${record.id}?name=${record.title}`
+        `/case-management/test-sequence-process/${record.id}?name=${record.title}&status=${record.status}`
       );
     } else {
       let list = [

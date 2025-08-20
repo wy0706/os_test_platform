@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
-  onOk?: (values: any) => void;
+  onOk?: (values: any, type: any) => void;
   onCancel?: () => void;
   updateValue: any;
   type: string;
@@ -45,7 +45,7 @@ const EditModal: React.FC<SetMemberModalProps> = ({
       .validateFields()
       .then((values) => {
         if (onOk) {
-          onOk(values);
+          onOk({ ...updateValue, ...values }, type);
         }
       })
       .catch((errorInfo) => {

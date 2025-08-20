@@ -1,3 +1,4 @@
+import { getList } from "@/services/task-management/test-requirement.service";
 import {
   CheckCircleOutlined,
   FileAddOutlined,
@@ -8,14 +9,17 @@ import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Checkbox, message, Modal, Space, Tabs } from "antd";
-import isEqual from "lodash/isEqual";
-import React, { useEffect, useState } from "react";
-import EditModal from "./components/editModal";
+import React, { useEffect } from "react";
+import RunModal from "../components/runModal";
 import PostPage from "./components/postPage";
 import PrePage from "./components/prePage";
+import SaveModal from "./components/saveModal";
+import TestCondition from "./components/testCondition";
+import TestProject from "./components/testProject";
+import TestResult from "./components/testResult";
 import UutPage from "./components/uutPage";
 import "./index.less";
-import { preTable } from "./schemas";
+import { mockTreeData, preTable } from "./schemas";
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
@@ -51,8 +55,37 @@ const Page: React.FC = () => {
       },
     ],
     rightTabActiveKey: 1,
-    isEditModalOpen: false,
     isEditAll: false, //是否编辑所有测试条件
+    tabData: {
+      tab1: [],
+      tab2: [],
+      tab3: [],
+    },
+    // 判断tab数据是否已经请求过数据
+    loaded: {
+      tab1: false,
+      tab2: false,
+      tab3: false,
+    },
+    selectedRowKeys: {
+      tab1: -1,
+      tab2: -1,
+      tab3: -1,
+    },
+    isDirty: false,
+    projectTreeData: [],
+    projectExpandedKeys: [],
+    treeSelectedKeys: [],
+    treeSelectedCommand: "",
+    treeSelectedNode: {},
+    copyValue: {},
+    isRelease: "", //是否为已发布 ，只有编辑状态才有
+    isRunModalOpen: false,
+    isPromptModalOpen: false,
+    promptModalTitle: "",
+    promptModalType: "back", //back（表示返回列表） 和add（表示进入新增页面），run（表示进入运行界面）
+    isSaveModalOpen: false,
+    saveModalType: "", //保存和另存为  save saveAs
   });
   const {
     title,
@@ -61,69 +94,338 @@ const Page: React.FC = () => {
     tabRightItems,
     rightTabActiveKey,
     isEditAll,
-    isEditModalOpen,
-    editType,
-    editValue,
+    tabData,
+    isDirty,
+    loaded,
+    projectTreeData,
+    projectExpandedKeys,
+    selectedRowKeys,
+    treeSelectedKeys,
+    treeSelectedCommand,
+    treeSelectedNode,
+    copyValue,
+    isRelease,
+    isRunModalOpen,
+    isPromptModalOpen,
+    promptModalTitle,
+    promptModalType,
+    isSaveModalOpen,
+    saveModalType,
   } = state;
 
-  const [preTableData, setPreData] = useState(preTable);
-  const [isDirty, setIsDirty] = useState(false); //是否修改
   const [searchParams] = useSearchParams();
   const params = useParams();
-
-  // 初始数据记录（进入页面时存一份）
-  const [initialData, setInitialData] = useState<any>({
-    preTableData: [],
-  });
-
+  // 初始化：只加载 tab1
   useEffect(() => {
-    const initialPreData = params.id === "add" ? [] : preTable;
+    if (params.id !== "add") {
+      handleTabChange("1");
+    }
+    let release =
+      params.id === "add"
+        ? false
+        : searchParams.get("status") === "success"
+        ? true
+        : false;
+    console.log("release", release);
+
     setState({
       title: params.id === "add" ? "" : searchParams.get("name") || "",
-      preTable: initialPreData,
+      isRelease: release,
     });
-    // 同时设置实际使用的数据状态
-    setPreData(initialPreData);
-    // 设置初始数据用于脏数据检测
-    setInitialData({
-      preTableData: initialPreData,
-    });
-    // console.log("路由", params, "searchParams", searchParams.get("name"));
-  }, []);
-  // 检测是否修改
-  useEffect(() => {
-    const changed = !isEqual(preTableData, initialData.preTableData);
-    setIsDirty(changed);
-  }, [preTableData]);
+  }, [params.id]);
 
+  const handleTabChange = async (key: string) => {
+    setState({ leftTabActiveKey: key, copyValue: {} });
+    if (params.id !== "add" && !state.loaded[`tab${key}`]) {
+      try {
+        await getList({});
+        setState((prev) => ({
+          tabData: { ...prev.tabData, [`tab${key}`]: preTable || [] },
+          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          selectedRowKeys: {
+            ...prev.selectedRowKeys,
+            [`tab${key}`]: preTable?.length ? 0 : -1, // 默认选第一条
+          },
+        }));
+      } catch (e) {
+        setState((prev) => ({
+          tabData: { ...prev.tabData, [`tab${key}`]: preTable || [] },
+          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          selectedRowKeys: {
+            ...prev.selectedRowKeys,
+            [`tab${key}`]: preTable?.length ? 0 : -1, // 默认选第一条
+          },
+        }));
+      }
+    }
+  };
   const handleGoBack = () => {
-    console.log(isDirty);
-
-    if (isDirty) {
-      Modal.confirm({
-        title: "文件已经改动是否需要保存 ?",
-        okText: "保存",
-        cancelText: "不保存",
-        onOk: () => {
-          message.success("保存成功");
-          history.back();
-        },
-        onCancel: () => {
-          history.back();
-        },
-      });
+    console.log(isDirty, isRelease);
+    if (isRelease) {
+      //如果已发布 不做任何操作直接返回
+      history.push("/case-management/test-sequence-integration");
     } else {
-      history.back();
+      //r如果未发布
+      if (isDirty) {
+        setState({
+          isPromptModalOpen: true,
+          promptModalType: "back",
+          promptModalTitle:
+            params.id === "add"
+              ? "新建文件需要保存吗 ？"
+              : "文件已经改动，需要保存吗 ？",
+        });
+      } else {
+        history.push("/case-management/test-sequence-integration");
+      }
     }
   };
 
-  const handleImport = () => {
-    // message.info("导入功能");
+  const handleAdd = () => {
+    if (isRelease) {
+      // 新建弹框直接如果已发布
+      setState({
+        isRunModalOpen: true,
+      });
+    } else {
+      //r如果未发布
+      if (isDirty) {
+        setState({
+          isPromptModalOpen: true,
+          promptModalType: "add",
+          promptModalTitle:
+            params.id === "add"
+              ? "新建文件需要保存吗 ？"
+              : "文件已经改动，需要保存吗 ？",
+        });
+      }
+    }
   };
-  const handleAdd = () => {};
-  const handleSelfCheck = () => {};
-  const handleExport = () => {
-    // message.info("导出功能");
+
+  // 保存
+  const handleSave = (type: string) => {
+    if (isRelease) {
+      //如果已发布不能保存和另存为
+      message.info("文件已发布，不可更改 ！");
+    } else {
+      if (isDirty) {
+        setState({
+          isSaveModalOpen: true,
+          saveModalType: type,
+        });
+      } else {
+        message.info("测试项目为空，不能保存 ！");
+      }
+    }
+  };
+
+  const goAdd = () => {
+    history.push("/case-management/test-sequence-process/add");
+    window.location.reload();
+  };
+  // 通用插入函数，供双击和按钮点击使用
+  const insertTreeNode = (nodeKey: string, nodeTitle: string) => {
+    console.log(nodeKey, nodeTitle);
+    // if (tableData.length > 299) {
+    //   message.warning("表格中的命令数量已达到最大限度，不可插入");
+    //   return;
+    // }
+    // 创建新的行数据
+    const newRowData = {
+      id: Date.now(), // 使用时间戳作为唯一ID
+      status: "success",
+      command: nodeKey,
+      extention: "测试数据",
+      title: ` ${nodeTitle}`,
+    };
+    // 在选中行下方插入新行
+    const insertIndex =
+      leftTabActiveKey == 1
+        ? selectedRowKeys.tab1 + 1
+        : leftTabActiveKey == 2
+        ? selectedRowKeys.tab2 + 1
+        : selectedRowKeys.tab3 + 1;
+    const newTableData =
+      leftTabActiveKey == 1
+        ? [...tabData.tab1]
+        : leftTabActiveKey == 2
+        ? [...tabData.tab2]
+        : [...tabData.tab3];
+    newTableData.splice(insertIndex, 0, newRowData);
+
+    // 更新序号
+    newTableData.forEach((item, index) => {
+      item.sequence = index + 1;
+    });
+
+    let obj = {
+      [leftTabActiveKey == 1
+        ? "tab1"
+        : leftTabActiveKey == 2
+        ? "tab2"
+        : "tab3"]: newTableData,
+    };
+    console.log("obj", obj);
+
+    setState((prev) => ({
+      tabData: {
+        ...prev.tabData,
+        [leftTabActiveKey == 1
+          ? "tab1"
+          : leftTabActiveKey == 2
+          ? "tab2"
+          : "tab3"]: newTableData,
+      },
+      isDirty: true,
+    }));
+    // 选中新插入的行
+    console.log("insertIndex", insertIndex);
+
+    setState((prev) => ({
+      selectedRowKeys: {
+        ...prev.selectedRowKeys,
+        [leftTabActiveKey == 1
+          ? "tab1"
+          : leftTabActiveKey == 2
+          ? "tab2"
+          : "tab3"]: insertIndex,
+      },
+    }));
+    // message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
+    message.success("插入成功");
+  };
+  // 插入测试项目
+  const hanleInsert = () => {
+    console.log("hanleInsert");
+    if (treeSelectedKeys.length === 0) {
+      message.warning("请先选择右侧测试项目");
+      return;
+    }
+
+    insertTreeNode(treeSelectedCommand, treeSelectedNode.title);
+  };
+  const handlePaste = () => {
+    if (copyValue) {
+      // 把已复制的数据粘贴到当前选中行下方
+      const insertIndex =
+        leftTabActiveKey == 1
+          ? selectedRowKeys.tab1 + 1
+          : leftTabActiveKey == 2
+          ? selectedRowKeys.tab2 + 1
+          : selectedRowKeys.tab3 + 1;
+      const newTableData =
+        leftTabActiveKey == 1
+          ? [...tabData.tab1]
+          : leftTabActiveKey == 2
+          ? [...tabData.tab2]
+          : [...tabData.tab3];
+      console.log("copyValue", copyValue, insertIndex);
+      newTableData.splice(insertIndex, 0, {
+        ...copyValue,
+        id: new Date().getTime(),
+      });
+      // 更新序号
+      newTableData.forEach((item, index) => {
+        item.sequence = index + 1;
+      });
+
+      setState((prev) => ({
+        tabData: {
+          ...prev.tabData,
+          [leftTabActiveKey == 1
+            ? "tab1"
+            : leftTabActiveKey == 2
+            ? "tab2"
+            : "tab3"]: newTableData,
+        },
+        selectedRowKeys: {
+          ...prev.selectedRowKeys,
+          [leftTabActiveKey == 1
+            ? "tab1"
+            : leftTabActiveKey == 2
+            ? "tab2"
+            : "tab3"]: insertIndex,
+        },
+        isDirty: true,
+      }));
+
+      // message.success(`已在第${insertIndex + 1}行插入: ${copyValue.title}`);
+      message.success("粘贴成功");
+    } else {
+      message.warning("请先复制数据");
+    }
+  };
+  const handleCut = () => {
+    if (selectedRowKeys.tab1 == -1 || selectedRowKeys.tab1 == undefined) {
+      message.warning("请先选中要剪切的行");
+      return;
+    }
+    setState((prev) => ({
+      copyValue: {
+        ...tabData[
+          leftTabActiveKey == 1
+            ? "tab1"
+            : leftTabActiveKey == 2
+            ? "tab2"
+            : "tab3"
+        ][selectedRowKeys.tab1],
+      },
+    }));
+    setState((prev) => ({
+      tabData: {
+        ...prev.tabData,
+        [leftTabActiveKey == 1
+          ? "tab1"
+          : leftTabActiveKey == 2
+          ? "tab2"
+          : "tab3"]: prev.tabData[
+          leftTabActiveKey == 1
+            ? "tab1"
+            : leftTabActiveKey == 2
+            ? "tab2"
+            : "tab3"
+        ].filter((item: any, index: any) => index !== selectedRowKeys.tab1),
+      },
+      isDirty: true,
+    }));
+    message.success("剪切成功");
+  };
+
+  const handleRun = () => {
+    if (isRelease) {
+      // 已发布可以直接跳转运行界面/case-management/case-run/2?status=all&name=123
+      history.push("/case-management/case-run/add?status=all");
+    } else {
+      // 判断是否为空，为空提示数据为空
+      const isAllEmpty = [tabData.tab1, tabData.tab2, tabData.tab3].every(
+        (tab) => tab.length === 0
+      );
+      if (isAllEmpty) {
+        message.info("新建文件为空，无法运行");
+        return;
+      } else {
+        if (isDirty) {
+          // 不为空 如果是新建，保存数据后拿到id name等信息 跳转run页面
+          if (params.id === "add") {
+            //
+            history.push(
+              "/case-management/case-run/1?status=all&name=os测试.tpf"
+            );
+          } else {
+            // 不为空  如果是更改，提示是否先更改，再跳转页面
+            setState({
+              isPromptModalOpen: true,
+              promptModalType: "run",
+              promptModalTitle: "文件已经改动，需要保存吗 ？",
+            });
+          }
+        } else {
+          history.push(
+            "/case-management/case-run/1?status=all&name=os测试.tpf"
+          );
+        }
+      }
+    }
   };
   return (
     <PageContainer
@@ -159,14 +461,20 @@ const Page: React.FC = () => {
                 新建
               </Button>
 
-              <Button icon={<SaveOutlined />} onClick={handleExport}>
+              <Button
+                icon={<SaveOutlined />}
+                onClick={() => handleSave("save")}
+              >
                 保存
               </Button>
-              <Button icon={<FileAddOutlined />} onClick={handleExport}>
+              <Button
+                icon={<FileAddOutlined />}
+                onClick={() => handleSave("saveAs")}
+              >
                 另存为
               </Button>
               {/* 复制   粘贴    剪切  */}
-              <Button icon={<CheckCircleOutlined />} onClick={handleSelfCheck}>
+              <Button icon={<CheckCircleOutlined />} onClick={handleRun}>
                 运行
               </Button>
             </Space>
@@ -181,19 +489,58 @@ const Page: React.FC = () => {
               <Tabs
                 defaultActiveKey={leftTabActiveKey}
                 items={tabLeftItems}
-                onChange={(key: any) => {
-                  setState({ leftTabActiveKey: key });
-                }}
+                onChange={handleTabChange}
               />
               <div style={{ padding: "10px" }}>
                 {leftTabActiveKey == 1 && (
                   <PrePage
-                    onChange={(data) => {
-                      setPreData(data);
+                    selectedRowKeys={state.selectedRowKeys.tab1}
+                    onRowClick={(record, index) => {
+                      setState((prev) => ({
+                        selectedRowKeys: {
+                          ...prev.selectedRowKeys,
+                          tab1: index,
+                        },
+                      }));
                     }}
-                    data={preTableData}
+                    onInsert={hanleInsert}
+                    onCopy={() => {
+                      console.log("selectedRowKeys.tab1", selectedRowKeys.tab1);
+                      if (selectedRowKeys.tab1 !== -1) {
+                        setState((prev) => ({
+                          copyValue: {
+                            ...tabData.tab1[selectedRowKeys.tab1],
+                          },
+                        }));
+                        message.success("复制成功");
+                      } else {
+                        message.warning("请先选中要复制的行");
+                      }
+                    }}
+                    onPaste={handlePaste}
+                    onCut={handleCut}
+                    onChange={(data, index) => {
+                      setState((prev) => ({
+                        tabData: { ...prev.tabData, tab1: data },
+                        isDirty: true,
+                      }));
+
+                      if (index || index === 0) {
+                        let newSelectedIndex = -1;
+                        if (data.length > 0) {
+                          newSelectedIndex =
+                            index < data.length ? index : data.length - 1;
+                        }
+                        setState((prev) => ({
+                          selectedRowKeys: {
+                            ...prev.selectedRowKeys,
+                            tab1: newSelectedIndex,
+                          },
+                        }));
+                      }
+                    }}
+                    data={tabData.tab1}
                     onEdit={(values, type) => {
-                      console.log(values, type);
                       setState({
                         isEditModalOpen: true,
                         editValue: { ...values },
@@ -202,8 +549,120 @@ const Page: React.FC = () => {
                     }}
                   />
                 )}
-                {leftTabActiveKey == 2 && <UutPage />}
-                {leftTabActiveKey == 3 && <PostPage />}
+                {leftTabActiveKey == 2 && (
+                  <UutPage
+                    selectedRowKeys={state.selectedRowKeys.tab2}
+                    onRowClick={(record, index) => {
+                      setState((prev) => ({
+                        selectedRowKeys: {
+                          ...prev.selectedRowKeys,
+                          tab2: index,
+                        },
+                      }));
+                    }}
+                    onInsert={hanleInsert}
+                    onCopy={() => {
+                      console.log("selectedRowKeys.tab1", selectedRowKeys.tab2);
+                      if (selectedRowKeys.tab2 !== -1) {
+                        setState((prev) => ({
+                          copyValue: {
+                            ...tabData.tab2[selectedRowKeys.tab2],
+                          },
+                        }));
+                        message.success("复制成功");
+                      } else {
+                        message.warning("请先选中要复制的行");
+                      }
+                    }}
+                    onPaste={handlePaste}
+                    onCut={handleCut}
+                    onChange={(data, index) => {
+                      setState((prev) => ({
+                        tabData: { ...prev.tabData, tab2: data },
+                        isDirty: true,
+                      }));
+
+                      if (index || index === 0) {
+                        let newSelectedIndex = -1;
+                        if (data.length > 0) {
+                          newSelectedIndex =
+                            index < data.length ? index : data.length - 1;
+                        }
+                        setState((prev) => ({
+                          selectedRowKeys: {
+                            ...prev.selectedRowKeys,
+                            tab2: newSelectedIndex,
+                          },
+                        }));
+                      }
+                    }}
+                    data={tabData.tab2}
+                    onEdit={(values, type) => {
+                      setState({
+                        isEditModalOpen: true,
+                        editValue: { ...values },
+                        editType: type,
+                      });
+                    }}
+                  />
+                )}
+                {leftTabActiveKey == 3 && (
+                  <PostPage
+                    selectedRowKeys={state.selectedRowKeys.tab3}
+                    onRowClick={(record, index) => {
+                      setState((prev) => ({
+                        selectedRowKeys: {
+                          ...prev.selectedRowKeys,
+                          tab3: index,
+                        },
+                      }));
+                    }}
+                    onInsert={hanleInsert}
+                    onCopy={() => {
+                      console.log("selectedRowKeys.tab3", selectedRowKeys.tab3);
+                      if (selectedRowKeys.tab3 !== -1) {
+                        setState((prev) => ({
+                          copyValue: {
+                            ...tabData.tab3[selectedRowKeys.tab3],
+                          },
+                        }));
+                        message.success("复制成功");
+                      } else {
+                        message.warning("请先选中要复制的行");
+                      }
+                    }}
+                    onPaste={handlePaste}
+                    onCut={handleCut}
+                    onChange={(data, index) => {
+                      setState((prev) => ({
+                        tabData: { ...prev.tabData, tab3: data },
+                        isDirty: true,
+                      }));
+
+                      if (index || index === 0) {
+                        let newSelectedIndex = -1;
+                        if (data.length > 0) {
+                          newSelectedIndex =
+                            index < data.length ? index : data.length - 1;
+                        }
+                        setState((prev) => ({
+                          selectedRowKeys: {
+                            ...prev.selectedRowKeys,
+                            tab3: newSelectedIndex,
+                          },
+                        }));
+                      }
+                    }}
+                    data={tabData.tab3}
+                    onEdit={(values, type) => {
+                      setState({
+                        isEditModalOpen: true,
+                        editValue: { ...values },
+                        editType: type,
+                      });
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -218,21 +677,112 @@ const Page: React.FC = () => {
               // tabBarExtraContent={<Checkbox>编辑所有测试条件</Checkbox>}
             />
 
-            <div>内容</div>
+            <div className="tree-panel-content">
+              {rightTabActiveKey == 1 && (
+                <TestProject
+                  data={mockTreeData}
+                  onInsertTreeNode={insertTreeNode}
+                  onSelect={(keys, info) => {
+                    setState({
+                      treeSelectedKeys: keys as string[],
+                      treeSelectedCommand: info.node.command,
+                      treeSelectedNode: info.node,
+                    });
+                  }}
+                />
+              )}
+              {rightTabActiveKey == 2 && <TestCondition />}
+              {rightTabActiveKey == 3 && <TestResult />}
+            </div>
           </div>
         </div>
       </div>
-      <EditModal
-        open={isEditModalOpen}
-        updateValue={editValue}
-        type={editType}
+      <RunModal
+        open={isRunModalOpen}
         onCancel={() => {
-          console.log(isEditModalOpen);
-          setState({ isEditModalOpen: false });
+          setState({ isRunModalOpen: false });
         }}
         onOk={(values) => {
-          console.log("valuds", values);
-          setState({ isEditModalOpen: false });
+          console.log(values);
+          setState({ isRunModalOpen: false });
+          goAdd();
+        }}
+      />
+
+      <Modal
+        title={promptModalTitle}
+        open={isPromptModalOpen}
+        onCancel={() => setState({ isPromptModalOpen: false })}
+        footer={[
+          <Button
+            key="save"
+            type="primary"
+            style={{ marginRight: "10px" }}
+            onClick={() => {
+              console.log("保存");
+              // 保存数据后再跳转新建页面
+              message.success("保存成功");
+              switch (promptModalType) {
+                case "back":
+                  history.push("/case-management/test-sequence-integration");
+                  return;
+                case "add":
+                  goAdd();
+                case "run":
+                  history.push(
+                    "/case-management/case-run/1?status=all&name=os测试.tpf"
+                  );
+                  return;
+                default:
+                  return;
+              }
+            }}
+          >
+            是
+          </Button>,
+          <Button
+            key="nosave"
+            danger
+            onClick={() => {
+              console.log("不保存");
+              switch (promptModalType) {
+                case "back":
+                  history.push("/case-management/test-sequence-integration");
+                  return;
+                case "add":
+                  goAdd();
+                case "run":
+                  history.push(
+                    "/case-management/case-run/1?status=all&name=os测试.tpf"
+                  );
+                  return;
+                default:
+                  return;
+              }
+            }}
+            style={{ marginRight: "10px" }}
+          >
+            否
+          </Button>,
+          <Button
+            key="cancel"
+            onClick={() => setState({ isPromptModalOpen: false })}
+          >
+            取消
+          </Button>,
+        ]}
+      ></Modal>
+      <SaveModal
+        open={isSaveModalOpen}
+        type={saveModalType}
+        onOk={(values) => {
+          console.log("values", values);
+          setState({ isSaveModalOpen: false });
+          // 保存成功后跳转到列表
+          history.push("/case-management/test-sequence-integration");
+        }}
+        onCancel={() => {
+          setState({ isSaveModalOpen: false });
         }}
       />
     </PageContainer>
