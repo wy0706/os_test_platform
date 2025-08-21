@@ -1,67 +1,109 @@
 import { Button, Modal } from "antd";
-import { useEffect, useState } from "react";
+import { ReactNode, useMemo } from "react";
 
 interface PromptModalProps {
   open: boolean;
   onOk?: (values?: any) => void;
   onCancel?: () => void;
   onNo?: (values?: any) => void;
-  type: any;
+  type: any; //'add' 'edit' 'empty'
+  title?: any;
+  customButtons?: ModalButton[]; // 可完全自定义按钮
+  children?: ReactNode;
 }
-
+interface ModalButton {
+  key: string;
+  text: string | ReactNode;
+  type?: "primary" | "default" | "dashed" | "link" | "text" | "ghost";
+  danger?: boolean;
+  onClick?: () => void;
+  style?: React.CSSProperties;
+}
 const PromptModal: React.FC<PromptModalProps> = ({
   open,
   onOk,
   onCancel,
   onNo,
   type,
+  title,
+  customButtons,
+  children,
 }) => {
-  const [title, setTitle] = useState("");
-  useEffect(() => {
-    const name =
-      type == "add" ? "新建文件需要保存吗 ？" : "文件已经改动，需要保存吗 ？";
+  const modalTitle = useMemo(() => {
+    if (title) return title;
 
-    setTitle(name);
-  }, [open]);
+    switch (type) {
+      case "add":
+        return "新建文件需要保存吗？";
+      case "edit":
+        return "文件已经改动，需要保存吗？";
+      case "empty":
+        return "您尚未创建测试流程，是否确认返回？";
+      default:
+        return "";
+    }
+  }, [type, title]);
+
+  // 根据 type 生成默认按钮
+  const defaultButtons: ModalButton[] = useMemo(() => {
+    if (customButtons && customButtons.length > 0) return customButtons;
+
+    if (type === "add" || type === "edit") {
+      return [
+        {
+          key: "yes",
+          text: "是",
+          type: "primary",
+          onClick: onOk,
+          style: { marginRight: 10 },
+        },
+        {
+          key: "no",
+          text: "否",
+          danger: true,
+          onClick: onNo,
+          style: { marginRight: 10 },
+        },
+        { key: "cancel", text: "取消", onClick: onCancel },
+      ];
+    }
+
+    if (type === "empty") {
+      return [
+        {
+          key: "cancel",
+          text: "取消",
+          onClick: onCancel,
+          style: { marginRight: 10 },
+        },
+        { key: "confirm", text: "确认", type: "primary", onClick: onOk },
+      ];
+    }
+
+    return [];
+  }, [type, customButtons, onOk, onNo, onCancel]);
 
   return (
     <Modal
-      title={title}
+      title={modalTitle}
       open={open}
       onCancel={() => {
         onCancel?.();
       }}
-      footer={[
+      footer={defaultButtons.map((btn) => (
         <Button
-          key="save"
-          type="primary"
-          style={{ marginRight: "10px" }}
-          onClick={() => {
-            onOk?.();
-          }}
+          key={btn.key}
+          type={btn.type}
+          danger={btn.danger}
+          style={btn.style}
+          onClick={btn.onClick}
         >
-          是
-        </Button>,
-        <Button
-          key="nosave"
-          danger
-          style={{ marginRight: "10px" }}
-          onClick={() => {
-            onNo?.();
-          }}
-        >
-          否
-        </Button>,
-        <Button
-          key="cancel"
-          onClick={() => {
-            onCancel?.();
-          }}
-        >
-          取消
-        </Button>,
-      ]}
-    ></Modal>
+          {btn.text}
+        </Button>
+      ))}
+    >
+      {children}
+    </Modal>
   );
 };
 

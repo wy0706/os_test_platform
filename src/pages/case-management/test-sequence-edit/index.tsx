@@ -35,7 +35,7 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     tabActiveKey: "1",
-    isPromptModalOpen: false, //
+
     isRunModalOpen: false, //
     tabItems: [
       {
@@ -82,7 +82,8 @@ const Page: React.FC = () => {
     selectedCommand: "",
     isDirty: false,
     isRelease: false, //是否为已发布
-    promptModalType: "save", //save saveAs
+    isPromptModalOpen: false, //
+    promptModalType: "save", // 'add' 'edit' 'empty'
     autoId: null,
     isSaveAsModalOpen: false, //另存为
     addModalType: "",
@@ -173,19 +174,19 @@ const Page: React.FC = () => {
       return;
     }
     const hasData = hasNonEmptyTab(tabData);
-    const showPrompt = (type: "add" | "edit") => {
+    const showPrompt = (type: "add" | "edit" | "empty") => {
       setState({
-        promptModalType: type,
+        promptModalType: hasData ? type : "empty",
         isPromptModalOpen: true,
       });
     };
 
     if (autoId == "add") {
       // 新增页面
-      hasData ? showPrompt("add") : goList();
+      hasData ? showPrompt("add") : showPrompt("empty");
     } else {
       // 编辑页面
-      isDirty ? showPrompt("edit") : goList();
+      isDirty ? showPrompt("edit") : showPrompt("empty");
     }
   };
 
@@ -210,34 +211,6 @@ const Page: React.FC = () => {
   const goAdd = () => {
     history.push("/case-management/test-sequence-edit/add");
     window.location.reload();
-  };
-  const handleAdd1 = () => {
-    if (isRelease) {
-      goAdd();
-      return;
-    } else {
-      // 已修改
-      if (isDirty) {
-        Modal.confirm({
-          title: "提示",
-          content:
-            "您正在编辑一个测试项目，如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗",
-          onOk() {
-            setState({
-              isSaveAsModalOpen: true, //先填写新建Modal，再跳转新建页面
-              addModalType: "add",
-            });
-          },
-        });
-        return;
-      }
-
-      setState({
-        addModalType: "add",
-        isSaveAsModalOpen: true,
-      });
-      // message.info("需要确认 点击新建后是否需要先弹出 新建弹框");
-    }
   };
   const handleAdd = () => {
     // 已发布 弹出新建Modal
@@ -269,8 +242,6 @@ const Page: React.FC = () => {
       isSaveAsModalOpen: true,
     });
   };
-  const handleExport = () => {};
-  const handleSelfCheck = () => {};
   const hasNonEmptyTab = (data: Record<string, any[]>): boolean => {
     return Object.values(data).some((arr) => arr.length > 0);
   };
@@ -473,15 +444,22 @@ const Page: React.FC = () => {
           });
         }}
         onNo={() => {
+          console.log("promptModalType", promptModalType);
           setState({
             isPromptModalOpen: false,
           });
           goList();
         }}
         onOk={() => {
+          console.log("promptModalType", promptModalType);
           setState({
             isPromptModalOpen: false,
           });
+          if (promptModalType == "empty") {
+            goList();
+            return;
+          }
+          // 否则需要保存数据后返回
         }}
       />
     </PageContainer>
