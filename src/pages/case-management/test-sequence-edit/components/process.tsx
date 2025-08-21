@@ -10,7 +10,7 @@ import {
 import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Card, Modal, Tree, Typography, message } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { mockTreeData } from "../schemas";
 import "./index.less";
 import ParamForm from "./paramForm";
@@ -134,11 +134,9 @@ const mockFormData = [
   },
 ];
 interface ProcessProps {
-  data?: any[]; //table数据
-  onMoveRow?: (index: number, data: any[]) => void; //table上移下移
-  onAddRow?: (index: number, data: any[]) => void; //table新增行
-  onSaveData?: (data: any[]) => void; //table保存
-  onChange?: (data: any[]) => void; //table变化
+  data: any[]; //table数据
+  onChange?: (data: any, selectedRowIndex: number) => void;
+  selectedRowIndex?: any;
 }
 
 // 动态为树形数据添加图标的函数
@@ -163,26 +161,35 @@ const addIconsToTreeData = (treeData: any[]): any[] => {
 
 const Process: React.FC<ProcessProps> = ({
   data,
-  onMoveRow,
-  onAddRow,
-  onSaveData,
+  selectedRowIndex,
   onChange,
 }) => {
   const [state, setState] = useSetState<any>({
     isProcessModalOpen: false,
     isparamShow: false,
     updateValue: {},
+    selectedTreeKeys: [], //选中的树节点
+    selectedCommand: "", //当前选中的命令
+    processedTreeData: [],
+    expandedKeys: [],
+    selectedRowData: [],
+    selectType: "COMMAND", //默认展示测试命令 COMMAND | INPUT |OUT
+    paramType: "", // 参数表单数据
   });
-  const { isProcessModalOpen, updateValue, isparamShow } = state;
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
-  const [selectedRowData, setSelectedRowData] = useState<any>(null);
-  const [tableData, setTableData] = useState<any[]>(data || []); // 表格数据状态管理，支持接口数据
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [selectedTreeKeys, setSelectedTreeKeys] = useState<string[]>([]);
-  const [selectedCommand, setSelectedCommand] = useState<string>(""); // 当前选中的命令
-  const [processedTreeData, setProcessedTreeData] = useState<any[]>([]); // 处理后的树形数据（含图标）
-  const [selectType, setType] = useState("COMMAND"); //默认展示测试命令 COMMAND | INPUT |OUT
-  const [paramType, setParamType] = useState<any>(""); // 参数表单数据
+  const {
+    isProcessModalOpen,
+    updateValue,
+    isparamShow,
+    selectedTreeKeys,
+    selectedCommand,
+    processedTreeData,
+    expandedKeys,
+    selectedRowData,
+    selectType,
+    paramType,
+  } = state;
+  // const [selectType, setType] = useState("COMMAND");
+  // const [paramType, setParamType] = useState<any>("");
   // 获取所有树节点的keys用于默认展开
   const getAllTreeKeys = (treeData: any[]): string[] => {
     const keys: string[] = [];
@@ -225,159 +232,167 @@ const Process: React.FC<ProcessProps> = ({
 
   // 处理点击测试命令
   const handleCommandClick = (command: string) => {
-    setType("COMMAND");
-    setState({ isparamShow: false });
-    setSelectedCommand(command); // 设置当前选中的命令
+    setState({
+      isparamShow: false,
+      selectedCommand: command,
+      selectType: "COMMAND",
+    });
+
     if (processedTreeData.length > 0) {
       const commandPath = findCommandInTree(command, processedTreeData);
       if (commandPath) {
         // 设置选中的节点
-        setSelectedTreeKeys([command]);
 
+        setState({
+          selectedTreeKeys: [command],
+        });
         // 确保展开到该命令的路径
         const newExpandedKeys = [
           ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
         ];
-        setExpandedKeys(newExpandedKeys);
+
+        setState({
+          expandedKeys: newExpandedKeys,
+        });
       }
     }
   };
 
-  // 上下移动行
+  const syncTreeWithCommand2 = (command?: string) => {
+    console.log("conmmand", command);
+
+    if (!command) {
+      setState({
+        selectedTreeKeys: [],
+        selectedCommand: "",
+      });
+      return;
+    }
+    const commandPath = findCommandInTree(command, processedTreeData);
+    if (commandPath) {
+      console.log("1111", command);
+
+      setState({
+        selectedTreeKeys: [command],
+        expandedKeys: [
+          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
+        ],
+        selectedCommand: command,
+      });
+    }
+  };
+
+  const syncTreeWithCommand = (command?: string) => {
+    if (!command) {
+      setState({
+        selectedTreeKeys: [],
+        selectedCommand: "",
+      });
+      return;
+    }
+
+    // 如果树还没初始化好，先存起来，等树 ready 再处理
+    if (!processedTreeData || processedTreeData.length === 0) {
+      setState({
+        selectedCommand: command,
+        selectedTreeKeys: [command],
+      });
+      return;
+    }
+
+    const commandPath = findCommandInTree(command, processedTreeData);
+    if (commandPath) {
+      setState({
+        selectedTreeKeys: [command],
+        expandedKeys: [
+          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
+        ],
+        selectedCommand: command,
+      });
+    }
+  };
   const moveRow = (index: number, direction: "up" | "down") => {
-    const newData = [...tableData];
+    const newData = [...data];
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-    console.log("selectedRowIndex", selectedRowIndex);
-    console.log("targetIndex", targetIndex);
-    console.log("index", index);
-
-    // 边界检查
     if (targetIndex < 0 || targetIndex >= newData.length) return;
 
-    // 交换位置
     [newData[index], newData[targetIndex]] = [
       newData[targetIndex],
       newData[index],
     ];
+    newData.forEach((item, i) => (item.sequence = i + 1));
 
-    setTableData(newData);
-    onMoveRow && onMoveRow(index, newData);
-    onChange && onChange(newData);
-    setSelectedRowIndex(targetIndex);
-    setSelectedRowData(newData[targetIndex]);
-    // // 更新选中行索引和数据
-    // if (selectedRowIndex === index) {
-    //   setSelectedRowIndex(targetIndex);
-    //   setSelectedRowData(newData[targetIndex]);
-    // } else if (selectedRowIndex === targetIndex) {
-    //   setSelectedRowIndex(index);
-    //   setSelectedRowData(newData[index]);
-    // }
+    let newSelected = selectedRowIndex;
+    if (selectedRowIndex === index) {
+      newSelected = targetIndex;
+    } else if (selectedRowIndex === targetIndex) {
+      newSelected = index;
+    }
+
+    onChange?.(newData, newSelected);
+    if (newSelected >= 0) {
+      syncTreeWithCommand(newData[newSelected].command);
+    }
   };
-
   // 删除行
   const deleteRow = (index: number) => {
     Modal.confirm({
-      title: "确认删除吗 ？",
+      title: "确认删除吗？",
       onOk: () => {
-        const newData = [...tableData];
-
-        // 删除指定索引的行
+        const newData = [...data];
         newData.splice(index, 1);
-
-        // 重新计算序号
         newData.forEach((item, newIndex) => {
           item.sequence = newIndex + 1;
         });
 
-        setTableData(newData);
-        onChange && onChange(newData);
+        message.success("删除成功");
 
-        // 处理选中状态
+        // 删除后更新选中行索引
+        let newSelected = selectedRowIndex;
         if (newData.length === 0) {
-          // 如果没有数据了，清空选中状态
-          setSelectedRowIndex(-1);
-          setSelectedRowData(null);
-          setSelectedCommand("");
+          newSelected = -1;
+          setState({ selectedTreeKeys: [], selectedCommand: "" });
+        } else if (selectedRowIndex >= newData.length) {
+          newSelected = newData.length - 1;
+          syncTreeWithCommand(newData[newSelected].command);
         } else {
-          // 如果删除的是当前选中的行
-          if (selectedRowIndex === index) {
-            // 如果删除的是最后一行，选中上一行
-            if (index === newData.length) {
-              const newSelectedIndex = index - 1;
-              setSelectedRowIndex(newSelectedIndex);
-              setSelectedRowData(newData[newSelectedIndex]);
-              // 如果当前是命令模式，更新命令选择
-              if (
-                selectType === "COMMAND" &&
-                newData[newSelectedIndex]?.command
-              ) {
-                handleCommandClick(newData[newSelectedIndex].command);
-              }
-            } else {
-              // 否则选中当前位置的行
-              setSelectedRowIndex(index);
-              setSelectedRowData(newData[index]);
-              // 如果当前是命令模式，更新命令选择
-              if (selectType === "COMMAND" && newData[index]?.command) {
-                handleCommandClick(newData[index].command);
-              }
-            }
-          } else if (selectedRowIndex > index) {
-            // 如果删除的行在选中行之前，选中行索引需要减1
-            setSelectedRowIndex(selectedRowIndex - 1);
-          }
+          syncTreeWithCommand(newData[newSelected].command);
         }
 
-        message.success("删除成功");
+        onChange?.(newData, newSelected);
       },
     });
   };
-
+  useEffect(() => {
+    if (
+      selectedRowIndex !== undefined &&
+      selectedRowIndex >= 0 &&
+      data.length > 0
+    ) {
+      const currentCommand = data[selectedRowIndex]?.command;
+      if (currentCommand) {
+        syncTreeWithCommand(currentCommand);
+      }
+    } else {
+      setState({
+        selectedTreeKeys: [],
+        selectedCommand: "",
+      });
+    }
+  }, [data, selectedRowIndex, processedTreeData]);
   // 初始化时处理树形数据并设置默认展开全部
   useEffect(() => {
     // 为mockTreeData添加图标
     const dataWithIcons = addIconsToTreeData(mockTreeData);
-    setProcessedTreeData(dataWithIcons);
 
     // 默认展开所有节点
     const allKeys = getAllTreeKeys(dataWithIcons);
-    setExpandedKeys(allKeys);
+
+    setState({
+      processedTreeData: dataWithIcons,
+      expandedKeys: allKeys,
+    });
   }, []);
-
-  // // 监听tableData变化，设置默认选中第一行
-  // useEffect(() => {
-  //   // 如果有数据且当前没有选中任何行，则默认选中第一行
-  //   if (tableData.length > 0 && selectedRowIndex === -1) {
-  //     const firstRow = tableData[0];
-  //     setSelectedRowIndex(0);
-  //     setSelectedRowData(firstRow);
-
-  //     // 触发第一行的测试命令点击事件
-  //     if (firstRow?.command) {
-  //       handleCommandClick(firstRow.command);
-  //     }
-  //   }
-  // }, [tableData, selectedRowIndex]);
-  useEffect(() => {
-    // 初次进入选中第一条数据
-    if (tableData.length > 0) {
-      setSelectedRowIndex(0);
-      setSelectedRowData(tableData[0]);
-      setSelectedTreeKeys([tableData[0]?.command]);
-    }
-  }, [tableData]);
-  // // 监听外部数据变化
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setTableData(data);
-      // // 重置选中状态，让后续的useEffect处理默认选中
-      // setSelectedRowIndex(-1);
-      // setSelectedRowData(null);
-      // setSelectedCommand("");
-    }
-  }, [data]);
 
   // 表格列定义
   const columns: any[] = [
@@ -447,7 +462,10 @@ const Process: React.FC<ProcessProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               handleColumnClickWithRowSelect(record, index, "INPUT");
-              setParamType("INPUT");
+
+              setState({
+                paramType: "INPUT",
+              });
             }}
           >
             {record.inputParams}
@@ -467,7 +485,9 @@ const Process: React.FC<ProcessProps> = ({
             style={{ cursor: "pointer", color: "#1677ff" }}
             onClick={(e) => {
               e.stopPropagation();
-              setParamType("OUT");
+              setState({
+                paramType: "OUT",
+              });
               handleColumnClickWithRowSelect(record, index, "OUT");
             }}
           >
@@ -496,7 +516,7 @@ const Process: React.FC<ProcessProps> = ({
         action: { startEditable: (arg0: any) => void }
       ) => {
         const isFirst = index === 0;
-        const isLast = index === tableData.length - 1;
+        const isLast = index === data.length - 1;
 
         return [
           <a
@@ -558,24 +578,6 @@ const Process: React.FC<ProcessProps> = ({
     },
   ];
 
-  // 处理表格行选择
-  const handleRowClick = (record: any, index: number) => {
-    setSelectedRowIndex(index);
-    setSelectedRowData(record);
-
-    // 如果当前在COMMAND模式，同时更新命令树选中状态
-    if (selectType === "COMMAND" && record.command) {
-      const commandPath = findCommandInTree(record.command, mockTreeData);
-      if (commandPath) {
-        setSelectedTreeKeys([record.command]);
-        const newExpandedKeys = [
-          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-        ];
-        setExpandedKeys(newExpandedKeys);
-      }
-    }
-  };
-
   // 处理点击特定列时的行选择和模式切换
   const handleColumnClickWithRowSelect = (
     record: any,
@@ -589,14 +591,23 @@ const Process: React.FC<ProcessProps> = ({
     if (mode === "COMMAND") {
       handleCommandClick(record.command);
     } else {
-      setType(mode);
-      setState({ isparamShow: true });
+      setState({ isparamShow: true, selectType: mode });
+    }
+  };
+  // 处理表格行数据
+  const handleRowClick = (record: any, index: number) => {
+    // 通知父组件更新选中行
+    onChange?.(data, index);
+
+    // 如果当前在 COMMAND 模式，同时更新命令树选中状态
+    if (selectType === "COMMAND" && record.command) {
+      syncTreeWithCommand(record.command);
     }
   };
 
   // 通用插入函数，供双击和按钮点击使用
   const insertTreeNode = (nodeKey: string, nodeTitle: string) => {
-    if (tableData.length > 299) {
+    if (data.length > 299) {
       message.warning("表格中的命令数量已达到最大限度，不可插入");
       return;
     }
@@ -604,7 +615,6 @@ const Process: React.FC<ProcessProps> = ({
     // 创建新的行数据
     const newRowData = {
       id: Date.now(), // 使用时间戳作为唯一ID
-      sequence: tableData.length + 1,
       command: nodeKey,
       inputParams: "输入参数: 待配置",
       outputParams: "输出参数: 待配置",
@@ -613,36 +623,29 @@ const Process: React.FC<ProcessProps> = ({
 
     // 在选中行下方插入新行
     const insertIndex =
-      selectedRowIndex >= 0 ? selectedRowIndex + 1 : tableData.length;
-    const newTableData = [...tableData];
+      selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
+    const newTableData = [...data];
     newTableData.splice(insertIndex, 0, newRowData);
 
     // 更新序号
     newTableData.forEach((item, index) => {
       item.sequence = index + 1;
     });
-
-    setTableData(newTableData);
-    onAddRow && onAddRow(insertIndex, newTableData);
-    onChange && onChange(newTableData);
-    // 选中新插入的行
-
-    console.log("insertIndex", insertIndex);
-
-    setSelectedRowIndex(insertIndex);
-    setSelectedRowData(newRowData);
+    // 通知父组件更新数据 & 当前选中行
+    onChange?.(newTableData, insertIndex);
+    setState({ selectedRowData: newRowData });
+    syncTreeWithCommand(nodeKey);
+    // // 本地只维护右侧树和 param 的状态
+    // setSelectedRowData(newRowData);
 
     // // 如果当前是命令模式，更新命令选择
-    if (selectType === "COMMAND") {
-      handleCommandClick(nodeKey);
-    }
+    // if (selectType === "COMMAND") {
+    //   handleCommandClick(nodeKey);
+    // }
 
     message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
   };
-
-  // 处理插入按钮点击事件
   const handleInsertClick = () => {
-    // 检查是否有选中的tree节点
     if (selectedTreeKeys.length === 0) {
       message.warning("请先选择要插入的测试命令");
       return;
@@ -650,13 +653,10 @@ const Process: React.FC<ProcessProps> = ({
 
     const selectedNodeKey = selectedTreeKeys[0];
 
-    // 在树形数据中查找选中的节点
     const findNodeInTree = (treeData: any[], key: string): any => {
       for (const node of treeData) {
-        if (node.key === key) {
-          return node;
-        }
-        if (node.children && node.children.length > 0) {
+        if (node.key === key) return node;
+        if (node.children?.length > 0) {
           const found = findNodeInTree(node.children, key);
           if (found) return found;
         }
@@ -671,8 +671,7 @@ const Process: React.FC<ProcessProps> = ({
       return;
     }
 
-    // 检查是否为父节点（有子节点），父节点不允许插入
-    if (selectedNode.children && selectedNode.children.length > 0) {
+    if (selectedNode.children?.length > 0) {
       message.warning(`请选择具体的测试命令进行插入`);
       return;
     }
@@ -683,6 +682,8 @@ const Process: React.FC<ProcessProps> = ({
 
   // 处理树节点双击事件，在选中行下方插入新行
   const handleTreeDoubleClick = (keys: any[], info: any) => {
+    console.log("双击", keys);
+
     if (keys.length === 0) return;
     const clickedNodeKey = keys[0];
     const clickedNode = info.node;
@@ -734,7 +735,7 @@ const Process: React.FC<ProcessProps> = ({
         <ProTable
           scroll={{ x: 1020 }}
           columns={columns}
-          dataSource={tableData}
+          dataSource={data}
           rowKey="id"
           search={false}
           options={false}
@@ -744,7 +745,6 @@ const Process: React.FC<ProcessProps> = ({
               key="button"
               icon={<PlusOutlined />}
               onClick={handleInsertClick}
-              // type="primary"
             >
               插入
             </Button>,
@@ -752,7 +752,6 @@ const Process: React.FC<ProcessProps> = ({
           size="small"
           onRow={(record, index) => ({
             onClick: () => handleRowClick(record, index || 0),
-            // className: selectedRowIndex === index ? "selected-row" : "",
           })}
           rowClassName={(record, index) =>
             selectedRowIndex === index ? "selected-row" : ""
@@ -812,14 +811,14 @@ const Process: React.FC<ProcessProps> = ({
           <Tree
             treeData={processedTreeData}
             expandedKeys={expandedKeys}
-            onExpand={(keys) => setExpandedKeys(keys as string[])}
+            onExpand={(keys) => setState({ expandedKeys: keys as string[] })}
             selectedKeys={selectedTreeKeys}
-            onSelect={(keys) => {
-              setSelectedTreeKeys(keys as string[]);
-              if (keys.length > 0) {
-                setSelectedCommand(keys[0] as string);
-              }
-            }}
+            onSelect={(keys) =>
+              setState({
+                selectedTreeKeys: keys as string[],
+                selectedCommand: keys[0] || "",
+              })
+            }
             onDoubleClick={(e, node) => {
               handleTreeDoubleClick([node.key], { node });
             }}
@@ -841,23 +840,13 @@ const Process: React.FC<ProcessProps> = ({
         updateValue={updateValue}
         onCancel={() => setState({ isProcessModalOpen: false })}
         onOk={(value) => {
-          // 更新表格数据
-          const newData = tableData.map((item) => {
-            if (item.id === updateValue.id) {
-              return { ...item, ...value };
-            }
-            return item;
-          });
-          setTableData(newData);
-          onSaveData && onSaveData(newData);
-          onChange && onChange(newData);
-
-          // 如果修改的是当前选中的行，同时更新选中的数据
+          const newData = data.map((item) =>
+            item.id === updateValue.id ? { ...item, ...value } : item
+          );
+          onChange?.(newData, selectedRowIndex);
           if (selectedRowData?.id === updateValue.id) {
-            setSelectedRowData({ ...selectedRowData, ...value });
+            setState({ selectedRowData: { ...selectedRowData, ...value } });
           }
-
-          // 关闭模态框并显示成功消息
           setState({ isProcessModalOpen: false });
           message.success("保存成功");
         }}

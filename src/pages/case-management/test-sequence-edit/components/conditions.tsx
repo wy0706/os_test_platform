@@ -14,21 +14,16 @@ import EditTypeModal from "./editTypeModal";
 import "./index.less";
 import { parseOptionString } from "./schemas";
 interface ConditionsProps {
-  data?: any[]; //table数据
-  onChange?: (data: any[]) => void; //table变化
+  data: any[]; //table数据
+  onChange?: (data: any, selectedRowIndex: number) => void;
+  selectedRowIndex?: any;
 }
 
-const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
-  const [tableData, setTableData] = useState<any>(data);
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
-  const [selectedRowData, setSelectedRowData] = useState<any>(null);
-  // 监听外部数据变化
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setTableData(data);
-    }
-  }, [data]);
-
+const Conditions: React.FC<ConditionsProps> = ({
+  data,
+  onChange,
+  selectedRowIndex,
+}) => {
   const [state, setState] = useSetState<any>({
     title: "",
     isPrecisionModalOpen: false,
@@ -39,7 +34,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     projectOption: [], //数组类型int[]并且CombiList ，把枚举项目转换成数组（符合select的）
   });
   const {
-    title,
     isEditTypeModalOpen,
     isPrecisionModalOpen,
     precisionValue,
@@ -67,7 +61,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       title: "数据类型",
       dataIndex: "dataType",
       render: (text: any, record: any, index: any) => {
-        console.log(text, record, index);
         return record.dataType === "Float[]" ||
           record.dataType === "int[]" ||
           record.dataType === "bytearray" ? (
@@ -184,7 +177,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         index: number,
         action: { startEditable: (arg0: any) => void }
       ) => {
-        const currentTableData = tableData || [];
+        const currentTableData = data || [];
         const isFirst = index === 0;
         const isLast = index === currentTableData.length - 1;
 
@@ -256,144 +249,88 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       initializeArrayTableData();
     }
   }, [isPrecisionModalOpen, precisionValue]);
-  // 上下移动行
+
   const moveRow = (index: number, direction: "up" | "down") => {
-    setTableData((currentTableData: any[]) => {
-      const newData = [...currentTableData];
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const newData = [...data];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-      // 边界检查
-      if (targetIndex < 0 || targetIndex >= newData.length)
-        return currentTableData;
+    if (targetIndex < 0 || targetIndex >= newData.length) return;
 
-      // 交换位置
-      [newData[index], newData[targetIndex]] = [
-        newData[targetIndex],
-        newData[index],
-      ];
+    [newData[index], newData[targetIndex]] = [
+      newData[targetIndex],
+      newData[index],
+    ];
 
-      onChange && onChange(newData);
-
-      // 更新选中行索引和数据
-      if (selectedRowIndex === index) {
-        setSelectedRowIndex(targetIndex);
-        setSelectedRowData(newData[targetIndex]);
-      } else if (selectedRowIndex === targetIndex) {
-        setSelectedRowIndex(index);
-        setSelectedRowData(newData[index]);
-      }
-
-      return newData;
+    newData.forEach((item, i) => {
+      item.sequence = i + 1;
     });
-  };
+    // 更新选中行
+    let newSelected = selectedRowIndex;
+    if (selectedRowIndex === index) {
+      newSelected = targetIndex;
+    } else if (selectedRowIndex === targetIndex) {
+      newSelected = index;
+    }
 
+    onChange?.(newData, newSelected);
+  };
   // 删除行
   const deleteRow = (index: number) => {
     Modal.confirm({
-      title: "确认删除吗 ？",
+      title: "确认删除吗？",
       onOk: () => {
-        // 使用函数式setState来获取最新的tableData
-        setTableData((currentTableData: any[]) => {
-          console.log("index", index, currentTableData);
-          const newData = [...currentTableData];
-
-          // 删除指定索引的行
-          newData.splice(index, 1);
-
-          // 重新计算序号
-          newData.forEach((item, newIndex) => {
-            item.sequence = newIndex + 1;
-          });
-
-          onChange && onChange(newData);
-          return newData;
+        const newData = [...data];
+        newData.splice(index, 1);
+        newData.forEach((item, newIndex) => {
+          item.sequence = newIndex + 1;
         });
 
-        // // 处理选中状态
-        // if (newData.length === 0) {
-        //   // 如果没有数据了，清空选中状态
-        //   setSelectedRowIndex(-1);
-        //   setSelectedRowData(null);
-        //   setSelectedCommand("");
-        // } else {
-        //   // 如果删除的是当前选中的行
-        //   if (selectedRowIndex === index) {
-        //     // 如果删除的是最后一行，选中上一行
-        //     if (index === newData.length) {
-        //       const newSelectedIndex = index - 1;
-        //       setSelectedRowIndex(newSelectedIndex);
-        //       setSelectedRowData(newData[newSelectedIndex]);
-        //       // 如果当前是命令模式，更新命令选择
-        //       if (
-        //         selectType === "COMMAND" &&
-        //         newData[newSelectedIndex]?.command
-        //       ) {
-        //         handleCommandClick(newData[newSelectedIndex].command);
-        //       }
-        //     } else {
-        //       // 否则选中当前位置的行
-        //       setSelectedRowIndex(index);
-        //       setSelectedRowData(newData[index]);
-        //       // 如果当前是命令模式，更新命令选择
-        //       if (selectType === "COMMAND" && newData[index]?.command) {
-        //         handleCommandClick(newData[index].command);
-        //       }
-        //     }
-        //   } else if (selectedRowIndex > index) {
-        //     // 如果删除的行在选中行之前，选中行索引需要减1
-        //     setSelectedRowIndex(selectedRowIndex - 1);
-        //   }
-        // }
-
         message.success("删除成功");
+
+        // 删除后更新选中行索引
+        let newSelected = selectedRowIndex;
+        if (newData.length === 0) {
+          newSelected = -1;
+        } else if (selectedRowIndex >= newData.length) {
+          newSelected = newData.length - 1;
+        }
+
+        onChange?.(newData, newSelected);
       },
     });
   };
-  // 处理表格行选择
-  const handleRowClick = (record: any, index: number) => {
-    setSelectedRowIndex(index);
-    setSelectedRowData(record);
+
+  // 点击行
+  const handleRowClick = (_record: any, index: number) => {
+    onChange?.(data, index);
   };
-
-  // 通用插入函数
+  // 插入新行
   const handleInsertClick = () => {
-    setTableData((currentTableData: any[]) => {
-      // if (currentTableData.length > 299) {
-      //   message.warning("表格中的命令数量已达到最大限度，不可插入");
-      //   return currentTableData;
-      // }
+    const newRowData = {
+      id: Date.now(),
+      extensionName: "",
+      variableName: "",
+      dataType: "",
+      arraySize: 1,
+      unit: "",
+      visible: "success",
+    };
 
-      // 创建新的行数据
-      const newRowData = {
-        id: Date.now(), // 使用时间戳作为唯一ID
-        sequence: currentTableData.length + 1,
-        extensionName: "",
-        variableName: "",
-        dataType: "",
-        arraySize: 1,
-        unit: "",
-        visible: "success",
-      };
+    const insertIndex =
+      selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
+    const newTableData = [...data];
+    newTableData.splice(insertIndex, 0, newRowData);
 
-      // 在选中行下方插入新行
-      const insertIndex =
-        selectedRowIndex >= 0 ? selectedRowIndex + 1 : currentTableData.length;
-      const newTableData = [...currentTableData];
-      newTableData.splice(insertIndex, 0, newRowData);
-
-      // 更新序号
-      newTableData.forEach((item, index) => {
-        item.sequence = index + 1;
-      });
-      console.log("newTableData=====", newTableData);
-
-      setSelectedRowIndex(insertIndex);
-      setSelectedRowData(newRowData);
-      onChange && onChange(newTableData);
-      message.success(`已在第${insertIndex + 1}行插入`);
-
-      return newTableData;
+    // 更新序号
+    newTableData.forEach((item, index) => {
+      item.sequence = index + 1;
     });
+
+    message.success(
+      data.length === 0 ? "已插入第一行" : `已在第${insertIndex + 1}行插入`
+    );
+
+    onChange?.(newTableData, insertIndex);
   };
   // 初始化数组表格数据
   const initializeArrayTableData = () => {
@@ -591,7 +528,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         message.error("数据不完整，请检查数组设置");
         return;
       }
-
       // 对于 bytearray 类型，最大值和最小值保持原值不变
       let minValue, maxValue;
       if (precisionValue.dataType === "bytearray") {
@@ -616,7 +552,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       ).join(", ");
 
       // 更新主表格数据
-      const newData = tableData.map((item: any) => {
+      const newData = data.map((item: any) => {
         if (item.id === precisionValue.id) {
           return {
             ...item,
@@ -628,8 +564,8 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         return item;
       });
 
-      setTableData(newData);
-      onChange && onChange(newData);
+      // 通知父组件更新数据
+      onChange?.(newData, selectedRowIndex);
       setState({ isPrecisionModalOpen: false, projectOption: [] });
       message.success("数组设置保存成功");
     } catch (error) {
@@ -642,7 +578,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     <div className="conditions-page">
       <ProTable
         columns={columns}
-        dataSource={tableData}
+        dataSource={data}
         rowKey="id"
         search={false}
         pagination={false}
@@ -660,7 +596,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         onRow={(record, index) => ({
           onClick: () => handleRowClick(record, index || 0),
         })}
-        rowClassName={(record, index) =>
+        rowClassName={(_, index) =>
           selectedRowIndex === index ? "selected-row" : ""
         }
       />
@@ -701,17 +637,15 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         type="edit"
         updateValue={editValue}
         onOk={(values) => {
-          // 更新table数据
-          const newData = tableData.map((item: any) => {
-            if (item.id === editValue.id) {
-              return { ...item, ...values };
-            }
-            return item;
-          });
+          const newData = data.map((item: any) =>
+            item.id === editValue.id ? { ...item, ...values } : item
+          );
+          // 通知父组件更新数据
+          onChange?.(newData, selectedRowIndex);
 
-          setTableData(newData);
-          onChange && onChange(newData);
+          // 关闭弹框
           setState({ isEditModalOpen: false });
+
           message.success("保存成功");
         }}
       />

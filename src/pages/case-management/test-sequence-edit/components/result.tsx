@@ -13,29 +13,24 @@ import "./index.less";
 import ResultModal from "./resultModal";
 
 interface ResultPageProps {
-  data?: any[]; //table数据
-  onChange?: (data: any[]) => void; //table变化
+  data: any[]; //table数据
+  onChange?: (data: any, selectedRowIndex: number) => void;
+  selectedRowIndex?: any;
 }
 
-const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1); // 初始化为-1，表示未选中
-  const [selectedRowData, setSelectedRowData] = useState<any>(null);
-  const [tableData, setTableData] = useState<any>(data);
+const ResultPage: React.FC<ResultPageProps> = ({
+  data,
+  onChange,
+  selectedRowIndex,
+}) => {
   const [state, setState] = useSetState<any>({
-    title: "",
     isPrecisionModalOpen: false,
     precisionValue: {}, //当前点击数据类型的整行数据
     isEditModalOpen: false,
     editValue: {},
   });
-  const {
-    title,
-
-    isPrecisionModalOpen,
-    precisionValue,
-    editValue,
-    isEditModalOpen,
-  } = state;
+  const { isPrecisionModalOpen, precisionValue, editValue, isEditModalOpen } =
+    state;
   const columns = [
     {
       title: "序号",
@@ -59,7 +54,6 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
       title: "数据类型",
       dataIndex: "dataType",
       render: (text: any, record: any, index: any) => {
-        console.log(text, record, index);
         return record.dataType == "Float[]" ||
           record.dataType == "int[]" ||
           record.dataType == "bytearray" ? (
@@ -160,7 +154,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
         index: number,
         action: { startEditable: (arg0: any) => void }
       ) => {
-        const currentTableData = tableData || [];
+        const currentTableData = data || [];
         const isFirst = index === 0;
         const isLast = index === currentTableData.length - 1;
 
@@ -225,12 +219,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
   ];
   // 数组设置弹框的表格数据
   const [arrayTableData, setArrayTableData] = useState<any[]>([]);
-  // 监听外部数据变化
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setTableData(data);
-    }
-  }, [data]);
+
   useEffect(() => {
     // 当打开数组设置弹框时，初始化表格数据
     if (isPrecisionModalOpen && precisionValue) {
@@ -238,109 +227,84 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
     }
   }, [isPrecisionModalOpen, precisionValue]);
 
-  // 上下移动行
   const moveRow = (index: number, direction: "up" | "down") => {
-    setTableData((currentTableData: any[]) => {
-      const newData = [...currentTableData];
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const newData = [...data];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-      // 边界检查
-      if (targetIndex < 0 || targetIndex >= newData.length)
-        return currentTableData;
+    if (targetIndex < 0 || targetIndex >= newData.length) return;
 
-      // 交换位置
-      [newData[index], newData[targetIndex]] = [
-        newData[targetIndex],
-        newData[index],
-      ];
+    [newData[index], newData[targetIndex]] = [
+      newData[targetIndex],
+      newData[index],
+    ];
 
-      onChange && onChange(newData);
-
-      // 更新选中行索引和数据
-      if (selectedRowIndex === index) {
-        setSelectedRowIndex(targetIndex);
-        setSelectedRowData(newData[targetIndex]);
-      } else if (selectedRowIndex === targetIndex) {
-        setSelectedRowIndex(index);
-        setSelectedRowData(newData[index]);
-      }
-
-      return newData;
+    newData.forEach((item, i) => {
+      item.sequence = i + 1;
     });
-  };
+    // 更新选中行
+    let newSelected = selectedRowIndex;
+    if (selectedRowIndex === index) {
+      newSelected = targetIndex;
+    } else if (selectedRowIndex === targetIndex) {
+      newSelected = index;
+    }
 
+    onChange?.(newData, newSelected);
+  };
   // 删除行
   const deleteRow = (index: number) => {
     Modal.confirm({
-      title: "确认删除吗 ？",
+      title: "确认删除吗？",
       onOk: () => {
-        // 使用函数式setState来获取最新的tableData
-        setTableData((currentTableData: any[]) => {
-          console.log("index", index, currentTableData);
-          const newData = [...currentTableData];
-
-          // 删除指定索引的行
-          newData.splice(index, 1);
-
-          // 重新计算序号
-          newData.forEach((item, newIndex) => {
-            item.sequence = newIndex + 1;
-          });
-
-          onChange && onChange(newData);
-          return newData;
+        const newData = [...data];
+        newData.splice(index, 1);
+        newData.forEach((item, newIndex) => {
+          item.sequence = newIndex + 1;
         });
 
         message.success("删除成功");
+
+        // 删除后更新选中行索引
+        let newSelected = selectedRowIndex;
+        if (newData.length === 0) {
+          newSelected = -1;
+        } else if (selectedRowIndex >= newData.length) {
+          newSelected = newData.length - 1;
+        }
+
+        onChange?.(newData, newSelected);
       },
     });
   };
-  // 处理表格行选择
-  const handleRowClick = (record: any, index: number) => {
-    setSelectedRowIndex(index);
-    setSelectedRowData(record);
-  };
 
-  // 通用插入函数
+  // 点击行
+  const handleRowClick = (_record: any, index: number) => {
+    onChange?.(data, index);
+  };
   const handleInsertClick = () => {
-    setTableData((currentTableData: any[]) => {
-      // if (currentTableData.length > 299) {
-      //   message.warning("表格中的命令数量已达到最大限度，不可插入");
-      //   return currentTableData;
-      // }
-
-      // 创建新的行数据
-      const newRowData = {
-        id: Date.now(), // 使用时间戳作为唯一ID
-        sequence: currentTableData.length + 1,
-        extensionName: "",
-        variableName: "",
-        dataType: "",
-        arraySize: 1,
-        unit: "",
-        visible: "success",
-      };
-
-      // 在选中行下方插入新行
-      const insertIndex =
-        selectedRowIndex >= 0 ? selectedRowIndex + 1 : currentTableData.length;
-      const newTableData = [...currentTableData];
-      newTableData.splice(insertIndex, 0, newRowData);
-
-      // 更新序号
-      newTableData.forEach((item, index) => {
-        item.sequence = index + 1;
-      });
-      console.log("newTableData=====", newTableData);
-
-      setSelectedRowIndex(insertIndex);
-      setSelectedRowData(newRowData);
-      onChange && onChange(newTableData);
-      message.success(`已在第${insertIndex + 1}行插入`);
-
-      return newTableData;
+    const newRowData = {
+      id: Date.now(), // 使用时间戳作为唯一ID
+      extensionName: "",
+      variableName: "",
+      dataType: "",
+      arraySize: 1,
+      unit: "",
+      visible: "success",
+    };
+    const insertIndex =
+      selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
+    const newTableData = [...data];
+    newTableData.splice(insertIndex, 0, newRowData);
+    // 更新序号
+    newTableData.forEach((item, index) => {
+      item.sequence = index + 1;
     });
+    message.success(
+      data.length === 0 ? "已插入第一行" : `已在第${insertIndex + 1}行插入`
+    );
+    onChange?.(newTableData, insertIndex);
   };
+
   // 初始化数组表格数据
   const initializeArrayTableData = () => {
     const arraySize = precisionValue.arraySize || 1;
@@ -563,7 +527,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
       ).join(", ");
 
       // 更新主表格数据
-      const newData = tableData.map((item: any) => {
+      const newData = data.map((item: any) => {
         if (item.id === precisionValue.id) {
           return {
             ...item,
@@ -578,8 +542,9 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
         return item;
       });
 
-      setTableData(newData);
-      onChange && onChange(newData);
+      // 通知父组件更新数据
+      onChange?.(newData, selectedRowIndex);
+
       setState({ isPrecisionModalOpen: false });
       message.success("数组设置保存成功");
     } catch (error) {
@@ -592,7 +557,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
     <div className="conditions-page">
       <ProTable
         columns={columns}
-        dataSource={tableData}
+        dataSource={data}
         rowKey="id"
         search={false}
         pagination={false}
@@ -650,14 +615,14 @@ const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
         updateValue={editValue}
         onOk={(values) => {
           // 更新table数据
-          const newData = tableData.map((item: any) => {
+          const newData = data.map((item: any) => {
             if (item.id === editValue.id) {
               return { ...item, ...values };
             }
             return item;
           });
-          setTableData(newData);
-          onChange && onChange(newData);
+
+          onChange?.(newData, selectedRowIndex);
           setState({ isEditModalOpen: false });
           message.success("保存成功");
         }}

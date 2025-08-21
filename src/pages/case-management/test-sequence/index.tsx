@@ -512,7 +512,7 @@ const DemoPage: React.FC = () => {
     console.log("点击的行数据:", record);
     let name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
     history.push({
-      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}`,
+      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}&status=${record?.status}`,
       // search: `?de=123&name=Tom`, // 这里用 search
     });
 
