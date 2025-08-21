@@ -78,12 +78,13 @@ export default [
       //   access: ["testExecutionResult-preview", "testExecutionResult-edit"],
       //   component: "./task-management/test-execution-result",
       // },
-      // {
-      //   path: "/task-management/test-report",
-      //   name: "测试报告",
-      //   access: ["testReport-preview", "testReport-edit"],
-      //   component: "./task-management/test-report",
-      // },
+      {
+        path: "/task-management/test-report",
+        name: "测试报告",
+        access: ["testReport-preview", "testReport-edit"],
+        component: "./task-management/test-report",
+        hideInMenu: true,
+      },
     ],
   },
   {

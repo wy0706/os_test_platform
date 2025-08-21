@@ -113,3 +113,69 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
+
+export const reportDetail: any = [
+  {
+    title: "项目名称",
+    key: "title",
+    dataIndex: "title",
+    ellipsis: true,
+  },
+  {
+    title: "样品名称",
+    key: "sampleName",
+    dataIndex: "sampleName",
+    // copyable: true,
+    ellipsis: true,
+  },
+  {
+    title: "版本",
+    key: "version",
+    dataIndex: "version",
+    ellipsis: true,
+  },
+  {
+    title: "测试员",
+    key: "staff",
+    dataIndex: "staff",
+    ellipsis: true,
+  },
+  {
+    title: "测试单位",
+    key: "unity",
+    dataIndex: "unity",
+    ellipsis: true,
+  },
+  {
+    title: "测试环境",
+    key: "environment",
+    dataIndex: "environment",
+    ellipsis: true,
+  },
+  {
+    title: "测试日期",
+    key: "testDate",
+    dataIndex: "testDate",
+    ellipsis: true,
+  },
+  {
+    title: "报告日期",
+    key: "reportDate",
+    dataIndex: "reportDate",
+    ellipsis: true,
+  },
+  {
+    title: "测试依据",
+    key: "basis",
+    dataIndex: "basis",
+    ellipsis: true,
+    span: 2,
+  },
+  {
+    title: "结论",
+    key: "conclusion",
+    dataIndex: "conclusion",
+    ellipsis: true,
+    span: 2,
+  },
+];

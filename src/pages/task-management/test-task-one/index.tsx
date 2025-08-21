@@ -29,6 +29,7 @@ import React, { useRef, useState } from "react";
 import TestSequenceModal from "../components/testSequenceModal";
 import AddModal from "./components/addModal";
 import EditModal from "./components/editModal";
+
 import {
   schemasColumns,
   schemasDescriptions,
@@ -39,12 +40,10 @@ const items: TabsProps["items"] = [
   {
     key: "1",
     label: "测试任务",
-    // children: "Content of Tab Pane 1",
   },
   {
     key: "2",
     label: "测试报告",
-    // children: "Content of Tab Pane 2",
   },
 ];
 const Page: React.FC = () => {
@@ -74,7 +73,7 @@ const Page: React.FC = () => {
         version: "v1",
       },
     ], //选中的用例
-
+    tabActiveKey: "1",
     selectTestData: {}, //选中的关联测试序列
     columns: schemasColumns.concat([
       {
@@ -150,6 +149,7 @@ const Page: React.FC = () => {
     editValue,
     isTestModal,
     selectTestData,
+    tabActiveKey,
   } = state;
   const requestData: any = async (...args: any) => {
     try {
@@ -189,7 +189,7 @@ const Page: React.FC = () => {
     // 更新选中的行
     setSelectedRow(record);
   };
-  const [tabActiveKey, setTabActiveKey] = useState("1");
+
   return (
     <PageContainer
       header={{
@@ -210,7 +210,9 @@ const Page: React.FC = () => {
         defaultActiveKey={tabActiveKey}
         items={items}
         onChange={(key) => {
-          setTabActiveKey(key);
+          setState({
+            tabActiveKey: key,
+          });
         }}
       />
 
@@ -260,15 +262,6 @@ const Page: React.FC = () => {
                   strokeColor="#72c240"
                 />
               </div>,
-              // <div style={{ marginRight: 20 }}>
-              //   <Checkbox
-              //     onChange={(e) => {
-              //       console.log(" e.target.checked;", e.target.checked);
-              //     }}
-              //   >
-              //     显示测试过程
-              //   </Checkbox>
-              // </div>,
               <Button
                 key="button"
                 icon={<PlusOutlined />}
@@ -318,7 +311,6 @@ const Page: React.FC = () => {
             onOk={async (values) => {
               console.log("values====", values);
               setState({ selectData: values, isAddModalOpen: false });
-              return;
               try {
                 if (isUpdate) {
                   const res = await updateOne({
@@ -385,7 +377,25 @@ const Page: React.FC = () => {
           />
         </>
       )}
-      {tabActiveKey === "2" && <div>测试报告</div>}
+      {tabActiveKey === "2" && (
+        // <TabReport
+        //   onCard={() => {
+        //     setState({
+        //       reportModalOpen: true,
+        //     });
+        //   }}
+        // />
+        <div>报告</div>
+      )}
+
+      {/* <ReportModal
+        open={reportModalOpen}
+        onCancel={() => {
+          setState({
+            reportModalOpen: false,
+          });
+        }}
+      /> */}
     </PageContainer>
   );
 };

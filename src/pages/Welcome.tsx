@@ -1,82 +1,8 @@
-import {
-  CheckCircleTwoTone,
-  DatabaseTwoTone,
-  PlayCircleTwoTone,
-  ProfileTwoTone,
-  StopTwoTone,
-} from "@ant-design/icons";
-import { Pie } from "@ant-design/plots";
-import { GridContent, PageContainer } from "@ant-design/pro-components";
+import { Pie } from "@ant-design/charts";
+import { ProfileTwoTone } from "@ant-design/icons";
+import { PageContainer } from "@ant-design/pro-components";
 import { Card, Col, Row } from "antd";
 import React from "react";
-
-const cardData = [
-  {
-    title: "设备",
-    value: 5,
-    icon: <DatabaseTwoTone twoToneColor="#52c41a" style={{ fontSize: 32 }} />,
-    bg: "linear-gradient(135deg, #e0ffe7 0%, #b7eb8f 100%)",
-    color: "#52c41a",
-  },
-  {
-    title: "测试用例",
-    value: 5,
-    icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
-    bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
-    color: "#1890ff",
-  },
-  {
-    title: "未启动任务",
-    value: 10,
-    icon: <StopTwoTone twoToneColor="#bfbfbf" style={{ fontSize: 32 }} />,
-    bg: "linear-gradient(135deg, #f5f5f5 0%, #d9d9d9 100%)",
-    color: "#bfbfbf",
-  },
-  {
-    title: "执行中任务",
-    value: 2,
-    icon: <PlayCircleTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
-    bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
-    color: "#1890ff",
-  },
-  {
-    title: "已完成任务",
-    value: 15,
-    icon: (
-      <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 32 }} />
-    ),
-    bg: "linear-gradient(135deg, #e0ffe7 0%, #b7eb8f 100%)",
-    color: "#52c41a",
-  },
-];
-
-const DemoPie = () => {
-  const config = {
-    data: [
-      { type: "未启动", value: 27 },
-      { type: "执行中", value: 25 },
-      { type: "只完成", value: 18 },
-    ],
-    angleField: "value",
-    colorField: "type",
-    color: ["#bfbfbf", "#448ef7", "#72c240"],
-
-    label: {
-      text: "value",
-      style: {
-        fontWeight: "bold",
-      },
-    },
-    legend: {
-      color: {
-        title: false,
-        position: "right",
-        rowPadding: 5,
-      },
-    },
-  };
-  return <Pie {...config} />;
-};
 
 const iconBoxStyle = (bg: string) => ({
   width: 56,
@@ -89,22 +15,12 @@ const iconBoxStyle = (bg: string) => ({
   marginRight: 20,
   boxShadow: "0 2px 8px rgba(24,144,255,0.08)",
 });
-const infoBoxStyle = {
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "flex-start",
-  justifyContent: "center",
-};
+
 const titleStyle = {
   fontSize: 14,
   fontWeight: 500,
   color: "#888",
   marginBottom: 6,
-};
-const valueStyle = {
-  fontSize: 32,
-  fontWeight: 900,
-  lineHeight: 1.1,
 };
 
 const cardStyle = {
@@ -120,129 +36,250 @@ const cardBodyStyle = {
 };
 
 const Welcome: React.FC = () => {
+  const handleFast = (item: any) => {
+    console.log("item", item);
+  };
+
+  const config = {
+    data: [
+      { type: "未开始", value: 27 },
+      { type: "进行中", value: 25 },
+      { type: "完成", value: 18 },
+    ],
+    scale: {
+      color: {
+        relations: [
+          ["未开始", "#8c8c8c"],
+          ["进行中", "#1890ff"],
+          ["完成", "#52c41a"],
+        ],
+      },
+    },
+    angleField: "value",
+    colorField: "type",
+    // radius: 0.6, // 整体变小
+    innerRadius: 0.6,
+    label: {
+      text: "value",
+      style: {
+        fontWeight: "bold",
+      },
+    },
+    legend: {
+      color: {
+        title: false,
+        position: "right",
+        rowPadding: 5,
+      },
+    },
+    annotations: [
+      {
+        type: "text",
+        style: {
+          text: "25",
+          x: "50%",
+          y: "50%",
+          textAlign: "center",
+          fontSize: 40,
+          fontStyle: "bold",
+        },
+      },
+    ],
+  };
+  const recentVisits = [
+    {
+      id: "1",
+      title: "微内核及根服务功能测试",
+      date: "2025-08-12",
+    },
+    {
+      id: "2",
+      title: "微内核及根服务功能测试",
+      date: "2025-08-13",
+    },
+    {
+      id: "3",
+      title: "微内核及根服务功能测试",
+      date: "2025-08-14",
+    },
+    {
+      id: "4",
+      title: "微内核及根服务功能测试",
+      date: "2025-08-15",
+    },
+  ];
+
+  const taskData = [
+    {
+      id: "1",
+      title: "总数",
+      value: "25",
+      color: "#595959",
+      bg: "linear-gradient(135deg, #f5f5f5 0%, #d9d9d9 100%)",
+    },
+    {
+      id: "2",
+      title: "未开始",
+      value: "23",
+      color: "#8c8c8c",
+      bg: "linear-gradient(135deg, #fafafa 0%, #d9d9d9 100%)",
+    },
+    {
+      id: "3",
+      title: "进行中",
+      value: "2",
+      color: "#1890ff",
+      bg: "linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)",
+    },
+    {
+      id: "4",
+      title: "完成",
+      value: "0",
+      color: "#52c41a",
+      bg: "linear-gradient(135deg, #e0ffe7 0%, #b7eb8f 100%)",
+    },
+  ];
+  const fastEntry = [
+    {
+      id: 1,
+      menu: "新建测试任务",
+      path: "",
+      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
+    },
+    {
+      id: 2,
+      menu: "用例执行",
+      path: "/case-management/case-library",
+      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
+    },
+    {
+      id: 3,
+      menu: "测试报告",
+      path: "",
+      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
+    },
+    {
+      id: 4,
+      menu: "操作日志",
+      path: "/system-management/operation-log",
+      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
+    },
+  ];
+
   return (
     <PageContainer title="">
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontWeight: 700, fontSize: 24 }}>
-          欢迎使用自动化测试平台
-        </h2>
-        {/* <div>一站式管理测试用例、设备与任务，提升测试效率</div> */}
-      </div>
-      {/* 欢迎使用自动化测试平台 */}
-      {/* 一站式管理测试用例、设备与任务，提升测试效率 */}
-      <GridContent>
-        {/* 第一行：设备、测试用例 + 空占位卡片 */}
-        <Row gutter={[32, 32]} style={{ marginBottom: 0 }}>
-          {cardData.slice(0, 2).map((item) => (
-            <Col
-              xl={8}
-              lg={8}
-              md={8}
-              sm={24}
-              xs={24}
-              key={item.title}
-              style={{ marginBottom: 32 }}
-            >
+      <Card title="最近访问" style={{ marginBottom: "10px", padding: "15px" }}>
+        <Row gutter={[24, 24]}>
+          {recentVisits.map((item) => (
+            <Col span={6} key={item.id}>
               <Card
                 hoverable
-                style={cardStyle as React.CSSProperties}
+                style={{
+                  minHeight: 60,
+                  borderRadius: 18,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+                  transition: "box-shadow 0.2s, transform 0.2s",
+                  cursor: "pointer",
+                }}
                 styles={{ body: cardBodyStyle }}
-                onMouseOver={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow =
-                    "0 8px 32px rgba(24,144,255,0.15)";
-                  (e.currentTarget as HTMLDivElement).style.transform =
-                    "translateY(-4px)";
-                }}
-                onMouseOut={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow =
-                    "0 4px 24px rgba(0,0,0,0.06)";
-                  (e.currentTarget as HTMLDivElement).style.transform = "none";
-                }}
               >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
-                  <div style={infoBoxStyle}>
-                    <div style={titleStyle}>{item.title}</div>
-                    <div style={{ ...valueStyle, color: item.color }}>
-                      {item.value}
-                    </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#888",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <div
+                    style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}
+                  >
+                    {item.title}
                   </div>
-                </div>
-              </Card>
-            </Col>
-          ))}
-          {/* 空占位卡片 */}
-          <Col
-            xl={8}
-            lg={8}
-            md={8}
-            sm={24}
-            xs={24}
-            style={{ marginBottom: 32 }}
-          >
-            <Card
-              hoverable={false}
-              style={{
-                minHeight: 110,
-                borderRadius: 18,
-                boxShadow: "none",
-                background: "transparent",
-                cursor: "default",
-                border: "none",
-              }}
-              styles={{ body: { padding: 24 } }}
-            />
-          </Col>
-        </Row>
-        {/* 第二行：未启动任务、执行中任务、已完成任务 */}
-        <Row gutter={[32, 32]}>
-          {cardData.slice(2).map((item) => (
-            <Col
-              xl={8}
-              lg={8}
-              md={8}
-              sm={24}
-              xs={24}
-              key={item.title}
-              style={{ marginBottom: 32 }}
-            >
-              <Card
-                hoverable
-                style={cardStyle as React.CSSProperties}
-                styles={{ body: cardBodyStyle }}
-                onMouseOver={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow =
-                    "0 8px 32px rgba(24,144,255,0.15)";
-                  (e.currentTarget as HTMLDivElement).style.transform =
-                    "translateY(-4px)";
-                }}
-                onMouseOut={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow =
-                    "0 4px 24px rgba(0,0,0,0.06)";
-                  (e.currentTarget as HTMLDivElement).style.transform = "none";
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
-                  <div style={infoBoxStyle}>
-                    <div style={titleStyle}>{item.title}</div>
-                    <div style={{ ...valueStyle, color: item.color }}>
-                      {item.value}
-                    </div>
-                  </div>
+                  <div>{item.date}</div>
                 </div>
               </Card>
             </Col>
           ))}
         </Row>
-        <Row>
-          <Col xl={12} lg={12} md={12} sm={24} xs={24}>
-            <Card hoverable>
-              <DemoPie />
-            </Card>
-          </Col>
+      </Card>
+      <Card title="任务统计" style={{ marginBottom: "10px", padding: "15px" }}>
+        <Row gutter={[24, 24]}>
+          {taskData.map((item) => (
+            <Col span={6} key={item.id}>
+              <Card
+                hoverable
+                style={{
+                  minHeight: 60,
+                  borderRadius: 18,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+                  transition: "box-shadow 0.2s, transform 0.2s",
+                  cursor: "pointer",
+                }}
+                styles={{ body: cardBodyStyle }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#888",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontWeight: 500,
+                    fontSize: 14,
+                  }}
+                >
+                  <div>{item.title}</div>
+                  <div style={{ color: item.color }}>{item.value}</div>
+                </div>
+              </Card>
+            </Col>
+          ))}
         </Row>
-      </GridContent>
+      </Card>
+      <Row gutter={[24, 36]}>
+        <Col span={16}>
+          <Card title="快捷入口" style={{ padding: "15px" }}>
+            <Row gutter={[24, 24]}>
+              {fastEntry.map((item) => (
+                <Col span={12} key={item.id}>
+                  <Card
+                    hoverable
+                    style={cardStyle as React.CSSProperties}
+                    styles={{ body: cardBodyStyle }}
+                    onClick={() => handleFast(item)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
+                      <div>
+                        <div style={titleStyle}>{item.menu}</div>
+                      </div>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card title="最近访问" hoverable style={{ padding: "15px" }}>
+            <div style={{ width: "100%", height: "244px" }}>
+              <Pie {...config} autoFit />
+            </div>
+          </Card>
+        </Col>
+      </Row>
     </PageContainer>
   );
 };

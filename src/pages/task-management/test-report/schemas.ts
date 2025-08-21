@@ -1,80 +1,65 @@
-
-export const schemasTitle: any = {
-  label: '测试报告',
-  value: 'testReport',
-};
-
-export const schemasColumns: any = [
-  
+export const reportDetail: any = [
   {
-    title: "名称",
-    dataIndex: "title",
-    ellipsis: true,
-    sorter: true,
-  },
-  {
-    title: "创建时间",
-    dataIndex: "createTime",
-    ellipsis: true,
-    sorter: true,
-  },
-];
-
-export const schemasForm: any = {
-  layoutType: "Form",
-  rowProps: {
-    gutter: [16, 16],
-  },
-  colProps: {
-    span: 12,
-  },
-  grid: true,
-  columns: [
-    
-    {
-      title: "名称",
-      dataIndex: "title",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-  
-    {
-      title: "创建时间",
-      dataIndex: "createTime",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-  
-  ],
-};
-
-export const schemasDescriptions: any = [
-  
-  {
-    title: "名称",
+    title: "项目名称",
     key: "title",
     dataIndex: "title",
-    copyable: true,
     ellipsis: true,
   },
   {
-    title: "创建时间",
-    key: "createTime",
-    dataIndex: "createTime",
-    copyable: true,
+    title: "样品名称",
+    key: "sampleName",
+    dataIndex: "sampleName",
+    // copyable: true,
     ellipsis: true,
   },
+  {
+    title: "版本",
+    key: "version",
+    dataIndex: "version",
+    ellipsis: true,
+  },
+  {
+    title: "测试员",
+    key: "staff",
+    dataIndex: "staff",
+    ellipsis: true,
+  },
+  {
+    title: "测试单位",
+    key: "unity",
+    dataIndex: "unity",
+    ellipsis: true,
+  },
+  {
+    title: "测试环境",
+    key: "environment",
+    dataIndex: "environment",
+    ellipsis: true,
+  },
+  {
+    title: "测试日期",
+    key: "testDate",
+    dataIndex: "testDate",
+    ellipsis: true,
+  },
+  {
+    title: "报告日期",
+    key: "reportDate",
+    dataIndex: "reportDate",
+    ellipsis: true,
+  },
+  {
+    title: "测试依据",
+    key: "basis",
+    dataIndex: "basis",
+    ellipsis: true,
+    span: 2,
+  },
+  {
+    title: "结论",
+    key: "conclusion",
+    dataIndex: "conclusion",
+    ellipsis: true,
+    span: 2,
+  },
 ];
-

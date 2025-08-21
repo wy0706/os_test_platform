@@ -1,222 +1,243 @@
 import {
-  createOne,
-  deleteOne,
-  getList,
-  getOne,
-  updateOne,
-} from "@/services/task-management/test-report.service";
-import {
-  BarChartOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
+  CheckCircleTwoTone,
+  CloseCircleTwoTone,
+  DatabaseTwoTone,
+  StopTwoTone,
 } from "@ant-design/icons";
+import { Pie } from "@ant-design/plots";
 import {
-  ActionType,
-  BetaSchemaForm,
   PageContainer,
   ProDescriptions,
-  ProTable,
+  ProDescriptionsActionType,
 } from "@ant-design/pro-components";
+import { history } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
-import React, { useRef } from "react";
-import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
-} from "./schemas";
-
+import { Button, Card, Col, Row } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import ReportModal from "../components/reportModal";
+import { reportDetail } from "./schemas";
+const cardStyle = {
+  borderRadius: 18,
+  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+  transition: "box-shadow 0.2s, transform 0.2s",
+  cursor: "pointer",
+};
+const infoBoxStyle = {
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "flex-start",
+  justifyContent: "center",
+};
+const titleStyle = {
+  fontSize: 14,
+  fontWeight: 500,
+  color: "#888",
+  marginBottom: 6,
+};
+const valueStyle = {
+  fontSize: 32,
+  fontWeight: 900,
+  lineHeight: 1.1,
+};
 const Page: React.FC = () => {
-  const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
-  const [state, setState] = useSetState<any>({
-    title: schemasTitle,
-    isUpdate: false,
-    isUpdateModalOpen: false,
-    updateValue: {},
-    formSchema: schemasForm,
-    isPreviewModalOpen: false,
-    detailsId: null,
-    descriptionsColumns: schemasDescriptions,
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, _: any, action: any) => [
-          <Button
-            key="preview"
-            type="primary"
-            icon={<BarChartOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
-            }}
-          >
-            详情
-          </Button>,
-          <Button
-            key="edit"
-            type="primary"
-            ghost
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            key="delete"
-            onClick={() => {
-              Modal.confirm({
-                title: "确认删除吗？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
-            }}
-          >
-            删除
-          </Button>,
+  const actionRef = useRef<ProDescriptionsActionType>();
+  const config = {
+    data: [
+      { type: "Success", value: 25 },
+      { type: "Error", value: 27 },
+      { type: "Other", value: 18 },
+    ],
+    scale: {
+      color: {
+        relations: [
+          ["Error", "#f5222d"],
+          ["Success", "#52c41a"],
+          ["Other", "#8c8c8c"],
         ],
       },
-    ]),
-  });
-  const {
-    columns,
-    title,
-    isUpdate,
-    isUpdateModalOpen,
-    updateValue,
-    formSchema,
-    isPreviewModalOpen,
-    detailsId,
-    descriptionsColumns,
-  } = state;
-  const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
-        total: 1,
-        success: true,
-      };
-    }
+    },
+    angleField: "value",
+    colorField: "type",
+    innerRadius: 0.6,
+    label: {
+      text: "value",
+      style: {
+        fontWeight: "bold",
+      },
+    },
+    legend: {
+      color: {
+        title: false,
+        position: "right",
+        rowPadding: 5,
+      },
+    },
+    annotations: [
+      {
+        type: "text",
+        style: {
+          text: "25",
+          x: "50%",
+          y: "50%",
+          textAlign: "center",
+          fontSize: 40,
+          fontStyle: "bold",
+        },
+      },
+    ],
   };
 
-  return (
-    <PageContainer>
-      <ProTable<any>
-        columns={columns}
-        actionRef={actionRef}
-        cardBordered
-        request={requestData}
-        rowKey="id"
-        pagination={{
-          pageSize: 10,
-          onChange: (page) => requestData,
-        }}
-        headerTitle={title.label}
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                isUpdate: false,
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
-        ]}
-      />
-      <Modal
-        title={isUpdate ? "编辑" : "新建"}
-        open={isUpdateModalOpen}
-        onCancel={() => {
-          setState({ isUpdateModalOpen: false });
-        }}
-        footer={null}
-        width={800}
-      >
-        <BetaSchemaForm<any>
-          {...formSchema}
-          defaultValue={updateValue}
-          form={form}
-          onFinish={async (value) => {
-            if (isUpdate) {
-              value.id = updateValue.id;
-              const res: any = await updateOne({
-                ...value,
-                id: updateValue.id,
-              });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            } else {
-              const res: any = await createOne({ ...value, config: "{}" });
-              if (res.code === "0") {
-                message.success("操作成功");
-                setState({ isUpdateModalOpen: false });
-              } else {
-                return;
-              }
-            }
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }}
-        />
-      </Modal>
+  const [state, setState] = useSetState<any>({
+    title: "",
+    reportModalOpen: false,
+  });
+  const { title, reportModalOpen } = state;
+  const [data, setData] = useState<any>(null);
+  const cardData = [
+    {
+      title: "用例总数",
+      value: 244,
+      icon: <DatabaseTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
+      color: "#1890ff",
+      id: 1,
+    },
+    {
+      title: "测试成功数",
+      value: 15,
+      icon: (
+        <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 32 }} />
+      ),
+      bg: "linear-gradient(135deg, #e0ffe7 0%, #b7eb8f 100%)",
+      color: "#52c41a",
+      id: 2,
+    },
+    {
+      title: "测试失败数",
+      value: 5,
+      icon: (
+        <CloseCircleTwoTone twoToneColor="#f5222d" style={{ fontSize: 32 }} />
+      ),
+      bg: "linear-gradient(135deg, #ffe7e7 0%, #ffccc7 100%)",
+      color: "#f5222d",
+      id: 3,
+    },
+    {
+      title: "未执行数",
+      value: 10,
+      icon: <StopTwoTone twoToneColor="#bfbfbf" style={{ fontSize: 32 }} />,
+      bg: "linear-gradient(135deg, #f5f5f5 0%, #d9d9d9 100%)",
+      color: "#bfbfbf",
+      id: 4,
+    },
+  ];
+  const iconBoxStyle = (bg: string) => ({
+    width: 44,
+    height: 44,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "50%",
+    background: bg,
+    marginRight: 20,
+    boxShadow: "0 2px 8px rgba(24,144,255,0.08)",
+  });
+  useEffect(() => {}, []);
 
-      <Modal
-        title="详情"
-        open={isPreviewModalOpen}
-        onCancel={() => {
-          setState({ isPreviewModalOpen: false });
-        }}
-        footer={null}
-        width={800}
+  return (
+    <PageContainer
+      header={{
+        ghost: true,
+        extra: [
+          <Button
+            key="1"
+            onClick={() => {
+              history.back();
+            }}
+          >
+            返回
+          </Button>,
+        ],
+      }}
+    >
+      <Card
+        title="测试信息"
+        style={{ marginBottom: "10px" }}
+        variant="outlined"
       >
         <ProDescriptions
-          columns={descriptionsColumns}
+          column={2}
+          bordered
+          columns={reportDetail}
+          actionRef={actionRef}
           request={async () => {
-            try {
-              const res = await getOne(detailsId);
-              return res;
-            } catch {
-              return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
-                success: true,
-              };
-            }
+            return Promise.resolve({
+              success: true,
+              data: {
+                id: 1,
+                title: "项目名称 ",
+                unity: "测试单位",
+                sampleName: "样品名称",
+                version: "V1.0",
+                staff: "张九九",
+                testDate: "2025-08-13",
+                environment: "测试环境",
+                basis: "测试依据",
+                conclusion: "测试结论",
+                reportDate: "2025-08-20",
+              },
+            });
           }}
         ></ProDescriptions>
-      </Modal>
+      </Card>
+      <div>
+        <Row gutter={16}>
+          <Col span={12}>
+            {" "}
+            <Card title="测试结果统计">
+              <div>
+                <Pie {...config} />
+              </div>
+            </Card>
+          </Col>
+          <Col span={12}>
+            {" "}
+            <Card title="测试结果详情" style={{ height: "100%" }}>
+              <Row gutter={[16, 16]}>
+                {cardData.map((item) => (
+                  <Col span={24} key={item.title}>
+                    <Card
+                      onClick={() => {
+                        setState({
+                          reportModalOpen: true,
+                        });
+                      }}
+                      hoverable
+                      style={cardStyle as React.CSSProperties}
+                    >
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
+                        <div style={infoBoxStyle}>
+                          <div style={titleStyle}>{item.title}</div>
+                          <div style={{ ...valueStyle, color: item.color }}>
+                            {item.value}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+      <ReportModal
+        open={reportModalOpen}
+        onCancel={() => {
+          setState({ reportModalOpen: false });
+        }}
+      />
     </PageContainer>
   );
 };
