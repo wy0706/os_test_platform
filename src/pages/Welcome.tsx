@@ -50,8 +50,9 @@ const Welcome: React.FC = () => {
 
   const { isNewTaskModalOpen, isTaskListModalOPen } = state;
   const handleFast = (item: any) => {
-    console.log("item", item);
     return;
+    console.log("item", item);
+    // return;
     switch (item.key) {
       case "newTask":
         setState({
@@ -67,7 +68,7 @@ const Welcome: React.FC = () => {
         });
         return;
       case "log":
-        history.push("/system-management/operation-log");
+        history.push("/log-management/test-log");
         return;
       default:
         return;
@@ -327,8 +328,7 @@ const Welcome: React.FC = () => {
           });
         }}
         onOk={(values) => {
-          console.log(values);
-          history.push(`/task-management/test-report/${values.id}`);
+          history.push(`/task-management/test-report/${values.id}?entry=home`);
           setState({
             isTaskListModalOPen: false,
           });

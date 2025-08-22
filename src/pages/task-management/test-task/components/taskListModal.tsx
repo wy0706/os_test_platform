@@ -58,7 +58,7 @@ const taskListModal: React.FC<TaskLIstModalProps> = ({
       message.error("请选择测试任务");
       return;
     }
-    onOk?.("ee");
+    onOk?.(selectData[0]);
   };
   const requestData: any = async (...args: any) => {
     try {

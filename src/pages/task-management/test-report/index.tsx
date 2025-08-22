@@ -10,10 +10,10 @@ import {
   ProDescriptions,
   ProDescriptionsActionType,
 } from "@ant-design/pro-components";
-import { history } from "@umijs/max";
+import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Col, Row } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import ReportModal from "../components/reportModal";
 import { reportDetail } from "./schemas";
 const cardStyle = {
@@ -41,6 +41,8 @@ const valueStyle = {
 };
 const Page: React.FC = () => {
   const actionRef = useRef<ProDescriptionsActionType>();
+  const [searchParams] = useSearchParams();
+  const params = useParams();
   const config = {
     data: [
       { type: "Success", value: 25 },
@@ -90,9 +92,9 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     reportModalOpen: false,
+    entry: "", //从工作台进入还是从任务列表的测试报告列表进入
   });
-  const { title, reportModalOpen } = state;
-  const [data, setData] = useState<any>(null);
+  const { title, reportModalOpen, entry } = state;
   const cardData = [
     {
       title: "用例总数",
@@ -142,7 +144,12 @@ const Page: React.FC = () => {
     marginRight: 20,
     boxShadow: "0 2px 8px rgba(24,144,255,0.08)",
   });
-  useEffect(() => {}, []);
+  useEffect(() => {
+    console.log(params, searchParams.get("entry"));
+    setState({
+      entry: searchParams.get("entry"),
+    });
+  }, []);
 
   return (
     <PageContainer
@@ -152,7 +159,12 @@ const Page: React.FC = () => {
           <Button
             key="1"
             onClick={() => {
-              history.back();
+              console.log("entry", entry);
+              if (entry == "home") {
+                history.back();
+              } else {
+                history.push("/task-management/test-task-one/1?tab=2");
+              }
             }}
           >
             返回
