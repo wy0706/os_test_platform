@@ -9,6 +9,7 @@ import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Checkbox, message, Modal, Space, Tabs } from "antd";
+import cloneDeep from "lodash/cloneDeep";
 import React, { useEffect } from "react";
 import RunModal from "../components/runModal";
 import PostPage from "./components/postPage";
@@ -112,7 +113,11 @@ const Page: React.FC = () => {
     isSaveModalOpen,
     saveModalType,
   } = state;
-
+  const tabDataMap: Record<string, any> = {
+    tab1: cloneDeep(preTable),
+    tab2: cloneDeep(preTable),
+    tab3: cloneDeep(preTable),
+  };
   const [searchParams] = useSearchParams();
   const params = useParams();
   // 初始化：只加载 tab1
@@ -133,32 +138,39 @@ const Page: React.FC = () => {
       isRelease: release,
     });
   }, [params.id]);
-
   const handleTabChange = async (key: string) => {
-    setState({ leftTabActiveKey: key, copyValue: {} });
+    setState({ leftTabActiveKey: key });
     if (params.id !== "add" && !state.loaded[`tab${key}`]) {
       try {
-        await getList({});
+        // 假设 getList 接口可以根据 key 获取不同数据
+        await getList({ tab: key });
         setState((prev) => ({
-          tabData: { ...prev.tabData, [`tab${key}`]: preTable || [] },
+          tabData: {
+            ...prev.tabData,
+            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+          },
           loaded: { ...prev.loaded, [`tab${key}`]: true },
           selectedRowKeys: {
             ...prev.selectedRowKeys,
-            [`tab${key}`]: preTable?.length ? 0 : -1, // 默认选第一条
+            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
           },
         }));
       } catch (e) {
         setState((prev) => ({
-          tabData: { ...prev.tabData, [`tab${key}`]: preTable || [] },
+          tabData: {
+            ...prev.tabData,
+            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+          },
           loaded: { ...prev.loaded, [`tab${key}`]: true },
           selectedRowKeys: {
             ...prev.selectedRowKeys,
-            [`tab${key}`]: preTable?.length ? 0 : -1, // 默认选第一条
+            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
           },
         }));
       }
     }
   };
+
   const handleGoBack = () => {
     console.log(isDirty, isRelease);
     if (isRelease) {
@@ -294,102 +306,6 @@ const Page: React.FC = () => {
     // message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
     message.success("插入成功");
   };
-  // 插入测试项目
-  const hanleInsert = () => {
-    console.log("hanleInsert");
-    if (treeSelectedKeys.length === 0) {
-      message.warning("请先选择右侧测试项目");
-      return;
-    }
-
-    insertTreeNode(treeSelectedCommand, treeSelectedNode.title);
-  };
-  const handlePaste = () => {
-    if (copyValue) {
-      // 把已复制的数据粘贴到当前选中行下方
-      const insertIndex =
-        leftTabActiveKey == 1
-          ? selectedRowKeys.tab1 + 1
-          : leftTabActiveKey == 2
-          ? selectedRowKeys.tab2 + 1
-          : selectedRowKeys.tab3 + 1;
-      const newTableData =
-        leftTabActiveKey == 1
-          ? [...tabData.tab1]
-          : leftTabActiveKey == 2
-          ? [...tabData.tab2]
-          : [...tabData.tab3];
-      console.log("copyValue", copyValue, insertIndex);
-      newTableData.splice(insertIndex, 0, {
-        ...copyValue,
-        id: new Date().getTime(),
-      });
-      // 更新序号
-      newTableData.forEach((item, index) => {
-        item.sequence = index + 1;
-      });
-
-      setState((prev) => ({
-        tabData: {
-          ...prev.tabData,
-          [leftTabActiveKey == 1
-            ? "tab1"
-            : leftTabActiveKey == 2
-            ? "tab2"
-            : "tab3"]: newTableData,
-        },
-        selectedRowKeys: {
-          ...prev.selectedRowKeys,
-          [leftTabActiveKey == 1
-            ? "tab1"
-            : leftTabActiveKey == 2
-            ? "tab2"
-            : "tab3"]: insertIndex,
-        },
-        isDirty: true,
-      }));
-
-      // message.success(`已在第${insertIndex + 1}行插入: ${copyValue.title}`);
-      message.success("粘贴成功");
-    } else {
-      message.warning("请先复制数据");
-    }
-  };
-  const handleCut = () => {
-    if (selectedRowKeys.tab1 == -1 || selectedRowKeys.tab1 == undefined) {
-      message.warning("请先选中要剪切的行");
-      return;
-    }
-    setState((prev) => ({
-      copyValue: {
-        ...tabData[
-          leftTabActiveKey == 1
-            ? "tab1"
-            : leftTabActiveKey == 2
-            ? "tab2"
-            : "tab3"
-        ][selectedRowKeys.tab1],
-      },
-    }));
-    setState((prev) => ({
-      tabData: {
-        ...prev.tabData,
-        [leftTabActiveKey == 1
-          ? "tab1"
-          : leftTabActiveKey == 2
-          ? "tab2"
-          : "tab3"]: prev.tabData[
-          leftTabActiveKey == 1
-            ? "tab1"
-            : leftTabActiveKey == 2
-            ? "tab2"
-            : "tab3"
-        ].filter((item: any, index: any) => index !== selectedRowKeys.tab1),
-      },
-      isDirty: true,
-    }));
-    message.success("剪切成功");
-  };
 
   const handleRun = () => {
     if (isRelease) {
@@ -494,173 +410,53 @@ const Page: React.FC = () => {
               <div style={{ padding: "10px" }}>
                 {leftTabActiveKey == 1 && (
                   <PrePage
-                    selectedRowKeys={state.selectedRowKeys.tab1}
-                    onRowClick={(record, index) => {
+                    selectedRowIndex={selectedRowKeys.tab1}
+                    treeSelectData={treeSelectedKeys}
+                    onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
+                        tabData: { ...prev.tabData, tab1: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab1: index,
+                          tab1: newSelectedIndex,
                         },
-                      }));
-                    }}
-                    onInsert={hanleInsert}
-                    onCopy={() => {
-                      console.log("selectedRowKeys.tab1", selectedRowKeys.tab1);
-                      if (selectedRowKeys.tab1 !== -1) {
-                        setState((prev) => ({
-                          copyValue: {
-                            ...tabData.tab1[selectedRowKeys.tab1],
-                          },
-                        }));
-                        message.success("复制成功");
-                      } else {
-                        message.warning("请先选中要复制的行");
-                      }
-                    }}
-                    onPaste={handlePaste}
-                    onCut={handleCut}
-                    onChange={(data, index) => {
-                      setState((prev) => ({
-                        tabData: { ...prev.tabData, tab1: data },
                         isDirty: true,
                       }));
-
-                      if (index || index === 0) {
-                        let newSelectedIndex = -1;
-                        if (data.length > 0) {
-                          newSelectedIndex =
-                            index < data.length ? index : data.length - 1;
-                        }
-                        setState((prev) => ({
-                          selectedRowKeys: {
-                            ...prev.selectedRowKeys,
-                            tab1: newSelectedIndex,
-                          },
-                        }));
-                      }
                     }}
                     data={tabData.tab1}
-                    onEdit={(values, type) => {
-                      setState({
-                        isEditModalOpen: true,
-                        editValue: { ...values },
-                        editType: type,
-                      });
-                    }}
                   />
                 )}
                 {leftTabActiveKey == 2 && (
                   <UutPage
-                    selectedRowKeys={state.selectedRowKeys.tab2}
-                    onRowClick={(record, index) => {
+                    selectedRowIndex={selectedRowKeys.tab2}
+                    treeSelectData={treeSelectedKeys}
+                    onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
+                        tabData: { ...prev.tabData, tab2: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab2: index,
+                          tab2: newSelectedIndex,
                         },
-                      }));
-                    }}
-                    onInsert={hanleInsert}
-                    onCopy={() => {
-                      console.log("selectedRowKeys.tab1", selectedRowKeys.tab2);
-                      if (selectedRowKeys.tab2 !== -1) {
-                        setState((prev) => ({
-                          copyValue: {
-                            ...tabData.tab2[selectedRowKeys.tab2],
-                          },
-                        }));
-                        message.success("复制成功");
-                      } else {
-                        message.warning("请先选中要复制的行");
-                      }
-                    }}
-                    onPaste={handlePaste}
-                    onCut={handleCut}
-                    onChange={(data, index) => {
-                      setState((prev) => ({
-                        tabData: { ...prev.tabData, tab2: data },
                         isDirty: true,
                       }));
-
-                      if (index || index === 0) {
-                        let newSelectedIndex = -1;
-                        if (data.length > 0) {
-                          newSelectedIndex =
-                            index < data.length ? index : data.length - 1;
-                        }
-                        setState((prev) => ({
-                          selectedRowKeys: {
-                            ...prev.selectedRowKeys,
-                            tab2: newSelectedIndex,
-                          },
-                        }));
-                      }
                     }}
                     data={tabData.tab2}
-                    onEdit={(values, type) => {
-                      setState({
-                        isEditModalOpen: true,
-                        editValue: { ...values },
-                        editType: type,
-                      });
-                    }}
                   />
                 )}
                 {leftTabActiveKey == 3 && (
                   <PostPage
-                    selectedRowKeys={state.selectedRowKeys.tab3}
-                    onRowClick={(record, index) => {
+                    selectedRowIndex={selectedRowKeys.tab3}
+                    treeSelectData={treeSelectedKeys}
+                    onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
+                        tabData: { ...prev.tabData, tab3: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab3: index,
+                          tab3: newSelectedIndex,
                         },
-                      }));
-                    }}
-                    onInsert={hanleInsert}
-                    onCopy={() => {
-                      console.log("selectedRowKeys.tab3", selectedRowKeys.tab3);
-                      if (selectedRowKeys.tab3 !== -1) {
-                        setState((prev) => ({
-                          copyValue: {
-                            ...tabData.tab3[selectedRowKeys.tab3],
-                          },
-                        }));
-                        message.success("复制成功");
-                      } else {
-                        message.warning("请先选中要复制的行");
-                      }
-                    }}
-                    onPaste={handlePaste}
-                    onCut={handleCut}
-                    onChange={(data, index) => {
-                      setState((prev) => ({
-                        tabData: { ...prev.tabData, tab3: data },
                         isDirty: true,
                       }));
-
-                      if (index || index === 0) {
-                        let newSelectedIndex = -1;
-                        if (data.length > 0) {
-                          newSelectedIndex =
-                            index < data.length ? index : data.length - 1;
-                        }
-                        setState((prev) => ({
-                          selectedRowKeys: {
-                            ...prev.selectedRowKeys,
-                            tab3: newSelectedIndex,
-                          },
-                        }));
-                      }
                     }}
                     data={tabData.tab3}
-                    onEdit={(values, type) => {
-                      setState({
-                        isEditModalOpen: true,
-                        editValue: { ...values },
-                        editType: type,
-                      });
-                    }}
                   />
                 )}
               </div>
@@ -683,6 +479,8 @@ const Page: React.FC = () => {
                   data={mockTreeData}
                   onInsertTreeNode={insertTreeNode}
                   onSelect={(keys, info) => {
+                    console.log(keys, info);
+
                     setState({
                       treeSelectedKeys: keys as string[],
                       treeSelectedCommand: info.node.command,

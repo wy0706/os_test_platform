@@ -3,6 +3,40 @@ export const schemasTitle: any = {
   value: "testSequenceProcess",
 };
 
+export const preTable1 = [
+  {
+    id: 1,
+    status: "success",
+    title: "测试数据1111",
+    extension: "测试数据",
+    report: "success",
+  },
+];
+export const preTable2 = [
+  {
+    id: 2,
+    status: "error",
+    title: "测试数据222",
+    extension: "测试数据",
+    report: "error",
+  },
+];
+export const preTable3 = [
+  {
+    id: 1,
+    status: "success",
+    title: "测试数据1111",
+    extension: "测试数据",
+    report: "success",
+  },
+  {
+    id: 2,
+    status: "error",
+    title: "测试数据222",
+    extension: "测试数据",
+    report: "error",
+  },
+];
 export const preTable = [
   {
     id: 1,

@@ -41,7 +41,7 @@ const Conditions: React.FC<ConditionsProps> = ({
     isEditModalOpen,
     projectOption,
   } = state;
-  const columns = [
+  const columns: any = [
     {
       title: "序号",
       dataIndex: "index",
