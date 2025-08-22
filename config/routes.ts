@@ -79,7 +79,7 @@ export default [
       //   component: "./task-management/test-execution-result",
       // },
       {
-        path: "/task-management/test-report",
+        path: "/task-management/test-report/:id",
         name: "测试报告",
         access: ["testReport-preview", "testReport-edit"],
         component: "./task-management/test-report",
@@ -213,23 +213,51 @@ export default [
   //     },
   //   ],
   // },
+  // {
+  //   path: "/system-management",
+  //   name: "系统管理",
+  //   icon: "setting",
+  //   access: "systemManagement",
+  //   routes: [
+  //     {
+  //       path: "/system-management/login-log",
+  //       name: "登录日志",
+  //       access: ["loginLog-preview", "loginLog-edit"],
+  //       component: "./system-management/login-log",
+  //     },
+  //     {
+  //       path: "/system-management/operation-log",
+  //       name: "操作日志",
+  //       access: ["operationLog-preview", "operationLog-edit"],
+  //       component: "./system-management/operation-log",
+  //     },
+  //   ],
+  // },
   {
-    path: "/system-management",
-    name: "系统管理",
-    icon: "setting",
-    access: "systemManagement",
+    path: "/log-management",
+    name: "日志管理",
+    icon: "table",
+    access: "logManagement",
     routes: [
       {
-        path: "/system-management/login-log",
-        name: "登录日志",
-        access: ["loginLog-preview", "loginLog-edit"],
-        component: "./system-management/login-log",
-      },
-      {
-        path: "/system-management/operation-log",
+        path: "/log-management/operation-log",
         name: "操作日志",
         access: ["operationLog-preview", "operationLog-edit"],
-        component: "./system-management/operation-log",
+        component: "./log-management/operation-log",
+      },
+
+      {
+        path: "/log-management/login-log",
+        name: "登录日志",
+        access: ["loginLog-preview", "loginLog-edit"],
+        component: "./log-management/login-log",
+      },
+
+      {
+        path: "/log-management/test-log",
+        name: "测试日志",
+        access: ["testLog-preview", "testLog-edit"],
+        component: "./log-management/test-log",
       },
     ],
   },

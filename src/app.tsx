@@ -33,7 +33,7 @@ export async function getInitialState(): Promise<{
           { resourceCode: "equipmentManagement" },
           { resourceCode: "equipmentManagement" },
           { resourceCode: "caseManagement" },
-          { resourceCode: "systemManagement" },
+          // { resourceCode: "systemManagement" },
           { resourceCode: "toolManagement" },
           { resourceCode: "taskManagement" },
           { resourceCode: "testExecution-edit" },
@@ -53,6 +53,7 @@ export async function getInitialState(): Promise<{
           { resourceCode: "deployTool-edit" },
           { resourceCode: "permissionManagement-edit" },
           { resourceCode: "backendManagement" },
+          { resourceCode: "logManagement" },
         ],
       };
       // console.log(msg.data);

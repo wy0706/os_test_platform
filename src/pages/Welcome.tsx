@@ -1,9 +1,17 @@
 import { Pie } from "@ant-design/charts";
-import { ProfileTwoTone } from "@ant-design/icons";
+import {
+  BookOutlined,
+  FileDoneOutlined,
+  HddOutlined,
+  ProfileTwoTone,
+} from "@ant-design/icons";
 import { PageContainer } from "@ant-design/pro-components";
+import { history } from "@umijs/max";
+import { useSetState } from "ahooks";
 import { Card, Col, Row } from "antd";
 import React from "react";
-
+import AddTaskModal from "./task-management/test-task/components/addModal";
+import TaskListModal from "./task-management/test-task/components/taskListModal";
 const iconBoxStyle = (bg: string) => ({
   width: 56,
   height: 56,
@@ -20,11 +28,10 @@ const titleStyle = {
   fontSize: 14,
   fontWeight: 500,
   color: "#888",
-  marginBottom: 6,
 };
 
 const cardStyle = {
-  minHeight: 110,
+  minHieht: 60,
   borderRadius: 18,
   boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
   transition: "box-shadow 0.2s, transform 0.2s",
@@ -32,12 +39,39 @@ const cardStyle = {
 };
 
 const cardBodyStyle = {
-  padding: 24,
+  padding: 18,
 };
 
 const Welcome: React.FC = () => {
+  const [state, setState] = useSetState<any>({
+    isNewTaskModalOpen: false,
+    isTaskListModalOPen: false,
+  });
+
+  const { isNewTaskModalOpen, isTaskListModalOPen } = state;
   const handleFast = (item: any) => {
     console.log("item", item);
+    return;
+    switch (item.key) {
+      case "newTask":
+        setState({
+          isNewTaskModalOpen: true,
+        });
+        return;
+      case "useCase":
+        history.push("/case-management/case-library");
+        return;
+      case "testReport":
+        setState({
+          isTaskListModalOPen: true,
+        });
+        return;
+      case "log":
+        history.push("/system-management/operation-log");
+        return;
+      default:
+        return;
+    }
   };
 
   const config = {
@@ -76,7 +110,7 @@ const Welcome: React.FC = () => {
       {
         type: "text",
         style: {
-          text: "25",
+          text: "27",
           x: "50%",
           y: "50%",
           textAlign: "center",
@@ -142,49 +176,45 @@ const Welcome: React.FC = () => {
   const fastEntry = [
     {
       id: 1,
+      key: "newTask",
       menu: "新建测试任务",
-      path: "",
       icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
       bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
     },
     {
       id: 2,
+      key: "useCase",
       menu: "用例执行",
-      path: "/case-management/case-library",
-      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      icon: <HddOutlined style={{ fontSize: 32, color: "#1890ff" }} />,
       bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
     },
     {
       id: 3,
+      key: "testReport",
       menu: "测试报告",
-      path: "",
-      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+
+      icon: <FileDoneOutlined style={{ fontSize: 32, color: "#1890ff" }} />,
       bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
     },
     {
       id: 4,
-      menu: "操作日志",
-      path: "/system-management/operation-log",
-      icon: <ProfileTwoTone twoToneColor="#1890ff" style={{ fontSize: 32 }} />,
+      key: "log",
+      menu: "测试日志",
+
+      icon: <BookOutlined style={{ fontSize: 32, color: "#1890ff" }} />,
       bg: "linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)",
     },
   ];
 
   return (
-    <PageContainer title="">
+    <PageContainer>
       <Card title="最近访问" style={{ marginBottom: "10px", padding: "15px" }}>
         <Row gutter={[24, 24]}>
           {recentVisits.map((item) => (
             <Col span={6} key={item.id}>
               <Card
                 hoverable
-                style={{
-                  minHeight: 60,
-                  borderRadius: 18,
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-                  transition: "box-shadow 0.2s, transform 0.2s",
-                  cursor: "pointer",
-                }}
+                style={cardStyle}
                 styles={{ body: cardBodyStyle }}
               >
                 <div
@@ -217,13 +247,7 @@ const Welcome: React.FC = () => {
             <Col span={6} key={item.id}>
               <Card
                 hoverable
-                style={{
-                  minHeight: 60,
-                  borderRadius: 18,
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-                  transition: "box-shadow 0.2s, transform 0.2s",
-                  cursor: "pointer",
-                }}
+                style={cardStyle}
                 styles={{ body: cardBodyStyle }}
               >
                 <div
@@ -256,15 +280,13 @@ const Welcome: React.FC = () => {
                 <Col span={12} key={item.id}>
                   <Card
                     hoverable
-                    style={cardStyle as React.CSSProperties}
+                    style={cardStyle}
                     styles={{ body: cardBodyStyle }}
                     onClick={() => handleFast(item)}
                   >
                     <div style={{ display: "flex", alignItems: "center" }}>
                       <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
-                      <div>
-                        <div style={titleStyle}>{item.menu}</div>
-                      </div>
+                      <div style={titleStyle}>{item.menu}</div>
                     </div>
                   </Card>
                 </Col>
@@ -273,13 +295,45 @@ const Welcome: React.FC = () => {
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="最近访问" hoverable style={{ padding: "15px" }}>
-            <div style={{ width: "100%", height: "244px" }}>
+          <Card
+            title="任务总数/状态数"
+            hoverable
+            styles={{ body: cardBodyStyle }}
+          >
+            <div style={{ width: "100%", height: "236px" }}>
               <Pie {...config} autoFit />
             </div>
           </Card>
         </Col>
       </Row>
+      {/* 新建任务 */}
+      <AddTaskModal
+        open={isNewTaskModalOpen}
+        onCancel={() => {
+          setState({ isNewTaskModalOpen: false });
+        }}
+        onOk={() => {
+          setState({ isNewTaskModalOpen: false });
+        }}
+        type="add"
+        entry="home"
+      />
+      {/* 测试报告 */}
+      <TaskListModal
+        open={isTaskListModalOPen}
+        onCancel={() => {
+          setState({
+            isTaskListModalOPen: false,
+          });
+        }}
+        onOk={(values) => {
+          console.log(values);
+          history.push(`/task-management/test-report/${values.id}`);
+          setState({
+            isTaskListModalOPen: false,
+          });
+        }}
+      />
     </PageContainer>
   );
 };

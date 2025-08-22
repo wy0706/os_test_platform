@@ -1,5 +1,6 @@
 import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Button, Checkbox, Form, Input, Modal, Select } from "antd";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+import { Button, Checkbox, Form, Input, Modal, Select, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
@@ -10,6 +11,7 @@ interface SetMemberModalProps {
   testData?: any;
   type: string;
   updateValue?: any;
+  entry?: any; //从哪里过来，主要是展示控制台过来 有个提示文字
 }
 const { Option } = Select;
 
@@ -25,6 +27,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   testData,
   type,
   updateValue,
+  entry,
 }) => {
   const [title, setTitle] = useState("新建");
   const [userList, setUserList] = useState<any[]>([]);
@@ -90,7 +93,17 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title={`${title}测试任务`}
+      // title={`${title}测试任务`}
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{title}测试任务</span>
+          {entry == "home" && (
+            <Tooltip title="创建完成后在测试任务中查看">
+              <ExclamationCircleOutlined style={{ color: "#999" }} />
+            </Tooltip>
+          )}
+        </div>
+      }
       maskClosable={false}
       open={open}
       onCancel={() => {
@@ -100,6 +113,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
+      {" "}
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
         <Form.Item name="note" label="任务名称" rules={[{ required: true }]}>
           <Input placeholder="输入任务名称" />
