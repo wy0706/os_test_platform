@@ -16,45 +16,33 @@ import { Button, Card, Col, Row } from "antd";
 import React, { useEffect, useRef } from "react";
 import ReportModal from "../components/reportModal";
 import { reportDetail } from "./schemas";
-const cardStyle = {
-  borderRadius: 18,
-  boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-  transition: "box-shadow 0.2s, transform 0.2s",
-  cursor: "pointer",
-};
-const infoBoxStyle = {
-  display: "flex",
-  flexDirection: "column" as const,
-  alignItems: "flex-start",
-  justifyContent: "center",
-};
-const titleStyle = {
-  fontSize: 14,
-  fontWeight: 500,
-  color: "#888",
-  marginBottom: 6,
-};
-const valueStyle = {
-  fontSize: 32,
-  fontWeight: 900,
-  lineHeight: 1.1,
-};
+
 const Page: React.FC = () => {
   const actionRef = useRef<ProDescriptionsActionType>();
   const [searchParams] = useSearchParams();
   const params = useParams();
-  const config = {
+  const [state, setState] = useSetState<any>({
+    title: "",
+    reportModalOpen: false,
+    entry: "", //从工作台进入还是从任务列表的测试报告列表进入
     data: [
-      { type: "Success", value: 25 },
-      { type: "Error", value: 27 },
-      { type: "Other", value: 18 },
+      { type: "成功", value: 25 },
+      { type: "失败", value: 12 },
+      { type: "其他", value: 5 },
     ],
+    total: 0,
+    successValue: 0,
+  });
+  const { title, reportModalOpen, entry, data, total, successValue } = state;
+  // const total = data.reduce((a, b) => a + (b?.value || 0), 0);
+  const config = {
+    data,
     scale: {
       color: {
         relations: [
-          ["Error", "#f5222d"],
-          ["Success", "#52c41a"],
-          ["Other", "#8c8c8c"],
+          ["失败", "#f5222d"],
+          ["成功", "#52c41a"],
+          ["其他", "#8c8c8c"],
         ],
       },
     },
@@ -66,7 +54,22 @@ const Page: React.FC = () => {
       style: {
         fontWeight: "bold",
       },
+
+      formatter: (text: any, item: any, index: number, data: any[]) => {
+        return `${((item.value / total) * 100).toFixed(2)}%`;
+      },
     },
+    // tooltip: {
+    //   formatter: (datum: any) => {
+    //     console.log("datum", datum);
+
+    //     const percent = ((datum.value / total) * 100).toFixed(2);
+    //     return {
+    //       name: datum.type,
+    //       value: `${datum.value} (${percent}%)`,
+    //     };
+    //   },
+    // },
     legend: {
       color: {
         title: false,
@@ -78,23 +81,17 @@ const Page: React.FC = () => {
       {
         type: "text",
         style: {
-          text: "25",
+          text: `${successValue}%`,
           x: "50%",
           y: "50%",
           textAlign: "center",
-          fontSize: 40,
+          fontSize: 30,
           fontStyle: "bold",
         },
       },
     ],
   };
 
-  const [state, setState] = useSetState<any>({
-    title: "",
-    reportModalOpen: false,
-    entry: "", //从工作台进入还是从任务列表的测试报告列表进入
-  });
-  const { title, reportModalOpen, entry } = state;
   const cardData = [
     {
       title: "用例总数",
@@ -134,8 +131,8 @@ const Page: React.FC = () => {
     },
   ];
   const iconBoxStyle = (bg: string) => ({
-    width: 44,
-    height: 44,
+    width: 30,
+    height: 30,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -146,8 +143,13 @@ const Page: React.FC = () => {
   });
   useEffect(() => {
     console.log(params, searchParams.get("entry"));
+    const tol = data.reduce((a: any, b: any) => a + (b?.value || 0), 0);
+    const succ = data.find((item: any) => item.type === "成功")?.value || 0;
+    const successPercent = ((succ / tol) * 100).toFixed(2);
     setState({
       entry: searchParams.get("entry"),
+      total: tol,
+      successValue: successPercent,
     });
   }, []);
 
@@ -207,7 +209,7 @@ const Page: React.FC = () => {
           <Col span={12}>
             {" "}
             <Card title="测试结果统计">
-              <div>
+              <div style={{ width: "100%", height: "310px" }}>
                 <Pie {...config} />
               </div>
             </Card>
@@ -215,7 +217,7 @@ const Page: React.FC = () => {
           <Col span={12}>
             {" "}
             <Card title="测试结果详情" style={{ height: "100%" }}>
-              <Row gutter={[16, 16]}>
+              <Row gutter={[16, 8]}>
                 {cardData.map((item) => (
                   <Col span={24} key={item.title}>
                     <Card
@@ -225,13 +227,42 @@ const Page: React.FC = () => {
                         });
                       }}
                       hoverable
-                      style={cardStyle as React.CSSProperties}
+                      style={{
+                        borderRadius: 18,
+                        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+                        transition: "box-shadow 0.2s, transform 0.2s",
+                        cursor: "pointer",
+                      }}
+                      styles={{ body: { padding: "10px 24px" } }}
                     >
                       <div style={{ display: "flex", alignItems: "center" }}>
                         <div style={iconBoxStyle(item.bg)}>{item.icon}</div>
-                        <div style={infoBoxStyle}>
-                          <div style={titleStyle}>{item.title}</div>
-                          <div style={{ ...valueStyle, color: item.color }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column" as const,
+                            alignItems: "flex-start",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: "#888",
+                              marginBottom: 3,
+                            }}
+                          >
+                            {item.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 600,
+                              lineHeight: 1,
+                              color: item.color,
+                            }}
+                          >
                             {item.value}
                           </div>
                         </div>

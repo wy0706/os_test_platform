@@ -50,7 +50,6 @@ const Welcome: React.FC = () => {
 
   const { isNewTaskModalOpen, isTaskListModalOPen } = state;
   const handleFast = (item: any) => {
-    return;
     console.log("item", item);
     // return;
     switch (item.key) {

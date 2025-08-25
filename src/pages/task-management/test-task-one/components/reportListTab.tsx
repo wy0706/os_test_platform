@@ -48,7 +48,6 @@ const ReportListTab: React.FC = () => {
             key="preview"
             icon={<EyeOutlined />}
             onClick={() => {
-              return;
               history.push(`/task-management/test-report/${record.id}`);
             }}
           >
