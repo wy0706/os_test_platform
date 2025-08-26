@@ -168,7 +168,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             )} */}
           </div>
         </Form.Item>
-        <Form.Item name="auto" label="">
+        <Form.Item name="auto" label="" valuePropName="checked">
           <Checkbox>自动规划用例</Checkbox>
         </Form.Item>
       </Form>

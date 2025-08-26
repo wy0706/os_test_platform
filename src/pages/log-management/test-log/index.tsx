@@ -1,19 +1,16 @@
-
 import {
   createOne,
-  deleteOne,
   getList,
   getOne,
   updateOne,
 } from "@/services/log-management/test-log.service";
-import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
   PageContainer,
   ProDescriptions,
   ProTable,
-  TableDropdown
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
@@ -37,69 +34,7 @@ const Page: React.FC = () => {
     isPreviewModalOpen: false,
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
-    columns: schemasColumns.concat([
-    {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 180,
-        render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            color="primary"
-            variant="link"
-            key="preview"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-              });
-            }}
-          >
-            详情
-          </Button>,
-          <Button
-            color="primary"
-            variant="link"
-            key="edit"
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: "确认删除吗？",
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-                default:
-                  return;
-              }
-            }}
-            menus={[{ key: "delete", name: "删除" }]}
-          />,
-        ],
-      },
-    ]),
+    columns: schemasColumns,
   });
   const {
     columns,
@@ -118,7 +53,7 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
+        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
         total: 1,
         success: true,
       };
@@ -213,7 +148,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: {id: 1,title: '测试数据',createTime: '测试数据',},
+                data: { id: 1, title: "测试数据", createTime: "测试数据" },
                 success: true,
               };
             }
@@ -225,4 +160,3 @@ const Page: React.FC = () => {
 };
 
 export default Page;
-
