@@ -1,10 +1,10 @@
-import { FileOutlined, FolderOpenOutlined } from "@ant-design/icons";
+import { FileTextOutlined, FolderOutlined } from "@ant-design/icons";
 import type { ProColumns } from "@ant-design/pro-components";
 import { ProTable } from "@ant-design/pro-components";
-import { Button, Modal, Table, Tag, Tree } from "antd";
+import { Button, Modal, Table, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
 import React, { useEffect, useState } from "react";
-
+import "./index.less";
 interface ModalProps {
   open: boolean;
   onCancel: () => void;
@@ -37,56 +37,56 @@ const AddModal: React.FC<ModalProps> = ({
     {
       title: "全部用例",
       key: "all",
-      icon: <FolderOpenOutlined />,
+      icon: <FolderOutlined />,
     },
     {
       title: "测试库1",
       key: "library1",
-      icon: <FolderOpenOutlined />,
+      icon: <FolderOutlined />,
       children: [
         {
           title: "模块1",
           key: "module1-1",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
         {
           title: "模块2",
           key: "module1-2",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
       ],
     },
     {
       title: "测试库2",
       key: "library2",
-      icon: <FolderOpenOutlined />,
+      icon: <FolderOutlined />,
       children: [
         {
           title: "模块1",
           key: "module2-1",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
         {
           title: "模块2",
           key: "module2-2",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
       ],
     },
     {
       title: "测试库3",
       key: "library3",
-      icon: <FolderOpenOutlined />,
+      icon: <FolderOutlined />,
       children: [
         {
           title: "模块1",
           key: "module3-1",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
         {
           title: "模块2",
           key: "module3-2",
-          icon: <FileOutlined />,
+          icon: <FileTextOutlined />,
         },
       ],
     },
@@ -180,6 +180,7 @@ const AddModal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (open) {
       fetchData();
+      // addIconsToTreeData(treeData);
     }
     setSelectedUseCases(selectData.map((item) => item.id));
   }, [open]);
@@ -188,7 +189,25 @@ const AddModal: React.FC<ModalProps> = ({
     setUseCases(mockUseCases);
     setSelectedUseCases([]);
   };
+  // 动态为树形数据添加图标的函数
+  const addIconsToTreeData = (treeData: any[] = []): any[] => {
+    if (!Array.isArray(treeData)) return [];
+    return treeData.map((node) => {
+      const newNode = { ...node };
+      // 根据是否有children来决定图标类型
+      if (node.children && node.children.length > 0) {
+        // 有子节点的是文件夹图标
+        newNode.icon = <FolderOutlined />;
+        // 递归处理子节点
+        newNode.children = addIconsToTreeData(node.children);
+      } else {
+        // 没有子节点的是文档图标
+        newNode.icon = <FileTextOutlined />;
+      }
 
+      return newNode;
+    });
+  };
   const handleTreeSelect = (selectedKeys: React.Key[]) => {
     setSelectedKeys(selectedKeys as string[]);
     if (selectedKeys.length > 0) {
@@ -237,150 +256,151 @@ const AddModal: React.FC<ModalProps> = ({
       dataIndex: "importance",
       key: "importance",
       search: false,
-      render: (dom, record) => (
-        <Tag color={record.importance === "P1" ? "#f50" : "#2db7f5"}>
-          {record.importance}
-        </Tag>
-      ),
+      // render: (dom, record) => (
+      //   <Tag color={record.importance === "P1" ? "#f50" : "#2db7f5"}>
+      //     {record.importance}
+      //   </Tag>
+      // ),
     },
   ];
 
   return (
-    <div className="addModal-page">
-      <Modal
-        title="用例规划"
-        open={open}
-        onCancel={() => {
-          onCancel && onCancel();
-        }}
-        maskClosable={false}
-        onOk={handleConfirm}
-        width={1200}
-      >
-        <div style={{ display: "flex", height: "600px", gap: "16px" }}>
-          {/* 左侧导航树 */}
+    <Modal
+      title="用例规划"
+      open={open}
+      className="addModal-planning"
+      onCancel={() => {
+        onCancel && onCancel();
+      }}
+      maskClosable={false}
+      onOk={handleConfirm}
+      width={1200}
+    >
+      <div style={{ display: "flex", height: "600px", gap: "16px" }}>
+        {/* 左侧导航树 */}
+        <div
+          style={{
+            width: "300px",
+            border: "1px solid #d9d9d9",
+            borderRadius: "6px",
+            padding: "16px",
+            fontSize: "12px",
+          }}
+        >
           <div
             style={{
-              width: "300px",
-              border: "1px solid #d9d9d9",
-              borderRadius: "6px",
-              padding: "16px",
+              fontSize: "16px",
+              fontWeight: 500,
+              marginBottom: "16px",
+              color: "#1890ff",
             }}
           >
-            <div
-              style={{
-                fontSize: "16px",
-                fontWeight: 500,
-                marginBottom: "16px",
-                color: "#1890ff",
-              }}
-            >
-              规划用例
+            规划用例
+          </div>
+          <Tree
+            showIcon
+            treeData={treeData}
+            selectedKeys={selectedKeys}
+            onSelect={handleTreeSelect}
+            defaultExpandAll
+            style={{ fontSize: "14px" }}
+            className="command-tree"
+          />
+        </div>
+
+        {/* 右侧内容区域 */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* 标题和搜索栏 */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "16px",
+              padding: "0 16px",
+            }}
+          >
+            <div style={{ fontSize: "16px", fontWeight: 500 }}>
+              {selectedKeys.includes("all") ? "全部用例" : "用例列表"}
             </div>
-            <Tree
-              showIcon
-              treeData={treeData}
-              selectedKeys={selectedKeys}
-              onSelect={handleTreeSelect}
-              defaultExpandAll
-              style={{ fontSize: "14px" }}
+          </div>
+
+          {/* 表格 */}
+          <div style={{ flex: 1, overflow: "auto" }}>
+            <ProTable
+              columns={columns}
+              dataSource={useCases}
+              cardBordered
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: false,
+                showQuickJumper: true,
+                showTotal: (total, range) => `共${Math.ceil(total / 10)}页`,
+              }}
+              rowKey="id"
+              options={false}
+              toolBarRender={false}
+              rowSelection={{
+                selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT],
+                selectedRowKeys: selectedUseCases.filter((key) =>
+                  useCases.some((useCase) => useCase.id === key)
+                ),
+                onChange: (selectedRowKeys, selectedRows) => {
+                  const currentViewSelectedKeys = selectedRowKeys as string[];
+                  const otherViewsSelectedKeys = selectedUseCases.filter(
+                    (key) => !useCases.some((useCase) => useCase.id === key)
+                  );
+                  const allSelectedKeys = [
+                    ...otherViewsSelectedKeys,
+                    ...currentViewSelectedKeys,
+                  ];
+                  setSelectedUseCases(allSelectedKeys);
+                },
+              }}
+              tableAlertRender={({
+                selectedRowKeys,
+                selectedRows,
+                onCleanSelected,
+              }) => {
+                return <div>当前页面已选择 {selectedRowKeys.length} 项</div>;
+              }}
             />
           </div>
 
-          {/* 右侧内容区域 */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            {/* 标题和搜索栏 */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "16px",
-                padding: "0 16px",
-              }}
-            >
-              <div style={{ fontSize: "16px", fontWeight: 500 }}>
-                {selectedKeys.includes("all") ? "全部用例" : "用例列表"}
-              </div>
-            </div>
-
-            {/* 表格 */}
-            <div style={{ flex: 1, overflow: "auto" }}>
-              <ProTable
-                columns={columns}
-                dataSource={useCases}
-                cardBordered
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: false,
-                  showQuickJumper: true,
-                  showTotal: (total, range) => `共${Math.ceil(total / 10)}页`,
-                }}
-                rowKey="id"
-                options={false}
-                toolBarRender={false}
-                rowSelection={{
-                  selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT],
-                  selectedRowKeys: selectedUseCases.filter((key) =>
-                    useCases.some((useCase) => useCase.id === key)
-                  ),
-                  onChange: (selectedRowKeys, selectedRows) => {
-                    const currentViewSelectedKeys = selectedRowKeys as string[];
-                    const otherViewsSelectedKeys = selectedUseCases.filter(
-                      (key) => !useCases.some((useCase) => useCase.id === key)
-                    );
-                    const allSelectedKeys = [
-                      ...otherViewsSelectedKeys,
-                      ...currentViewSelectedKeys,
-                    ];
-                    setSelectedUseCases(allSelectedKeys);
-                  },
-                }}
-                tableAlertRender={({
-                  selectedRowKeys,
-                  selectedRows,
-                  onCleanSelected,
-                }) => {
-                  return <div>当前页面已选择 {selectedRowKeys.length} 项</div>;
-                }}
-              />
-            </div>
-
-            {/* 底部操作栏 */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px",
-                borderTop: "1px solid #f0f0f0",
-                marginTop: "16px",
-              }}
-            >
-              <div style={{ color: "#666" }}>
-                已选择{" "}
-                <span style={{ color: "#1890ff", fontWeight: 500 }}>
-                  {selectedUseCases.length}
-                </span>{" "}
-                个用例
-                {selectedUseCases.length > 0 && (
-                  <>
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => setSelectedUseCases([])}
-                      style={{ marginLeft: "8px" }}
-                    >
-                      清空所有选择
-                    </Button>
-                  </>
-                )}
-              </div>
+          {/* 底部操作栏 */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px",
+              borderTop: "1px solid #f0f0f0",
+              marginTop: "16px",
+            }}
+          >
+            <div style={{ color: "#666" }}>
+              已选择{" "}
+              <span style={{ color: "#1890ff", fontWeight: 500 }}>
+                {selectedUseCases.length}
+              </span>{" "}
+              个用例
+              {selectedUseCases.length > 0 && (
+                <>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setSelectedUseCases([])}
+                    style={{ marginLeft: "8px" }}
+                  >
+                    清空所有选择
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
-      </Modal>
-    </div>
+      </div>
+    </Modal>
   );
 };
 

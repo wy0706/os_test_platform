@@ -40,7 +40,6 @@ import NewEditModal from "../../task-management/test-task-one/components/editMod
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import EditModal from "./components/editModal";
-import EditModuleModal from "./components/editModuleModal";
 import s from "./index.less";
 import {
   schemasColumns,
@@ -54,6 +53,26 @@ const layout = {
   labelCol: { span: 24 },
 };
 
+interface UseCase {
+  id: string;
+  title: string;
+  version: string;
+  importance: string;
+  module: string;
+  icon: string;
+  key: string;
+}
+
+interface Module {
+  id: string;
+  name: string;
+  count: number;
+  expanded: boolean;
+  key: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const TestCaseExample: React.FC = () => {
   const [data, setData] = useState<any>(null);
   // const [selectedRow, setSelectedRow] = useState<string>("DEMO-6");
@@ -62,7 +81,7 @@ const TestCaseExample: React.FC = () => {
   const [pageSize, setPageSize] = useState(50);
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [modules, setModules] = useState<any[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(false);
   const [moduleLoading, setModuleLoading] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
@@ -87,9 +106,6 @@ const TestCaseExample: React.FC = () => {
     open: false, //编辑用例模块
     modulevalue: {}, //单个模块数据
     isEditMode: false, //是否为编辑模式，false为新增
-    isEditModuleModalOpen: false, //编辑模块modal
-    editModuleData: {}, //编辑模块数据
-    deleteTestCases: false, //删除模块时是否删除测试用例
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -225,12 +241,9 @@ const TestCaseExample: React.FC = () => {
     rowValue,
     modulevalue,
     isEditMode,
-    isEditModuleModalOpen,
-    editModuleData,
-    deleteTestCases,
   } = state;
   // 模拟用例数据
-  const useCases: any[] = [
+  const useCases: UseCase[] = [
     {
       id: "DEMO-1",
       title: "订单成功提交",
@@ -394,7 +407,6 @@ const TestCaseExample: React.FC = () => {
             count: 6,
             expanded: true,
             key: "login",
-            coverage: 0,
           },
           {
             id: "shopping",
@@ -402,7 +414,6 @@ const TestCaseExample: React.FC = () => {
             count: 7,
             expanded: true,
             key: "shopping",
-            coverage: "20%",
           },
           {
             id: "payment",
@@ -410,7 +421,6 @@ const TestCaseExample: React.FC = () => {
             count: 2,
             expanded: true,
             key: "payment",
-            coverage: "40%",
           },
           {
             id: "no-module",
@@ -418,7 +428,6 @@ const TestCaseExample: React.FC = () => {
             count: 0,
             expanded: true,
             key: "no-module",
-            coverage: 0,
           },
         ];
         setModules(defaultModules);
@@ -433,7 +442,6 @@ const TestCaseExample: React.FC = () => {
           count: 6,
           expanded: true,
           key: "login",
-          coverage: 0,
         },
         {
           id: "shopping",
@@ -441,7 +449,6 @@ const TestCaseExample: React.FC = () => {
           count: 7,
           expanded: true,
           key: "shopping",
-          coverage: "20%",
         },
         {
           id: "payment",
@@ -449,7 +456,6 @@ const TestCaseExample: React.FC = () => {
           count: 2,
           expanded: true,
           key: "payment",
-          coverage: "40%",
         },
         {
           id: "no-module",
@@ -457,7 +463,6 @@ const TestCaseExample: React.FC = () => {
           count: 0,
           expanded: true,
           key: "no-module",
-          coverage: 0,
         },
       ];
       setModules(defaultModules);
@@ -496,13 +501,12 @@ const TestCaseExample: React.FC = () => {
       console.error("创建模块异常:", error);
       // 如果是网络错误或API不存在，先尝试本地模拟创建
       const newModuleId = `temp-${Date.now()}`;
-      const newModule: any = {
+      const newModule: Module = {
         id: newModuleId,
         name: "未命名模块",
         count: 0,
         expanded: true,
         key: newModuleId,
-        coverage: 0,
       };
 
       // 添加到本地状态
@@ -518,7 +522,7 @@ const TestCaseExample: React.FC = () => {
   };
 
   // 开始编辑模块名称（行内编辑）
-  const startEditModuleName = (module: any) => {
+  const startEditModuleName = (module: Module) => {
     setEditingModuleId(module.id);
     setEditingValue(module.name);
   };
@@ -584,7 +588,7 @@ const TestCaseExample: React.FC = () => {
   };
 
   // 编辑模块名称的函数（弹窗模式）
-  const editModuleName = (module: any) => {
+  const editModuleName = (module: Module) => {
     setState({
       open: true,
       isEditMode: true,
@@ -592,13 +596,11 @@ const TestCaseExample: React.FC = () => {
     });
     form?.setFieldsValue({ name: module.name });
   };
-
+  const [deleteTestCases, setDeleteTestCases] = useState(false);
   // 删除模块的函数
-  const handleDeleteModule = (module: any) => {
-    // 重置复选框状态
-    setState({
-      deleteTestCases: false,
-    });
+  const handleDeleteModule = (module: Module) => {
+    setDeleteTestCases(false); // 重置复选框状态
+
     Modal.confirm({
       title: (
         <div>
@@ -623,10 +625,11 @@ const TestCaseExample: React.FC = () => {
       content: (
         <div style={{ marginTop: "16px" }}>
           <Checkbox
+            checked={deleteTestCases}
             onChange={(e) => {
-              setState({
-                deleteTestCases: e.target.checked,
-              });
+              console.log("e", e);
+
+              setDeleteTestCases(e.target.checked);
             }}
           >
             同时删除模块下的测试用例
@@ -685,93 +688,149 @@ const TestCaseExample: React.FC = () => {
           padding: "8px 0",
         }}
       >
-        <>
+        {editingModuleId === module.id ? (
+          // 编辑模式：显示输入框和保存/取消按钮
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              flex: 1,
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              console.log("选择模块:", module.name, "模块key:", module.key);
-
-              // 如果当前有其他模块在编辑状态，则退出编辑模式
-              exitEditModeIfNeeded(module.id);
-
-              setSelectedModule(module.key);
-              // 选中模块后会自动触发表格数据刷新
-            }}
-          >
-            <FolderOutlined style={{ color: "#8c8c8c", fontSize: "14px" }} />
-            <span style={{ fontSize: "12px" }}>{module.name}</span>
-            <span style={{ fontSize: "12px" }}>( {module.count} )</span>
-            <span style={{ fontSize: "12px" }}>( {module.coverage || 0} )</span>
-          </div>
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              color: "#999",
               gap: "8px",
+              flex: 1,
             }}
           >
-            <div
-              style={{
-                cursor: "pointer",
-                padding: "2px",
-                borderRadius: "4px",
-                transition: "all 0.2s",
+            <FolderOutlined style={{ color: "#1890ff", fontSize: "16px" }} />
+            <Input
+              // size="small"
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onPressEnter={saveEditModuleName}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  cancelEditModuleName();
+                }
               }}
-              className="tree-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-
-                setState({
-                  isEditModuleModalOpen: true,
-                  editModuleData: module,
-                });
-                // startEditModuleName(module);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(24, 144, 255, 0.1)";
-                e.currentTarget.style.color = "#1890ff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#999";
-              }}
-            >
-              <EditOutlined />
-            </div>
-            <div
-              style={{
-                cursor: "pointer",
-                padding: "2px",
-                borderRadius: "4px",
-                transition: "all 0.2s",
-              }}
-              className="tree-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteModule(module);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 77, 79, 0.1)";
-                e.currentTarget.style.color = "#ff4d4f";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#999";
-              }}
-            >
-              <DeleteOutlined />
-            </div>
+              style={{ fontSize: "12px", flex: 1 }}
+              autoFocus
+            />
+            <span style={{ fontSize: "12px" }}>{module.count}</span>
+            {/* <div style={{ display: "flex", gap: "4px" }}>
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckOutlined />}
+                loading={moduleLoading}
+                style={{
+                  fontSize: "12px",
+                  padding: "2px 4px",
+                  height: "20px",
+                  color: "#52c41a",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveEditModuleName();
+                }}
+              />
+              <Button
+                type="text"
+                size="small"
+                icon={<CloseOutlined />}
+                style={{
+                  fontSize: "12px",
+                  padding: "2px 4px",
+                  height: "20px",
+                  color: "#666",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cancelEditModuleName();
+                }}
+              />
+            </div> */}
           </div>
-        </>
+        ) : (
+          // 正常模式：显示模块信息和操作按钮
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                flex: 1,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                console.log("选择模块:", module.name, "模块key:", module.key);
+
+                // 如果当前有其他模块在编辑状态，则退出编辑模式
+                exitEditModeIfNeeded(module.id);
+
+                setSelectedModule(module.key);
+                // 选中模块后会自动触发表格数据刷新
+              }}
+            >
+              <FolderOutlined style={{ color: "#1890ff", fontSize: "16px" }} />
+              <span style={{ fontSize: "12px" }}>{module.name}</span>
+              <span style={{ fontSize: "12px" }}>{module.count}</span>
+            </div>
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                color: "#999",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "2px",
+                  borderRadius: "4px",
+                  transition: "all 0.2s",
+                }}
+                className="tree-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditModuleName(module);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(24, 144, 255, 0.1)";
+                  e.currentTarget.style.color = "#1890ff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#999";
+                }}
+              >
+                <EditOutlined />
+              </div>
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "2px",
+                  borderRadius: "4px",
+                  transition: "all 0.2s",
+                }}
+                className="tree-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteModule(module);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(255, 77, 79, 0.1)";
+                  e.currentTarget.style.color = "#ff4d4f";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#999";
+                }}
+              >
+                <DeleteOutlined />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     ),
     key: module.key,
@@ -1185,15 +1244,6 @@ const TestCaseExample: React.FC = () => {
           });
         }}
         open={isTestModal}
-      />
-
-      <EditModuleModal
-        open={isEditModuleModalOpen}
-        onCancel={() => {
-          setState({ isEditModuleModalOpen: false });
-        }}
-        data={editModuleData}
-        onOk={() => {}}
       />
       {/* 编辑/新增用例模块 */}
       <Modal
