@@ -26,14 +26,13 @@ export const schemasColumns: any = [
     // sorter: true,
     // valueType: "select",
     initialValue: "all",
-    filters: true,
-    onFilter: true,
+    // filters: true,
+    // onFilter: true,
     valueEnum: statusEnum,
   },
   {
     title: "结果分布",
     dataIndex: "title2",
-    sorter: true,
     search: false,
     render: (text: any, record: any) => {
       return <Progress percent={record.title2} size="small"></Progress>;
@@ -43,7 +42,6 @@ export const schemasColumns: any = [
     title: "负责人",
     dataIndex: "title3",
     ellipsis: true,
-    sorter: true,
   },
   {
     title: "描述",

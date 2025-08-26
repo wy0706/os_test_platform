@@ -26,14 +26,13 @@ const ReportListTab: React.FC = () => {
         title: "报告名称",
         dataIndex: "title",
         ellipsis: true,
-        // sorter: true,
       },
       {
         title: "生成日期",
         dataIndex: "createTime",
         search: false,
         ellipsis: true,
-        // sorter: true,
+        sorter: true,
       },
 
       {

@@ -8,9 +8,11 @@ export const schemasColumns: any = [
     title: "编号",
     dataIndex: "title",
     search: false,
+    ellipsis: true,
+    sorter: true,
   },
   {
-    title: "名称",
+    title: "标题",
     dataIndex: "description",
     ellipsis: true,
     sorter: true,
@@ -54,6 +56,7 @@ export const schemasColumns: any = [
     ellipsis: true,
     search: false,
     valueType: "dateTime",
+    sorter: true,
   },
   {
     title: "关联测试序列",

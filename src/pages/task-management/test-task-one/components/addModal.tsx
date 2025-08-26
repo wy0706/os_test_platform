@@ -237,7 +237,6 @@ const AddModal: React.FC<ModalProps> = ({
       dataIndex: "importance",
       key: "importance",
       search: false,
-      sorter: true,
       render: (dom, record) => (
         <Tag color={record.importance === "P1" ? "#f50" : "#2db7f5"}>
           {record.importance}

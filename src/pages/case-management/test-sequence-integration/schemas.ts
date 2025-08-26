@@ -8,15 +8,14 @@ export const schemasColumns: any = [
     title: "名称",
     dataIndex: "title",
     ellipsis: true,
-    // sorter: true,
+    sorter: true,
   },
   {
     title: "发布",
     dataIndex: "status",
     ellipsis: true,
-    // sorter: true,
+    sorter: true,
     valueType: "select",
-
     valueEnum: {
       success: {
         text: "✓",
@@ -34,7 +33,7 @@ export const schemasColumns: any = [
     dataIndex: "createTime",
     ellipsis: true,
     search: false,
-    // sorter: true,
+    sorter: true,
   },
 ];
 

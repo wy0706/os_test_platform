@@ -30,7 +30,7 @@ export const schemasColumns: any = [
     title: "创建时间",
     dataIndex: "createTime",
     ellipsis: true,
-    // sorter: true,
+    sorter: true,
   },
 ];
 

@@ -211,7 +211,6 @@ const TestSequenceModal: React.FC<ModalProps> = ({ open, onCancel, onOk }) => {
           text={entity.isPublished ? "✓" : "✗"}
         />
       ),
-      sorter: true,
       search: false,
     },
   ];
