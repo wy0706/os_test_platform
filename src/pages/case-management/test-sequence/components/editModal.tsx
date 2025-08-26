@@ -50,8 +50,6 @@ const EditModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    console.log("currentNode", currentNode);
-
     const name =
       type === "edit" ? "编辑" : type === "copy" ? "复制序列" : "移动";
     setTitle(name);

@@ -19,6 +19,7 @@ import { useSetState } from "ahooks";
 import { Button, Checkbox, Form, Modal } from "antd";
 import React, { useRef, useState } from "react";
 import AddModal from "./components/addModal";
+import CreateReportModal from "./components/createReport";
 import DetailModal from "./components/detailModal";
 import SequenceDataModal from "./components/sequenceDataModal";
 import { schemasColumns, schemasTitle } from "./schemas";
@@ -31,27 +32,29 @@ const Page: React.FC = () => {
     isUpdateModalOpen: false,
     updateValue: {},
     isPreviewModalOpen: false,
-    detailsId: null,
+    currentSelectId: null, //当前table操作的id
     detailsData: {},
     isShowProcess: false, //是否显示测试过程
     isRunModalOpen: false,
     runData: {},
+    isCreateReportModalOpen: false, //是否显示生成测试报告
   });
   const {
     title,
     isUpdateModalOpen,
     updateValue,
     isPreviewModalOpen,
-    detailsId,
+    currentSelectId,
     optionType,
     detailsData,
     isShowProcess,
     isRunModalOpen,
     runData,
+    isCreateReportModalOpen,
   } = state;
 
   // 动态生成 columns，这样可以访问到最新的状态
-  const columns = schemasColumns.concat([
+  const columns: any = schemasColumns.concat([
     {
       title: "操作",
       valueType: "option",
@@ -80,8 +83,6 @@ const Page: React.FC = () => {
           icon={<EditOutlined />}
           onClick={(e) => {
             e.stopPropagation();
-            // form.setFieldsValue(record);
-            console.log("edit");
             setState({
               updateValue: record,
               isUpdateModalOpen: true,
@@ -144,10 +145,17 @@ const Page: React.FC = () => {
                   return;
                 case "preview":
                   setState({
-                    detailsId: record.id,
+                    currentSelectId: record.id,
                     isPreviewModalOpen: true,
                     detailsData: record,
                   });
+                  return;
+                case "report":
+                  setState({
+                    isCreateReportModalOpen: true,
+                    currentSelectId: record.id,
+                  });
+
                   return;
                 default:
                   return;
@@ -157,6 +165,7 @@ const Page: React.FC = () => {
               { key: "copy", name: "复制" },
               { key: "preview", name: "详情" },
               { key: "delete", name: "删除" },
+              { key: "report", name: "生成测试报告" },
             ]}
           />
         </div>,
@@ -171,16 +180,16 @@ const Page: React.FC = () => {
       return {
         data: [
           {
-            id: "1",
+            id: 1,
             title: "测试数据",
             title2: 100,
             title3: "张三",
             title4: "测试数据",
-            createTime: "2025-07-30",
+            createTime: "2025-07-31",
             status: "all",
           },
           {
-            id: "2",
+            id: 2,
             title: "测试数据2",
             title2: 70,
             title3: "李四",
@@ -208,7 +217,7 @@ const Page: React.FC = () => {
   const handleRowClick = (record: any, index: number) => {
     console.log("点击的行数据:", record);
     console.log("行索引:", index);
-    history.push(`/task-management/test-task-one/${record.id}`);
+    history.push(`/task-management/test-task-one/${record.id}?tab=1`);
     // 更新选中的行
     setSelectedRow(record);
     // message.success(`已选择: ${record.title}`);
@@ -330,6 +339,19 @@ const Page: React.FC = () => {
           setState({ isRunModalOpen: false });
           history.push(
             `/case-management/case-run/${runData.id}?status=part&name=${runData.title}`
+          );
+        }}
+      />
+      {/* 生成测试报告 */}
+      <CreateReportModal
+        open={isCreateReportModalOpen}
+        onCancel={() => {
+          setState({ isCreateReportModalOpen: false });
+        }}
+        onOk={(values) => {
+          console.log(values);
+          history.push(
+            `/task-management/test-task-one/${currentSelectId}?tab=2`
           );
         }}
       />

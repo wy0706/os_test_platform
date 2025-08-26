@@ -78,7 +78,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    console.log("currentNode", currentNode);
     const name = type === "add" ? "新建" : "另存为";
     setState({ title: name });
     if (open) {

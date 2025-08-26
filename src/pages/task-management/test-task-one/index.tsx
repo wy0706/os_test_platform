@@ -43,7 +43,7 @@ const Page: React.FC = () => {
           <Button
             key="1"
             onClick={() => {
-              history.back();
+              history.push("/task-management/test-task");
             }}
           >
             返回

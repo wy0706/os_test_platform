@@ -58,8 +58,6 @@ const RunModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    console.log("currentNode", currentNode);
-
     if (open) {
       loadTreeData();
       form?.resetFields();
