@@ -1,7 +1,7 @@
 
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/systemManagement/loginLog";
+const baseUrl = "/api/systemManagement/equipManagement";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {

@@ -26,13 +26,13 @@ export const schemasColumns: any = [
         status: "error",
       },
     },
-    search: false,
+    hideInSearch: true,
   },
   {
     title: "创建时间",
     dataIndex: "createTime",
     ellipsis: true,
-    search: false,
+    hideInSearch: true,
     sorter: true,
   },
 ];

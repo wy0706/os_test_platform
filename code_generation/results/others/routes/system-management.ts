@@ -7,18 +7,18 @@ const routes =
     routes: [
 
             {
-                path: '/system-management/operation-log',
-                name: '操作日志',
-                access: ['operationLog-preview','operationLog-edit'],
-                component: './system-management/operation-log',
+                path: '/system-management/equip-management',
+                name: '添加设备',
+                access: ['equipManagement-preview','equipManagement-edit'],
+                component: './system-management/equip-management',
             },
 
         
             {
-                path: '/system-management/login-log',
-                name: '登录日志',
-                access: ['loginLog-preview','loginLog-edit'],
-                component: './system-management/login-log',
+                path: '/system-management/command-management',
+                name: '添加命令',
+                access: ['commandManagement-preview','commandManagement-edit'],
+                component: './system-management/command-management',
             },
 
         

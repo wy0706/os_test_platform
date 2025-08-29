@@ -1,7 +1,7 @@
 
 export const schemasTitle: any = {
-  label: '操作日志',
-  value: 'operationLog',
+  label: '添加命令',
+  value: 'commandManagement',
 };
 
 export const schemasColumns: any = [

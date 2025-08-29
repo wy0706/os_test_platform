@@ -65,19 +65,6 @@ export default [
         hideInMenu: true,
         hideInBreadcrumb: true,
       },
-
-      // {
-      //   path: "/task-management/test-execution",
-      //   name: "测试执行",
-      //   access: ["testExecution-preview", "testExecution-edit"],
-      //   component: "./task-management/test-execution",
-      // },
-      // {
-      //   path: "/task-management/test-execution-result",
-      //   name: "测试执行结果",
-      //   access: ["testExecutionResult-preview", "testExecutionResult-edit"],
-      //   component: "./task-management/test-execution-result",
-      // },
       {
         path: "/task-management/test-report/:id",
         name: "测试报告",
@@ -213,26 +200,6 @@ export default [
   //     },
   //   ],
   // },
-  // {
-  //   path: "/system-management",
-  //   name: "系统管理",
-  //   icon: "setting",
-  //   access: "systemManagement",
-  //   routes: [
-  //     {
-  //       path: "/system-management/login-log",
-  //       name: "登录日志",
-  //       access: ["loginLog-preview", "loginLog-edit"],
-  //       component: "./system-management/login-log",
-  //     },
-  //     {
-  //       path: "/system-management/operation-log",
-  //       name: "操作日志",
-  //       access: ["operationLog-preview", "operationLog-edit"],
-  //       component: "./system-management/operation-log",
-  //     },
-  //   ],
-  // },
   {
     path: "/log-management",
     name: "日志管理",
@@ -260,6 +227,26 @@ export default [
       },
     ],
   },
+  // {
+  //   path: "/system-management",
+  //   name: "系统管理",
+  //   icon: "fileText",
+  //   access: "systemManagement",
+  //   routes: [
+  //     {
+  //       path: "/system-management/equip-management",
+  //       name: "添加设备",
+  //       access: ["equipManagement-preview", "equipManagement-edit"],
+  //       component: "./system-management/equip-management",
+  //     },
+  //     {
+  //       path: "/system-management/command-management",
+  //       name: "添加命令",
+  //       access: ["commandManagement-preview", "commandManagement-edit"],
+  //       component: "./system-management/command-management",
+  //     },
+  //   ],
+  // },
   {
     path: "/",
     redirect: "/welcome",

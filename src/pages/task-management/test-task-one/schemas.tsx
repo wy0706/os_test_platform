@@ -7,7 +7,7 @@ export const schemasColumns: any = [
   {
     title: "编号",
     dataIndex: "title",
-    search: false,
+    hideInSearch: true,
     ellipsis: true,
     sorter: true,
   },
@@ -20,7 +20,7 @@ export const schemasColumns: any = [
   {
     title: "版本",
     dataIndex: "version",
-    search: false,
+    hideInSearch: true,
   },
   {
     title: "重要程度",
@@ -31,7 +31,7 @@ export const schemasColumns: any = [
   {
     title: "执行结果",
     dataIndex: "importance2",
-    search: false,
+    hideInSearch: true,
     ellipsis: true,
     valueEnum: {
       pass: {
@@ -54,14 +54,14 @@ export const schemasColumns: any = [
     title: "执行时间",
     dataIndex: "importance3",
     ellipsis: true,
-    search: false,
+    hideInSearch: true,
     valueType: "dateTime",
     sorter: true,
   },
   {
     title: "关联测试序列",
     dataIndex: "importance33",
-    search: false,
+    hideInSearch: true,
     ellipsis: true,
   },
 ];

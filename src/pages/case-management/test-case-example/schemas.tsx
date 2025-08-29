@@ -7,7 +7,7 @@ export const schemasColumns: any = [
   {
     title: "编号",
     dataIndex: "id",
-    search: false,
+    hideInSearch: true,
     sorter: true,
   },
   {
@@ -19,14 +19,14 @@ export const schemasColumns: any = [
   {
     title: "版本",
     dataIndex: "version",
-    search: false,
+    hideInSearch: true,
   },
   {
     title: "重要程度",
     dataIndex: "importance",
     ellipsis: true,
     sorter: true,
-    search: false,
+    hideInSearch: true,
   },
 ];
 

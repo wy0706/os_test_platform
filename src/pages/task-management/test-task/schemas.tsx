@@ -33,7 +33,7 @@ export const schemasColumns: any = [
   {
     title: "结果分布",
     dataIndex: "title2",
-    search: false,
+    hideInSearch: true,
     render: (text: any, record: any) => {
       return <Progress percent={record.title2} size="small"></Progress>;
     },
@@ -47,14 +47,14 @@ export const schemasColumns: any = [
     title: "描述",
     dataIndex: "title4",
     ellipsis: true,
-    search: false,
+    hideInSearch: true,
   },
   {
     title: "创建时间",
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
-    search: false,
+    hideInSearch: true,
     valueType: "dateTime",
   },
 ];

@@ -198,6 +198,7 @@ const Page: React.FC = () => {
       <ProTable<any>
         columns={columns}
         actionRef={actionRef}
+        dateFormatter="string"
         cardBordered
         request={requestData}
         rowKey="id"

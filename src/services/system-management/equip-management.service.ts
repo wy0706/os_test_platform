@@ -1,11 +1,10 @@
-
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/systemManagement/userManagement";
+const baseUrl = "/api/systemManagement/equipManagement";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: 'GET',
+    method: "GET",
     params: params,
   });
   return result;
@@ -53,6 +52,17 @@ export async function deleteBatch(ids: any) {
   const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
     method: "DELETE",
     data: ids,
+  });
+  return result;
+}
+
+export async function uploadFile(ids: any) {
+  const result: any = await request<{}>(`${baseUrl}/uploadFile`, {
+    method: "post",
+    data: ids,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
   return result;
 }

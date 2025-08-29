@@ -52,6 +52,7 @@ const Page: React.FC = () => {
     <PageContainer>
       <ProTable<any>
         columns={columns}
+        dateFormatter="string"
         actionRef={actionRef}
         cardBordered
         request={requestData}

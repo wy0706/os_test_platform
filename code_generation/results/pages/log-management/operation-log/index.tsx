@@ -5,7 +5,7 @@ import {
   getList,
   getOne,
   updateOne,
-} from "@/services/system-management/operation-log.service";
+} from "@/services/log-management/operation-log.service";
 import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,

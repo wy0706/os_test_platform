@@ -95,7 +95,8 @@ export const errorConfig: RequestConfig = {
       // }
       config["headers"] = {
         ...config.headers,
-        ACCESS_TOKEN: `123`,
+        "ACCESS-TOKEN": `123`,
+        "REFRESH-TOKEN": `321`,
       };
       // 拦截请求配置，进行个性化处理。
       // const url = config?.url?.concat('?token=123');

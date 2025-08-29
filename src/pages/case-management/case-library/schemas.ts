@@ -31,6 +31,7 @@ export const schemasColumns: any = [
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
+    hideInSearch: true,
   },
 ];
 

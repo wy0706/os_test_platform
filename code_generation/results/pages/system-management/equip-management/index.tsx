@@ -1,22 +1,19 @@
+
 import {
   createOne,
   deleteOne,
   getList,
   getOne,
   updateOne,
-} from "@/services/system-management/role-management.service";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  ProfileOutlined,
-} from "@ant-design/icons";
+} from "@/services/system-management/equip-management.service";
+import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
   PageContainer,
   ProDescriptions,
   ProTable,
+  TableDropdown
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
@@ -41,16 +38,17 @@ const Page: React.FC = () => {
     detailsId: null,
     descriptionsColumns: schemasDescriptions,
     columns: schemasColumns.concat([
-      {
+    {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 200,
-        render: (text: any, record: any, _: any, action: any) => [
+        width: 180,
+        render: (text: any, record: any, index: any, action: any) => [
           <Button
+            color="primary"
+            variant="link"
             key="preview"
-            type="primary"
-            icon={<ProfileOutlined />}
+            icon={<EyeOutlined />}
             onClick={() => {
               setState({
                 detailsId: record.id,
@@ -61,9 +59,9 @@ const Page: React.FC = () => {
             详情
           </Button>,
           <Button
+            color="primary"
+            variant="link"
             key="edit"
-            type="primary"
-            ghost
             icon={<EditOutlined />}
             onClick={() => {
               form.setFieldsValue(record);
@@ -76,24 +74,29 @@ const Page: React.FC = () => {
           >
             编辑
           </Button>,
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            key="delete"
-            onClick={() => {
-              Modal.confirm({
-                title: "确认删除吗？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
+          <TableDropdown
+            key={index}
+            onSelect={(key: string) => {
+              console.log("key----", key);
+              console.log(key);
+              switch (key) {
+                case "delete":
+                  Modal.confirm({
+                    title: "确认删除吗？",
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                  return;
+                default:
+                  return;
+              }
             }}
-          >
-            删除
-          </Button>,
+            menus={[{ key: "delete", name: "删除" }]}
+          />,
         ],
       },
     ]),
@@ -115,7 +118,7 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
+        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
         total: 1,
         success: true,
       };
@@ -210,7 +213,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: { id: 1, title: "测试数据", createTime: "测试数据" },
+                data: {id: 1,title: '测试数据',createTime: '测试数据',},
                 success: true,
               };
             }
@@ -222,3 +225,4 @@ const Page: React.FC = () => {
 };
 
 export default Page;
+

@@ -1,22 +1,36 @@
-
 export const schemasTitle: any = {
-  label: '角色管理',
-  value: 'roleManagement',
+  label: "登录日志",
+  value: "loginLog",
 };
 
 export const schemasColumns: any = [
-  
   {
-    title: "名称",
+    title: "类型",
     dataIndex: "title",
     ellipsis: true,
-    sorter: true,
   },
   {
-    title: "创建时间",
+    title: "登录方式",
+    dataIndex: "title1",
+    ellipsis: true,
+  },
+  {
+    title: "IP地址",
+    dataIndex: "title2",
+    ellipsis: true,
+  },
+  {
+    title: "设备",
+    dataIndex: "title3",
+    ellipsis: true,
+  },
+
+  {
+    title: "操作时间",
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
+    valuesType: "dateTime",
   },
 ];
 
@@ -30,7 +44,6 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
-    
     {
       title: "名称",
       dataIndex: "title",
@@ -43,7 +56,7 @@ export const schemasForm: any = {
         ],
       },
     },
-  
+
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -56,12 +69,10 @@ export const schemasForm: any = {
         ],
       },
     },
-  
   ],
 };
 
 export const schemasDescriptions: any = [
-  
   {
     title: "名称",
     key: "title",
@@ -77,4 +88,3 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
-

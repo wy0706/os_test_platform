@@ -80,7 +80,7 @@ export const schemasColumns: any = [
     dataIndex: "status",
     key: "status",
     width: 100,
-    // search: false,
+    //   hideInSearch: true,
     valueType: "select",
     valueEnum: {
       success: {

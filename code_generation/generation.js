@@ -48,48 +48,6 @@ let source = [
           },
         ],
       },
-      // {
-      //   pageName: "test-execution",
-      //   label: "测试执行",
-      //   fileds: [
-      //     {
-      //       title: "名称",
-      //       dataIndex: "title",
-      //     },
-      //     {
-      //       title: "创建时间",
-      //       dataIndex: "createTime",
-      //     },
-      //   ],
-      // },
-      // {
-      //   pageName: "test-execution-result",
-      //   label: "测试执行结果",
-      //   fileds: [
-      //     {
-      //       title: "名称",
-      //       dataIndex: "title",
-      //     },
-      //     {
-      //       title: "创建时间",
-      //       dataIndex: "createTime",
-      //     },
-      //   ],
-      // },
-      // {
-      //   pageName: "test-report",
-      //   label: "测试报告",
-      //   fileds: [
-      //     {
-      //       title: "名称",
-      //       dataIndex: "title",
-      //     },
-      //     {
-      //       title: "创建时间",
-      //       dataIndex: "createTime",
-      //     },
-      //   ],
-      // },
     ],
   },
   {
@@ -278,82 +236,40 @@ let source = [
   //     },
   //   ],
   // },
-  // {
-  //   moduleName: "system-management",
-  //   label: "系统管理",
-  //   children: [
-  //     // {
-  //     //   pageName: "user-management",
-  //     //   label: "用户管理",
-  //     //   fileds: [
-  //     //     {
-  //     //       title: "名称",
-  //     //       dataIndex: "title",
-  //     //     },
-  //     //     {
-  //     //       title: "创建时间",
-  //     //       dataIndex: "createTime",
-  //     //     },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   pageName: "role-management",
-  //     //   label: "角色管理",
-  //     //   fileds: [
-  //     //     {
-  //     //       title: "名称",
-  //     //       dataIndex: "title",
-  //     //     },
-  //     //     {
-  //     //       title: "创建时间",
-  //     //       dataIndex: "createTime",
-  //     //     },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   pageName: "permission-management",
-  //     //   label: "权限管理",
-  //     //   fileds: [
-  //     //     {
-  //     //       title: "名称",
-  //     //       dataIndex: "title",
-  //     //     },
-  //     //     {
-  //     //       title: "创建时间",
-  //     //       dataIndex: "createTime",
-  //     //     },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   pageName: "operation-log",
-  //     //   label: "操作日志",
-  //     //   fileds: [
-  //     //     {
-  //     //       title: "名称",
-  //     //       dataIndex: "title",
-  //     //     },
-  //     //     {
-  //     //       title: "创建时间",
-  //     //       dataIndex: "createTime",
-  //     //     },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   pageName: "login-log",
-  //     //   label: "登录日志",
-  //     //   fileds: [
-  //     //     {
-  //     //       title: "名称",
-  //     //       dataIndex: "title",
-  //     //     },
-  //     //     {
-  //     //       title: "创建时间",
-  //     //       dataIndex: "createTime",
-  //     //     },
-  //     //   ],
-  //     // },
-  //   ],
-  // },
+  {
+    moduleName: "system-management",
+    label: "系统管理",
+    children: [
+      {
+        pageName: "equip-management",
+        label: "添加设备",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+      {
+        pageName: "command-management",
+        label: "添加命令",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
+    ],
+  },
   {
     moduleName: "log-management",
     label: "日志管理",

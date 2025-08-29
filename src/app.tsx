@@ -31,7 +31,6 @@ export async function getInitialState(): Promise<{
           "https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png",
         resourceList: [
           { resourceCode: "equipmentManagement" },
-          { resourceCode: "equipmentManagement" },
           { resourceCode: "caseManagement" },
           { resourceCode: "toolManagement" },
           { resourceCode: "taskManagement" },
@@ -53,6 +52,7 @@ export async function getInitialState(): Promise<{
           { resourceCode: "permissionManagement-edit" },
           { resourceCode: "backendManagement" },
           { resourceCode: "logManagement" },
+          { resourceCode: "systemManagement" },
         ],
       };
       // console.log(msg.data);

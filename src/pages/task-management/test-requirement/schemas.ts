@@ -7,7 +7,7 @@ export const schemasColumns: any = [
   {
     title: "编号",
     dataIndex: "title",
-    search: false,
+    hideInSearch: true,
   },
   {
     title: "标题",
