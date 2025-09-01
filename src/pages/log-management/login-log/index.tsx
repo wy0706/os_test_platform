@@ -25,10 +25,11 @@ const Page: React.FC = () => {
         data: [
           {
             id: 1,
-            title: "测试数据",
-            title1: "登录",
+            title: "1",
+            title1: "手机验证码",
             title2: "218.247.161.66",
-            title3: "",
+            title3: "芋道源码",
+            title4: "success",
             createTime: "2023-07-16 10:22:33",
           },
         ],
@@ -47,31 +48,11 @@ const Page: React.FC = () => {
         request={requestData}
         dateFormatter="string"
         rowKey="id"
-        search={false}
         pagination={{
           pageSize: 10,
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        options={false}
-        // toolbar={{
-        //   title: (
-        //     <div
-        //       style={{
-        //         fontWeight: "normal",
-        //         color: "#888",
-        //         padding: "10px",
-        //       }}
-        //     >
-        //       {" "}
-        //       <span style={{ color: "red", marginRight: 5 }}>
-        //         {/* <BulbOutlined style={{ marginRight: 2 }} /> */}
-        //         Tips:
-        //       </span>
-        //       <span>记录账号登录登出信息，默认展示最新的50条日志数据</span>
-        //     </div>
-        //   ),
-        // }}
       />
     </PageContainer>
   );

@@ -5,32 +5,54 @@ export const schemasTitle: any = {
 
 export const schemasColumns: any = [
   {
-    title: "类型",
+    title: "登录编号",
     dataIndex: "title",
     ellipsis: true,
+    hideInSearch: true,
   },
   {
     title: "登录方式",
     dataIndex: "title1",
+    hideInSearch: true,
     ellipsis: true,
   },
   {
     title: "IP地址",
+    hideInSearch: true,
     dataIndex: "title2",
     ellipsis: true,
   },
   {
-    title: "设备",
+    title: "登录人",
     dataIndex: "title3",
     ellipsis: true,
   },
+  {
+    title: "登录结果",
+    hideInSearch: true,
+    dataIndex: "title4",
+    ellipsis: true,
+    valueEnum: {
+      success: { text: "成功", status: "Success" },
+      fail: { text: "失败", status: "Error" },
+    },
+  },
 
   {
-    title: "操作时间",
+    title: "登录时间",
+    key: "showTime",
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
-    valuesType: "dateTime",
+    valueType: "dateTime",
+    hideInSearch: true,
+  },
+
+  {
+    title: "登录时间",
+    dataIndex: "createTime",
+    valueType: "date",
+    hideInTable: true,
   },
 ];
 
