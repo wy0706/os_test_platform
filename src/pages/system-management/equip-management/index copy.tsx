@@ -1,7 +1,7 @@
 import {
   deleteOne,
   getList,
-} from "@/services/system-management/command-management.service";
+} from "@/services/system-management/equip-management.service";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -9,76 +9,45 @@ import {
   ProTable,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal, Switch } from "antd";
+import { Button, Modal } from "antd";
 import React, { useRef } from "react";
 import AddModal from "./components/addModal";
 import { schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
     updateValue: {},
-    optionType: "add",
+    optionType: "add", // add | edit | copy
   });
   const { title, isUpdateModalOpen, updateValue, optionType } = state;
 
-  const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [{ id: 1, title: "测试数据", createTime: "2025-10-09" }],
-        total: 1,
-        success: true,
-      };
-    }
-  };
   const columns: any = [
     {
-      title: "命令名称",
+      title: "设备名称",
       dataIndex: "title",
       ellipsis: true,
     },
     {
-      title: "ID",
-      dataIndex: "id",
-      ellipsis: true,
-      hideInSearch: true,
-    },
-    {
-      title: "设备类型",
-      dataIndex: "type",
+      title: "设备类型编码",
+      dataIndex: "title1",
       hideInSearch: true,
       ellipsis: true,
     },
     {
-      title: "状态",
-      dataIndex: "status",
-      ellipsis: true,
+      title: "是否激活",
+      dataIndex: "title2",
       hideInSearch: true,
-      render: (text: any, record: any) => {
-        return (
-          <Switch
-            // checked={Boolean(record.title2)}
-            size="small"
-            // onChange={(checked) => {
-            //   console.log("checked", checked);
-            // }}
-          />
-        );
-      },
+      ellipsis: true,
     },
     {
       title: "添加时间",
       dataIndex: "createTime",
       ellipsis: true,
-      sorter: true,
       hideInSearch: true,
+      sorter: true,
     },
-
     {
       title: "操作",
       valueType: "option",
@@ -122,6 +91,27 @@ const Page: React.FC = () => {
       ],
     },
   ];
+  const requestData: any = async (...args: any) => {
+    try {
+      const res = await getList({ params: args[0], sort: args[1] });
+      return res;
+    } catch {
+      return {
+        data: [
+          {
+            id: 1,
+            title: "测试数据",
+            title2: true,
+            title1: 2,
+            createTime: "测试数据",
+          },
+        ],
+        total: 1,
+        success: true,
+      };
+    }
+  };
+
   return (
     <PageContainer>
       <ProTable<any>
@@ -129,6 +119,7 @@ const Page: React.FC = () => {
         actionRef={actionRef}
         cardBordered
         request={requestData}
+        dateFormatter="string"
         rowKey="id"
         pagination={{
           pageSize: 10,
@@ -141,8 +132,8 @@ const Page: React.FC = () => {
             icon={<PlusOutlined />}
             onClick={() => {
               setState({
-                optionType: "add",
                 isUpdateModalOpen: true,
+                optionType: "add",
               });
             }}
             type="primary"
@@ -152,8 +143,8 @@ const Page: React.FC = () => {
         ]}
       />
       <AddModal
-        type={optionType}
         open={isUpdateModalOpen}
+        type={optionType}
         updateValue={updateValue}
         onCancel={() => {
           setState({ isUpdateModalOpen: false, updateValue: {} });

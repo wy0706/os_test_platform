@@ -227,26 +227,27 @@ export default [
       },
     ],
   },
-  // {
-  //   path: "/system-management",
-  //   name: "系统管理",
-  //   icon: "fileText",
-  //   access: "systemManagement",
-  //   routes: [
-  //     {
-  //       path: "/system-management/equip-management",
-  //       name: "添加设备",
-  //       access: ["equipManagement-preview", "equipManagement-edit"],
-  //       component: "./system-management/equip-management",
-  //     },
-  //     {
-  //       path: "/system-management/command-management",
-  //       name: "添加命令",
-  //       access: ["commandManagement-preview", "commandManagement-edit"],
-  //       component: "./system-management/command-management",
-  //     },
-  //   ],
-  // },
+  {
+    path: "/system-management",
+    name: "系统管理",
+    icon: "fileText",
+    access: "systemManagement",
+    routes: [
+      {
+        path: "/system-management/equip-management",
+        name: "添加设备",
+        access: ["equipManagement-preview", "equipManagement-edit"],
+        component: "./system-management/equip-management",
+        hideFooter: true,
+      },
+      {
+        path: "/system-management/command-management",
+        name: "添加命令",
+        access: ["commandManagement-preview", "commandManagement-edit"],
+        component: "./system-management/command-management",
+      },
+    ],
+  },
   {
     path: "/",
     redirect: "/welcome",

@@ -4,6 +4,7 @@ import { InfoCircleOutlined, UploadOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
 import { Button, Col, Form, Input, Modal, Row, Select, Upload } from "antd";
 import { useEffect, useState } from "react";
+import { interfOptons } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -27,7 +28,10 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const [userList, setUserList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const options = Array.from({ length: 20 }, (_, i) => ({
+    label: String(i + 1),
+    value: i + 1,
+  }));
   const [state, setState] = useSetState<any>({
     title: "新建",
   });
@@ -54,6 +58,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   useEffect(() => {
     const name = type === "add" ? "新建" : "编辑";
     setState({ title: name });
+    console.log("updateValue", updateValue);
+
     if (open) {
       form?.resetFields();
       fetchAllUsers();
@@ -117,29 +123,26 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item
               name="title"
               label="设备名称"
-              // rules={[{ required: true }]}
+              rules={[{ required: true }]}
             >
-              <Input placeholder="输入设备名称" allowClear />
+              {/* 不可编辑，设备类选中就已确定 */}
+              <Input placeholder="设备名称" disabled allowClear />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          {/* <Col span={12}>
             {" "}
             <Form.Item name="name1" label="设备类型">
               <Input placeholder="输入设备类型" allowClear />
             </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={[24, 24]}>
+          </Col> */}
           <Col span={12}>
             {" "}
-            <Form.Item name="name2" label="设备类型编码（ device type ）">
-              <Input placeholder="输入设备类型编码" allowClear />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            {" "}
-            <Form.Item name="name3" label="激活" initialValue={"1"}>
+            <Form.Item
+              name="name3"
+              rules={[{ required: true }]}
+              label="激活"
+              initialValue={"1"}
+            >
               <Select placeholder="选择是否激活" allowClear>
                 <Option value="1">✓</Option>
                 <Option value="0">✗</Option>
@@ -147,86 +150,78 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
+
         <Row gutter={[24, 24]}>
+          {/* <Col span={12}>
+            {" "}
+            <Form.Item name="name2" label="设备类型编码">
+              <Input placeholder="输入设备类型编码" allowClear />
+            </Form.Item>
+          </Col> */}
           <Col span={12}>
             {" "}
             <Form.Item
-              name="name4"
-              label="安全操作 （ safe operation ）"
-              initialValue={"1"}
+              name="name5"
+              label="设备型号"
+              rules={[{ required: true }]}
             >
+              <Input placeholder="输入设备型号" allowClear />
+            </Form.Item>
+          </Col>{" "}
+          <Col span={12}>
+            {" "}
+            <Form.Item name="name6" label="接口" rules={[{ required: true }]}>
+              <Select
+                placeholder="选择接口"
+                allowClear
+                showSearch
+                options={interfOptons}
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+          </Col>{" "}
+        </Row>
+
+        {/* <Col span={12}>
+            {" "}
+            <Form.Item name="name4" label="安全操作" initialValue={"1"}>
               <Select placeholder="选择安全操作" allowClear>
                 <Option value="1">✓</Option>
                 <Option value="0">✗</Option>
               </Select>
             </Form.Item>
-          </Col>{" "}
-          <Col span={12}>
-            {" "}
-            <Form.Item name="name5" label="设备型号（ model name ）">
-              <Input placeholder="输入设备型号" allowClear />
-            </Form.Item>
-          </Col>
-        </Row>
+          </Col>{" "} */}
 
         <Row gutter={[24, 24]}>
           <Col span={12}>
             {" "}
-            <Form.Item name="name6" label="接口（ Interface ）">
-              <Select
-                placeholder="选择接口"
-                allowClear
-                showSearch
-                loading={loading}
-                filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-              >
-                {userList.map((user) => (
-                  <Option key={user.id} value={user.id}>
-                    {user.name ||
-                      user.username ||
-                      user.realName ||
-                      user.displayName}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>{" "}
-          <Col span={12}>
-            {" "}
-            <Form.Item name="name7" label="通道（ Channel per Module ）">
+            <Form.Item
+              name="name7"
+              label="通道"
+              rules={[{ required: true }]}
+              initialValue={1}
+            >
               <Select
                 placeholder="选择通道"
+                options={options}
                 allowClear
                 showSearch
-                loading={loading}
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase())
+                  (option?.label ?? "").toString().includes(input)
                 }
-              >
-                {userList.map((user) => (
-                  <Option key={user.id} value={user.id}>
-                    {user.name ||
-                      user.username ||
-                      user.realName ||
-                      user.displayName}
-                  </Option>
-                ))}
-              </Select>
+              />
             </Form.Item>
           </Col>
-        </Row>
-        <Row gutter={[24, 24]}>
           <Col span={12}>
             {" "}
             <Form.Item
               name="name8"
-              label="默认参数 （ Default Parameter ）"
+              label="默认参数"
               rules={[{ required: true }]}
             >
               <Input
@@ -235,11 +230,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
+        </Row>
+        <Row gutter={[24, 24]}>
           <Col span={12}>
             {" "}
             <Form.Item
               name="name9"
               label="API DLL"
+              rules={[{ required: true }]}
               tooltip={{
                 title: "支持扩展名： .dll",
                 icon: <InfoCircleOutlined />,
@@ -249,7 +247,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               <Upload
                 customRequest={uploadFile}
                 beforeUpload={beforeUpload}
-                accept=".xls,.xlsx, .docx, .dll"
+                // accept=".xls,.xlsx, .docx, .dll"
+                accept=".dll"
                 maxCount={1}
                 // showUploadList={false}
               >
