@@ -122,11 +122,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             {" "}
             <Form.Item
               name="title"
-              label="设备名称"
+              label="设备类型"
               rules={[{ required: true }]}
             >
               {/* 不可编辑，设备类选中就已确定 */}
-              <Input placeholder="设备名称" disabled allowClear />
+              <Select placeholder="选择设备类型" allowClear>
+                <Option value="1">类型1</Option>
+                <Option value="0">类型2</Option>
+              </Select>
             </Form.Item>
           </Col>
           {/* <Col span={12}>

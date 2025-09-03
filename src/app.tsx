@@ -103,6 +103,7 @@ export const layout: RunTimeLayoutConfig = ({
       "/case-management/test-sequence-edit",
       "/case-management/case-run",
       "/system-management/equip-management",
+      "/backend-management/permission-management",
     ];
     return hideFooterPaths.some((path) => currentPath.startsWith(path));
   };

@@ -133,7 +133,11 @@ const TempModal: React.FC<SetMemberModalProps> = ({
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="dataType" label="数据类型">
+            <Form.Item
+              name="dataType"
+              label="数据类型"
+              rules={[{ required: true }]}
+            >
               <Select
                 placeholder="选择数据类型"
                 options={dataTypeOptions}

@@ -2,6 +2,7 @@ import { SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { history, Outlet, useLocation } from "@umijs/max";
 import { Tabs } from "antd";
 import React from "react";
+import "./index.less";
 const backendSubRoutes = [
   {
     path: "/backend-management/user-management",
@@ -69,7 +70,7 @@ const BackendManagement: React.FC = () => {
         activeKey={activeKey}
         onChange={(key) => history.push(key)}
         items={tabList}
-        style={{ marginBottom: 16, paddingLeft: 32 }}
+        style={{ paddingLeft: 32 }}
       />
 
       <Outlet />

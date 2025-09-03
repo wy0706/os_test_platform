@@ -58,9 +58,7 @@ const TestCaseExample: React.FC = () => {
   const [data, setData] = useState<any>(null);
   // const [selectedRow, setSelectedRow] = useState<string>("DEMO-6");
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [selectedModule, setSelectedModule] = useState<string>("");
+  const [selectedModule, setSelectedModule] = useState<string>(""); // 选中的用例模块
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -389,6 +387,14 @@ const TestCaseExample: React.FC = () => {
         // 如果后端接口失败，使用默认数据
         const defaultModules = [
           {
+            id: "all",
+            name: "全部模块",
+            count: 6,
+            expanded: true,
+            key: "all",
+            coverage: 0,
+          },
+          {
             id: "login",
             name: "注册与登录",
             count: 6,
@@ -427,6 +433,14 @@ const TestCaseExample: React.FC = () => {
       console.error("获取模块列表失败:", error);
       // 使用默认数据
       const defaultModules = [
+        {
+          id: "all",
+          name: "全部模块",
+          count: 15,
+          expanded: true,
+          key: "all",
+          coverage: 0,
+        },
         {
           id: "login",
           name: "注册与登录",
@@ -706,70 +720,76 @@ const TestCaseExample: React.FC = () => {
           >
             <FolderOutlined style={{ color: "#8c8c8c", fontSize: "14px" }} />
             <span style={{ fontSize: "12px" }}>{module.name}</span>
-            <span style={{ fontSize: "12px" }}>( {module.count} )</span>
-            <span style={{ fontSize: "12px" }}>( {module.coverage || 0} )</span>
-          </div>
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              color: "#999",
-              gap: "8px",
-            }}
-          >
-            <div
-              style={{
-                cursor: "pointer",
-                padding: "2px",
-                borderRadius: "4px",
-                transition: "all 0.2s",
-              }}
-              className="tree-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
+            {module.id != "all" ? (
+              <>
+                <span style={{ fontSize: "12px" }}>( {module.count} )</span>
+                <span style={{ fontSize: "12px" }}>
+                  ( {module.coverage || 0} )
+                </span>
+                <div
+                  style={{
+                    marginLeft: "auto",
+                    display: "flex",
+                    color: "#999",
+                    gap: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      cursor: "pointer",
+                      padding: "2px",
+                      borderRadius: "4px",
+                      transition: "all 0.2s",
+                    }}
+                    className="tree-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
 
-                setState({
-                  isEditModuleModalOpen: true,
-                  editModuleData: module,
-                });
-                // startEditModuleName(module);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(24, 144, 255, 0.1)";
-                e.currentTarget.style.color = "#1890ff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#999";
-              }}
-            >
-              <EditOutlined />
-            </div>
-            <div
-              style={{
-                cursor: "pointer",
-                padding: "2px",
-                borderRadius: "4px",
-                transition: "all 0.2s",
-              }}
-              className="tree-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteModule(module);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 77, 79, 0.1)";
-                e.currentTarget.style.color = "#ff4d4f";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "#999";
-              }}
-            >
-              <DeleteOutlined />
-            </div>
+                      setState({
+                        isEditModuleModalOpen: true,
+                        editModuleData: module,
+                      });
+                      // startEditModuleName(module);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(24, 144, 255, 0.1)";
+                      e.currentTarget.style.color = "#1890ff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#999";
+                    }}
+                  >
+                    <EditOutlined />
+                  </div>
+                  <div
+                    style={{
+                      cursor: "pointer",
+                      padding: "2px",
+                      borderRadius: "4px",
+                      transition: "all 0.2s",
+                    }}
+                    className="tree-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteModule(module);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(255, 77, 79, 0.1)";
+                      e.currentTarget.style.color = "#ff4d4f";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#999";
+                    }}
+                  >
+                    <DeleteOutlined />
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </>
       </div>
@@ -1026,7 +1046,7 @@ const TestCaseExample: React.FC = () => {
                     }·${getFilteredUseCases().length}`
                   : `全部用例·${useCases.length}`}
               </h2>
-              {selectedModule && (
+              {/* {selectedModule && (
                 <Button
                   size="small"
                   type="link"
@@ -1035,7 +1055,7 @@ const TestCaseExample: React.FC = () => {
                 >
                   清除筛选
                 </Button>
-              )}
+              )} */}
             </div>
           </div>
 
@@ -1048,11 +1068,18 @@ const TestCaseExample: React.FC = () => {
             }}
           >
             <ProTable<any>
+              params={{ id: selectedModule }}
               columns={columns}
               actionRef={actionRef}
               cardBordered
               options={false}
-              request={requestData}
+              request={async (params, sorter, filter) => {
+                // 首次渲染还没选左侧时，不请求或返回空
+                if (!params.id) {
+                  return { data: [], success: true, total: 0 };
+                }
+                return requestData({ ...params, sorter, filter });
+              }}
               rowKey="id"
               pagination={{
                 pageSize: 10,
@@ -1196,7 +1223,7 @@ const TestCaseExample: React.FC = () => {
         onOk={() => {}}
       />
       {/* 编辑/新增用例模块 */}
-      <Modal
+      {/* <Modal
         title={isEditMode ? "编辑用例模块" : "新增用例模块"}
         maskClosable={false}
         open={open}
@@ -1272,7 +1299,7 @@ const TestCaseExample: React.FC = () => {
             <Input placeholder="输入模块名称" />
           </Form.Item>
         </Form>
-      </Modal>
+      </Modal> */}
     </PageContainer>
   );
 };

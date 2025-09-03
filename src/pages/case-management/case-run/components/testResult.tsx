@@ -98,7 +98,7 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
         ),
       },
       {
-        title: "变量名",
+        title: "",
         dataIndex: "varname",
       },
       {

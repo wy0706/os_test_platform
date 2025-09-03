@@ -99,7 +99,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="name" label="型号" rules={[{ required: true }]}>
+        <Form.Item name="name" label="型号">
           <Input placeholder="输入型号" maxLength={32} allowClear />
         </Form.Item>
         <Form.Item name="gender2" label="作者">
@@ -139,7 +139,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
         <Form.Item name="message" label="说明">
           <Input.TextArea rows={4} placeholder="输入说明" />
         </Form.Item>
-        <Form.Item name="status" label="配置文件">
+        <Form.Item name="status" label="配置文件" rules={[{ required: true }]}>
           <Select placeholder="选择配置文件" allowClear>
             <Option value="Pre测试">配置文件1.hwc</Option>
             <Option value="UUT测试">配置文件2.hwc</Option>

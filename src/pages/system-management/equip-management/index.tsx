@@ -15,33 +15,10 @@ import AddModal from "./components/addModal";
 import AddTypeModal from "./components/addTypeModal";
 // 模拟角色数据
 const mockRoles = [
-  { id: 1, name: "设备类型1", desc: "" },
-  { id: 2, name: "设备类型2", desc: "" },
+  { id: "all", name: "全部设备", desc: "", type: "all" },
+  { id: 2, name: "设备类型1", desc: "" },
+  { id: 3, name: "设备类型2", desc: "" },
 ];
-
-const defaultRolePermissions = {
-  1: {
-    // 系统管理员
-    testTask: ["view", "operate"],
-    testCase: ["view", "operate"],
-    device: ["view", "operate"],
-    tool: ["view", "operate"],
-    system: ["view", "operate"],
-    cicd: ["view", "operate"],
-    log: ["view", "operate"],
-  },
-  2: {
-    // 测试处理
-    testTask: ["view", "operate"],
-    testCase: ["view", "operate"],
-    device: ["view"],
-    tool: ["view"],
-    system: ["view"],
-    cicd: [],
-    log: ["view"],
-  },
-  // 其他角色可继续补充...
-};
 
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
@@ -54,7 +31,7 @@ const Page: React.FC = () => {
     isAddTypeModalOpen: false,
     addTypeValue: {},
     equipTypeData: [],
-    currentSelectedTypeId: null,
+    currentSelectedTypeId: "all", // 当前选中的设备类型ID
     typeSearch: "", // 设备类型搜索关键字
   });
   const {
@@ -107,7 +84,7 @@ const Page: React.FC = () => {
 
   const columns: any = [
     {
-      title: "设备名称",
+      title: "设备型号",
       dataIndex: "title",
       ellipsis: true,
     },
@@ -269,7 +246,7 @@ const Page: React.FC = () => {
             >
               设备类型
             </h4>
-            <Button
+            {/* <Button
               type="primary"
               icon={<PlusOutlined />}
               size="small"
@@ -282,7 +259,7 @@ const Page: React.FC = () => {
               }}
             >
               新建
-            </Button>
+            </Button> */}
           </div>
           {/* <div style={{ padding: 12, display: "flex", gap: 8 }}>
               <Input
@@ -321,44 +298,98 @@ const Page: React.FC = () => {
                     // paddingLeft: 16,
                   }}
                   onClick={() => handleTypeSelect(item.id)}
-                  actions={[
-                    <Button
-                      icon={<EditOutlined />}
-                      size="small"
-                      type="link"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setState({
-                          isAddTypeModalOpen: true,
-                          typeOptionType: "edit",
-                          addTypeValue: item,
-                        });
-                      }}
-                      key="edit"
-                    >
-                      {/* 编辑 */}
-                    </Button>,
-                    <Button
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      type="link"
-                      danger
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        Modal.confirm({
-                          title: "确认删除吗？",
-                          onOk: async () => {
-                            await deleteOne(item.id);
-                            if (item.id === currentSelectedTypeId) {
-                              setState({ currentSelectedTypeId: null });
-                            }
-                            // fetchRoles();
-                          },
-                        });
-                      }}
-                      key="del"
-                    ></Button>,
-                  ]}
+                  actions={
+                    item.id !== "all" // “全部” 不显示操作按钮
+                      ? [
+                          <Button
+                            icon={<EditOutlined />}
+                            size="small"
+                            type="link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setState({
+                                isAddTypeModalOpen: true,
+                                typeOptionType: "edit",
+                                addTypeValue: item,
+                              });
+                            }}
+                            key="edit"
+                          />,
+                          <Button
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            type="link"
+                            danger
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              Modal.confirm({
+                                title: "确认删除吗？",
+                                onOk: async () => {
+                                  await deleteOne(item.id);
+                                  if (item.id === currentSelectedTypeId) {
+                                    setState({ currentSelectedTypeId: null });
+                                  }
+                                },
+                              });
+                            }}
+                            key="del"
+                          />,
+                        ]
+                      : [
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            size="small"
+                            onClick={() => {
+                              setState({
+                                isAddTypeModalOpen: true,
+                                typeOptionType: "add",
+                                addTypeValue: {},
+                              });
+                            }}
+                          >
+                            {/* 新建 */}
+                          </Button>,
+                        ]
+                  }
+                  // actions={[
+                  //   <Button
+                  //     icon={<EditOutlined />}
+                  //     size="small"
+                  //     type="link"
+                  //     onClick={(e) => {
+                  //       e.stopPropagation();
+                  //       setState({
+                  //         isAddTypeModalOpen: true,
+                  //         typeOptionType: "edit",
+                  //         addTypeValue: item,
+                  //       });
+                  //     }}
+                  //     key="edit"
+                  //   >
+                  //     {/* 编辑 */}
+                  //   </Button>,
+                  //   <Button
+                  //     size="small"
+                  //     icon={<DeleteOutlined />}
+                  //     type="link"
+                  //     danger
+                  //     onClick={(e) => {
+                  //       e.stopPropagation();
+                  //       Modal.confirm({
+                  //         title: "确认删除吗？",
+                  //         onOk: async () => {
+                  //           await deleteOne(item.id);
+                  //           if (item.id === currentSelectedTypeId) {
+                  //             setState({ currentSelectedTypeId: null });
+                  //           }
+                  //           // fetchRoles();
+                  //         },
+                  //       });
+                  //     }}
+                  //     key="del"
+                  //   ></Button>,
+                  // ]}
                 >
                   <List.Item.Meta title={<span>{item.name}</span>} />
                 </List.Item>

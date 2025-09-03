@@ -24,7 +24,7 @@ import { mockTreeData, preTable } from "./schemas";
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
-    leftTabActiveKey: 1,
+    leftTabActiveKey: "2",
     editType: "", //pre 、uut 、post
     editValue: {},
     tabLeftItems: [
@@ -44,7 +44,7 @@ const Page: React.FC = () => {
     tabRightItems: [
       {
         key: "1",
-        label: "测试项目",
+        label: "测试序列",
       },
       {
         key: "2",
@@ -348,7 +348,7 @@ const Page: React.FC = () => {
       header={{
         title: (
           <div>
-            用例执行 &nbsp;{" "}
+            程序编辑 &nbsp;{" "}
             {title && <span style={{ color: "#6c757d" }}>【 {title} 】</span>}
           </div>
         ),
@@ -394,7 +394,15 @@ const Page: React.FC = () => {
                 运行
               </Button>
             </Space>
-            <Checkbox checked={isEditAll}>编辑所有测试条件</Checkbox>{" "}
+            {/* checked={isEditAll} */}
+            <Checkbox
+              onChange={(e) => {
+                console.log(e.target.checked);
+                setState({ isEditAll: e.target.checked });
+              }}
+            >
+              编辑所有测试条件
+            </Checkbox>{" "}
           </div>
         </Card>
 
@@ -480,7 +488,6 @@ const Page: React.FC = () => {
                   onInsertTreeNode={insertTreeNode}
                   onSelect={(keys, info) => {
                     console.log(keys, info);
-
                     setState({
                       treeSelectedKeys: keys as string[],
                       treeSelectedCommand: info.node.command,

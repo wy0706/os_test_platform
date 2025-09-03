@@ -75,12 +75,12 @@ const RunLeftPage: React.FC<RunProps> = ({
       },
     },
     {
-      title: "项目名称",
+      title: "序列名称",
       dataIndex: "title",
       ellipsis: true,
     },
     {
-      title: "项目名称/项目说明",
+      title: "命令名称",
       dataIndex: "describe",
       ellipsis: true,
     },
@@ -226,7 +226,7 @@ const RunLeftPage: React.FC<RunProps> = ({
             }
           }}
         >
-          按命令展开所有项目
+          按命令展开所有序列
         </Checkbox>
       </div>
       <Table<any>

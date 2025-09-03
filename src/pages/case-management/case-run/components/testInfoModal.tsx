@@ -95,8 +95,8 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
             ))}
           </Select> */}
         </Form.Item>
-        <Form.Item name="name4" label="检验人员">
-          <Input placeholder="输入检验人员" allowClear />
+        <Form.Item name="name4" label="环境温度">
+          <Input placeholder="输入环境温度" allowClear />
         </Form.Item>
         <Form.Item name="name5" label="测试依据">
           <Input placeholder="输入测试依据" allowClear />

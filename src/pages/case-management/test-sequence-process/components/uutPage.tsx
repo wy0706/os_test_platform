@@ -52,7 +52,7 @@ const UutPage: React.FC<PreProps> = ({
       },
     },
     {
-      title: "测试项目",
+      title: "测试序列",
       dataIndex: "title",
       ellipsis: true,
     },
