@@ -232,6 +232,8 @@ const RunLeftPage: React.FC<RunProps> = ({
       <Table<any>
         bordered
         columns={columns}
+        scroll={{ y: 300 }}
+        indentSize={0} // 取消树形缩进
         dataSource={dataSource}
         rowKey={(record) => record.key || record.id}
         pagination={false}

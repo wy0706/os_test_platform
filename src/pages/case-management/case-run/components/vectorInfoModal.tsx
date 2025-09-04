@@ -28,19 +28,19 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
     }
   }, [open]);
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
-  };
+  // const handleOk = () => {
+  //   form
+  //     .validateFields()
+  //     .then((values) => {
+  //       console.log("Form values:", values);
+  //       if (onOk) {
+  //         onOk(values);
+  //       }
+  //     })
+  //     .catch((errorInfo) => {
+  //       console.error("Validation failed:", errorInfo);
+  //     });
+  // };
 
   const columns = [
     {
@@ -138,7 +138,7 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
       }}
       styles={{ body: { minHeight: 200, padding: 20 } }}
       width={"50%"}
-      onOk={handleOk}
+      // onOk={handleOk}
       footer={null}
     >
       <ProTable

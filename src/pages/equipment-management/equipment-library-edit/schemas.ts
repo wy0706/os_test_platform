@@ -185,6 +185,9 @@ export const channelFormSchema = [
 // 端口
 // 波特率
 export const rateOption = [
+  { value: "9600", label: "9600" },
+  { value: "19200", label: "19200" },
+  { value: "38400", label: "38400" },
   { value: "115200", label: "115200" },
   { value: "128000", label: "128000" },
   { value: "230400", label: "230400" },

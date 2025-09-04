@@ -58,7 +58,7 @@ const Page: React.FC = () => {
     title: null,
     breakpoints: [], //打断点的行keys
     currentStatus: "PASS", // 当前运行状态：PASS, FAIL, BREAK, TEST, ERROR
-    tabActiveKey: "1",
+    tabActiveKey: "2",
     dataSource: [],
     isSelfCheck: false, //是否点击自检
     selfCheckMessages: [], //自检信息列表
@@ -212,7 +212,7 @@ const Page: React.FC = () => {
           title: "",
           describe: "PreTestItemProcessing",
           schemas: "1.000000,2.000000,b",
-          qualified: "合格",
+          qualified: "PASS",
           group: 101,
         },
       ];
@@ -368,7 +368,6 @@ const Page: React.FC = () => {
               <div
                 style={{
                   background: "#fff",
-                  // paddingTop: "20px",
                 }}
               >
                 <Tabs
