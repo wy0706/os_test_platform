@@ -1,16 +1,18 @@
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
-import { Card, Checkbox, Progress, Space, Switch, Table, Tag } from "antd";
-import React, { useEffect } from "react";
+import { Card, Checkbox, Progress, Space, Table, Tag } from "antd";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
+import "./index.less";
 interface RunProps {
   data?: any;
   id?: any;
   isSelfCheck: Boolean;
   isSelfChecking: boolean;
   selfCheckMessages: any;
-  onPointChange: (record: any, checked: any) => void;
   currentStatus: string;
   breakpoints: any;
+  onDataChange?: (newData: any[]) => void;
+  onPonitChange: (value: any) => void;
 }
 interface SelfCheckMessage {
   id: number;
@@ -20,16 +22,16 @@ interface SelfCheckMessage {
   message: string;
   timestamp: Date;
 }
-const RunLeftPage: React.FC<RunProps> = ({
-  isSelfCheck,
-  isSelfChecking,
-  selfCheckMessages,
-  data,
-  id,
-  onPointChange,
-  currentStatus,
-  breakpoints,
-}) => {
+const RunLeftPage = forwardRef((props: RunProps, ref) => {
+  const {
+    data,
+    isSelfCheck,
+    isSelfChecking,
+    selfCheckMessages,
+    currentStatus,
+    onDataChange,
+    onPonitChange,
+  } = props;
   const [state, setState] = useSetState<any>({
     isExpandAll: true,
     dataSource: [],
@@ -38,10 +40,52 @@ const RunLeftPage: React.FC<RunProps> = ({
   const { isExpandAll, dataSource, expandedRowKeys } = state;
 
   useEffect(() => {
+    const mockData = [
+      {
+        id: 100,
+        title: "test add",
+        describe: "",
+        schemas: "",
+        qualified: "",
+        group: 100,
+      },
+      {
+        id: 11,
+        title: "test add",
+        describe: "PreTestItemProcessing2",
+        schemas: "1.000000,2.000000,b",
+        qualified: "",
+        group: 100,
+      },
+      {
+        id: 2,
+        title: "test add",
+        describe: "ADD",
+        schemas: "",
+        qualified: "",
+        group: 100,
+      },
+      {
+        id: 101,
+        title: "test add2",
+        describe: "",
+        schemas: "",
+        qualified: "",
+        group: 101,
+      },
+      {
+        id: 31,
+        title: "",
+        describe: "PreTestItemProcessing",
+        schemas: "1.000000,2.000000,b",
+        qualified: "PASS",
+        group: 101,
+      },
+    ];
     setState({
-      dataSource: convertToTreeData(data),
+      dataSource: convertToTreeData(mockData),
     });
-  }, [data]);
+  }, []);
 
   // 数据加载后，若开启“按命令展开所有项目”，默认展开全部可展开的行
   useEffect(() => {
@@ -52,32 +96,24 @@ const RunLeftPage: React.FC<RunProps> = ({
       setState({ expandedRowKeys: allExpandableKeys });
     }
   }, [dataSource, isExpandAll]);
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(dataSource);
+    }
+  }, [dataSource, onDataChange]);
 
   // 定义表格列
   const columns = [
     {
-      title: " ",
-      dataIndex: "breakpoint",
-      width: 80,
-      align: "center" as const,
-      render: (_: any, record: any) => {
-        const hasBreakpoint =
-          Array.isArray(breakpoints) &&
-          breakpoints.map(String).includes(String(record.id));
-        return (
-          <Switch
-            size="small"
-            checked={hasBreakpoint}
-            onChange={(checked) => handleBreakpointChange(record, checked)}
-            className="breakpoint-switch"
-          />
-        );
-      },
-    },
-    {
       title: "序列名称",
       dataIndex: "title",
       ellipsis: true,
+      render: (text: string, record: any) => (
+        <span style={{ display: "flex", alignItems: "center" }}>
+          {record.breakpoint && <span className="breakpoint-dot" />}
+          {text}
+        </span>
+      ),
     },
     {
       title: "命令名称",
@@ -95,14 +131,16 @@ const RunLeftPage: React.FC<RunProps> = ({
       ellipsis: true,
     },
   ];
-
+  // 暴露方法给父组件
+  useImperativeHandle(ref, () => ({
+    clearAllBreakpoints,
+  }));
   // 将平铺数据转换为按group分组的树形结构
   const convertToTreeData = (flatData: any[]) => {
     if (!flatData || flatData.length === 0) return [];
 
     // 按group分组
     const groupMap = new Map();
-
     flatData.forEach((item) => {
       const group = item.group;
       if (!groupMap.has(group)) {
@@ -161,21 +199,41 @@ const RunLeftPage: React.FC<RunProps> = ({
     return treeData;
   };
 
-  // 处理断点切换
-  const handleBreakpointChange = (record: any, checked: boolean) => {
-    onPointChange && onPointChange(record, checked);
-    // if (checked) {
-    //   setState({
-    //     breakpoints: [...breakpoints, record.id],
-    //   });
-    //   onPointChange && onPointChange([...breakpoints, record.id]);
-    // } else {
-    //   let list = breakpoints.filter((id: any) => id !== record.id);
-    //   setState({
-    //     breakpoints: list,
-    //   });
+  // 打断点
+  const setBreakpoint = (id: any, nodes: any = dataSource) => {
+    const newData = nodes.map((item: any) => {
+      if (item.id === id) return { ...item, breakpoint: true };
+      if (item.children)
+        return { ...item, children: setBreakpoint(id, item.children) };
+      return item;
+    });
+    setState({ dataSource: newData });
+    onPonitChange?.(newData);
+    return newData;
+  };
 
-    // }
+  // 取消断点
+  const cancelBreakpoint = (id: any, nodes: any = dataSource) => {
+    const newData = nodes.map((item: any) => {
+      if (item.id === id) return { ...item, breakpoint: false };
+      if (item.children)
+        return { ...item, children: cancelBreakpoint(id, item.children) };
+      return item;
+    });
+    setState({ dataSource: newData });
+    onPonitChange?.(newData);
+    return newData;
+  };
+
+  // 取消所有断点
+  const clearAllBreakpoints = (nodes: any = dataSource) => {
+    const newData = nodes.map((item: any) => ({
+      ...item,
+      breakpoint: false,
+      children: item.children ? clearAllBreakpoints(item.children) : undefined,
+    }));
+    setState({ dataSource: newData });
+    return newData;
   };
 
   // 获取状态配置
@@ -237,6 +295,10 @@ const RunLeftPage: React.FC<RunProps> = ({
         dataSource={dataSource}
         rowKey={(record) => record.key || record.id}
         pagination={false}
+        onRow={(record) => ({
+          onClick: () => cancelBreakpoint(record.id),
+          onDoubleClick: () => setBreakpoint(record.id),
+        })}
         expandable={{
           expandedRowKeys: expandedRowKeys,
           onExpand: (expanded, record) => {
@@ -430,6 +492,6 @@ const RunLeftPage: React.FC<RunProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default RunLeftPage;

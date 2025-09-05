@@ -214,7 +214,7 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
                     const minOff = Number(getFieldValue("minOffValue"));
                     const minHigh = Number(getFieldValue("minHighValue"));
                     const defaultValue = Number(value);
-
+                    if (!minOff && !minHigh) return;
                     // 校验是否为有效数字
                     if (isNaN(defaultValue)) {
                       return Promise.reject(new Error("请输入有效数字"));
@@ -255,6 +255,7 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
                   validator(_, value) {
                     const maxOff = Number(getFieldValue("maxOffValue"));
                     const maxHigh = Number(getFieldValue("maxHighValue"));
+                    if (!maxOff && !maxHigh) return;
                     const defaultValue = Number(value);
 
                     if (isNaN(defaultValue)) {

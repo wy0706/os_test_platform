@@ -1,62 +1,115 @@
-import { CloseCircleFilled } from "@ant-design/icons";
-import { Table } from "antd";
+import { Button, Table } from "antd";
 import { useState } from "react";
+import "./index.less";
 
-const DebugTable = () => {
-  const data = [
-    { id: 1, name: "任务1", desc: "初始化系统" },
-    { id: 2, name: "任务2", desc: "加载配置" },
-    { id: 3, name: "任务3", desc: "启动服务" },
-    { id: 4, name: "任务4", desc: "检查状态" },
-    { id: 5, name: "任务5", desc: "完成" },
-  ];
+interface DataType {
+  id: number;
+  name: string;
+  breakpoint?: boolean;
+  children?: DataType[];
+}
 
-  // 存储断点（key = 行id）
-  const [breakpoints, setBreakpoints] = useState<Record<number, boolean>>({});
+const initialData: DataType[] = [
+  {
+    id: 1,
+    name: "任务 A",
+    children: [
+      { id: 11, name: "任务 A-1" },
+      { id: 12, name: "任务 A-2" },
+    ],
+  },
+  {
+    id: 2,
+    name: "任务 B",
+    children: [{ id: 21, name: "任务 B-1" }],
+  },
+  { id: 3, name: "任务 C" },
+];
 
-  // 点击第一列切换断点
-  const toggleBreakpoint = (id: number) => {
-    console.log("点击断点列，行ID:", id); // ✅ 调试用
-    setBreakpoints((prev) => ({
-      ...prev,
-      [id]: !prev[id],
+const BreakpointTreeTableWithDot = () => {
+  const [data, setData] = useState<DataType[]>(initialData);
+
+  // 打断点（递归）
+  const setBreakpoint = (id: number, nodes: DataType[] = data) => {
+    const newData: any = nodes.map((item) => {
+      if (item.id === id) return { ...item, breakpoint: true };
+      if (item.children)
+        return { ...item, children: setBreakpoint(id, item.children) };
+      return item;
+    });
+    if (nodes === data) setData(newData);
+    return newData;
+  };
+
+  // 取消断点（递归）
+  const cancelBreakpoint = (id: number, nodes: DataType[] = data) => {
+    const newData: any = nodes.map((item) => {
+      if (item.id === id) return { ...item, breakpoint: false };
+      if (item.children)
+        return { ...item, children: cancelBreakpoint(id, item.children) };
+      return item;
+    });
+    if (nodes === data) setData(newData);
+    return newData;
+  };
+
+  // 取消所有断点（递归）
+  const clearAllBreakpoints = (nodes: DataType[] = data) => {
+    const newData: any = nodes.map((item) => ({
+      ...item,
+      breakpoint: false,
+      children: item.children ? clearAllBreakpoints(item.children) : undefined,
     }));
+    if (nodes === data) setData(newData);
+    return newData;
   };
 
   const columns = [
     {
-      title: "断点",
-      dataIndex: "id",
-      width: 80,
-      align: "center",
-      render: (_: any, record: any) => (
-        <div
-          onClick={() => toggleBreakpoint(record.id)}
-          style={{ cursor: "pointer" }}
-        >
-          {breakpoints[record.id] ? (
-            <CloseCircleFilled style={{ color: "red", fontSize: 18 }} />
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      title: "ID",
-      dataIndex: "id",
-    },
-    {
-      title: "任务名",
+      title: "任务名称",
       dataIndex: "name",
-    },
-    {
-      title: "描述",
-      dataIndex: "desc",
+      key: "name",
+      render: (text: string, record: DataType) => (
+        <span style={{ display: "flex", alignItems: "center" }}>
+          {record.breakpoint && (
+            <span
+              style={{
+                width: "10px",
+                height: "10px",
+                marginRight: "8px",
+                backgroundColor: "red",
+                borderRadius: "50%",
+              }}
+            />
+          )}
+          {text}
+        </span>
+      ),
     },
   ];
 
   return (
-    <Table rowKey="id" dataSource={data} columns={columns} pagination={false} />
+    <div>
+      <Button
+        onClick={() => clearAllBreakpoints()}
+        style={{ marginBottom: 16 }}
+        danger
+      >
+        取消所有断点
+      </Button>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={data}
+        pagination={false}
+        expandable={{ defaultExpandAllRows: true }}
+        onRow={(record) => ({
+          onClick: () => cancelBreakpoint(record.id),
+          onDoubleClick: () => setBreakpoint(record.id),
+        })}
+      />
+    </div>
   );
 };
 
-export default DebugTable;
+export default BreakpointTreeTableWithDot;

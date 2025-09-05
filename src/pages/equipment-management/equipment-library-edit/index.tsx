@@ -29,6 +29,7 @@ import AddTypeModal from "./components/addTypeModal";
 import CanModal from "./components/canModal";
 import LinModal from "./components/linModal";
 import ParamModal from "./components/paramModal";
+import SaveModal from "./components/saveModal";
 import "./index.less";
 interface DeviceConfig {
   deviceType: string;
@@ -84,6 +85,7 @@ const PeripheralImport: React.FC = () => {
     isSelfCheck: boolean;
     selfCheckMessages: SelfCheckMessage[];
     isSelfChecking: boolean;
+    isSaveModalOpen: boolean;
   }>({
     isTypeModalOpen: false,
     isModelModalOpen: false,
@@ -96,6 +98,7 @@ const PeripheralImport: React.FC = () => {
     isSelfCheck: false, //是否点击自检
     selfCheckMessages: [], //自检信息列表
     isSelfChecking: false, //是否正在自检中
+    isSaveModalOpen: false,
   });
 
   const {
@@ -110,6 +113,7 @@ const PeripheralImport: React.FC = () => {
     isSelfCheck,
     selfCheckMessages,
     isSelfChecking,
+    isSaveModalOpen,
   } = state;
   const params = useParams();
   useEffect(() => {
@@ -560,7 +564,14 @@ const PeripheralImport: React.FC = () => {
   };
 
   const handleExport = () => {
-    // message.info("导出功能");
+    // message.info("保存另存为功能");
+    if (!treeData[0].children || treeData[0].children.length == 0) {
+      message.warning("文件为空，请添加设备配置！");
+      return;
+    }
+    setState({
+      isSaveModalOpen: true,
+    });
   };
 
   // 添加种类
@@ -731,6 +742,13 @@ const PeripheralImport: React.FC = () => {
   };
   // 自检
   const handleSelfCheck = () => {
+    // 如果没有文件 做出提示
+    console.log("treeData", treeData);
+    if (!treeData[0].children || treeData[0].children.length == 0) {
+      message.warning("文件为空，请添加设备配置！");
+      return;
+    }
+    //
     setState({
       isSelfCheck: true,
       isSelfChecking: true,
@@ -1210,6 +1228,20 @@ const PeripheralImport: React.FC = () => {
         onOk={() => {
           setState({
             isLinModalOpen: false,
+          });
+        }}
+      />
+      {/* 保存另存为 */}
+      <SaveModal
+        open={isSaveModalOpen}
+        onCancel={() => {
+          setState({
+            isSaveModalOpen: false,
+          });
+        }}
+        onOk={() => {
+          setState({
+            isSaveModalOpen: false,
           });
         }}
       />

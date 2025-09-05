@@ -44,6 +44,8 @@ interface SelfCheckMessage {
 }
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
+  const runLeftRef = useRef<any>(null);
+
   const [searchParams] = useSearchParams();
   useEffect(() => {
     setState({
@@ -114,6 +116,7 @@ const Page: React.FC = () => {
         label: "自检",
       },
     ],
+    disableClearAll: true, //取消所有断点是否可点击，如果没有断点不可点击
   });
   const {
     title,
@@ -131,6 +134,7 @@ const Page: React.FC = () => {
     isReportInfoModalOpen,
     isTestInfoModalOpen,
     isVectorInfoModalOpen,
+    disableClearAll,
   } = state;
 
   // 处理下拉菜单点击事件
@@ -223,17 +227,27 @@ const Page: React.FC = () => {
       setState({ dataSource: mockData });
     }
   };
-  // 处理断点切换
-  const handleBreakpointChange = (record: any, checked: boolean) => {
-    if (checked) {
-      setState({
-        breakpoints: [...breakpoints, record.id],
-      });
-    } else {
-      setState({
-        breakpoints: breakpoints.filter((id: any) => id !== record.id),
-      });
-    }
+  // useEffect(() => {
+  //   const hasBreakpoint = hasAnyBreakpoint(dataSource);
+  //   setState({
+  //     disableClearAll: !hasBreakpoint,
+  //   });
+  // }, [dataSource]);
+  // 遍历树形数据，判断是否存在断点
+  const hasAnyBreakpoint = (nodes: any[]): boolean => {
+    return nodes?.some(
+      (node: any) =>
+        node.breakpoint === true ||
+        (node.children && hasAnyBreakpoint(node.children))
+    );
+  };
+
+  const handleClearAll = () => {
+    runLeftRef.current?.clearAllBreakpoints?.();
+    setState({
+      disableClearAll: true,
+    });
+    message.success("操作成功");
   };
   return (
     <PageContainer
@@ -284,12 +298,8 @@ const Page: React.FC = () => {
                   <Button icon={<CaretRightOutlined />}>继续</Button>
                   <Button icon={<PauseOutlined />}>暂停</Button>
                   <Button
-                    disabled={breakpoints.length == 0}
-                    onClick={() => {
-                      console.log("brena", breakpoints);
-                      setState({ breakpoints: [] });
-                      message.success("操作成功");
-                    }}
+                    disabled={disableClearAll}
+                    onClick={handleClearAll}
                     icon={<CloseOutlined />}
                   >
                     取消所有断点
@@ -355,13 +365,21 @@ const Page: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <RunLeftPage
-                onPointChange={handleBreakpointChange}
+                ref={runLeftRef}
                 isSelfCheck={isSelfCheck}
                 isSelfChecking={isSelfChecking}
                 selfCheckMessages={selfCheckMessages}
                 data={dataSource}
                 currentStatus={currentStatus}
                 breakpoints={breakpoints}
+                onPonitChange={(data) => {
+                  const hasBreakpoint = hasAnyBreakpoint(data);
+                  console.log("hasBreakpoint", hasBreakpoint);
+
+                  setState({
+                    disableClearAll: !hasBreakpoint,
+                  });
+                }}
               />
             </Col>
             <Col span={12}>

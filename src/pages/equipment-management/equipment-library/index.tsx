@@ -2,7 +2,7 @@ import {
   deleteOne,
   getList,
 } from "@/services/equipment-management/equipment-library.service";
-import { DeleteOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -29,23 +29,23 @@ const Page: React.FC = () => {
         title: "操作",
         valueType: "option",
         key: "option",
-        width: 200,
+        width: 100,
         render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            key="preview"
-            variant="link"
-            color="primary"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-                detailValue: record,
-              });
-            }}
-          >
-            详情
-          </Button>,
+          // <Button
+          //   key="preview"
+          //   variant="link"
+          //   color="primary"
+          //   icon={<EyeOutlined />}
+          //   onClick={() => {
+          //     setState({
+          //       detailsId: record.id,
+          //       isPreviewModalOpen: true,
+          //       detailValue: record,
+          //     });
+          //   }}
+          // >
+          //   详情
+          // </Button>,
           <Button
             key="edit"
             variant="link"
