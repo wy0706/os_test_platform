@@ -14,10 +14,11 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { history } from "@umijs/max";
+import { history, useLocation, useSearchParams } from "@umijs/max";
+
 import { useSetState } from "ahooks";
 import { Button, Checkbox, Form, Modal } from "antd";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import CreateReportModal from "./components/createReport";
 import DetailModal from "./components/detailModal";
@@ -25,6 +26,8 @@ import SequenceDataModal from "./components/sequenceDataModal";
 import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
@@ -38,6 +41,7 @@ const Page: React.FC = () => {
     isRunModalOpen: false,
     runData: {},
     isCreateReportModalOpen: false, //是否显示生成测试报告
+    taskId: null, //任务id 如果是从工作台最近访问跳转会有任务id
   });
   const {
     title,
@@ -51,6 +55,7 @@ const Page: React.FC = () => {
     isRunModalOpen,
     runData,
     isCreateReportModalOpen,
+    taskId,
   } = state;
 
   // 动态生成 columns，这样可以访问到最新的状态
@@ -173,8 +178,13 @@ const Page: React.FC = () => {
     },
   ]);
   const requestData: any = async (...args: any) => {
+    let obj = { ...args[0], taskId: state.taskId };
+    console.log("args参数", obj);
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
+      const res = await getList({
+        params: obj,
+        sort: args[1],
+      });
       return res;
     } catch {
       return {
@@ -222,6 +232,20 @@ const Page: React.FC = () => {
     setSelectedRow(record);
     // message.success(`已选择: ${record.title}`);
   };
+
+  useEffect(() => {
+    const id = searchParams.get("taskId");
+    if (id) {
+      setState({ taskId: id });
+      // 清掉 URL 参数
+      history.replace(location.pathname);
+    }
+  }, [location]);
+  useEffect(() => {
+    if (state.taskId) {
+      actionRef.current?.reload();
+    }
+  }, [state.taskId]);
   return (
     <PageContainer>
       <ProTable<any>

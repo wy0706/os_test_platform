@@ -125,21 +125,26 @@ const Welcome: React.FC = () => {
       id: "1",
       title: "微内核及根服务功能测试",
       date: "2025-08-12",
+      key: "tast1",
     },
     {
       id: "2",
-      title: "微内核及根服务功能测试",
+      title: "测试任务",
       date: "2025-08-13",
+      key: "tast",
+      taskId: 1,
     },
     {
       id: "3",
       title: "微内核及根服务功能测试",
       date: "2025-08-14",
+      key: "tast2",
     },
     {
       id: "4",
       title: "微内核及根服务功能测试",
       date: "2025-08-15",
+      key: "tast3",
     },
   ];
 
@@ -216,6 +221,13 @@ const Welcome: React.FC = () => {
                 hoverable
                 style={cardStyle}
                 styles={{ body: cardBodyStyle }}
+                onClick={() => {
+                  console.log("item", item);
+                  if (item.key !== "tast") return;
+                  history.push(
+                    `/task-management/test-task?taskId=${item.taskId}`
+                  );
+                }}
               >
                 <div
                   style={{

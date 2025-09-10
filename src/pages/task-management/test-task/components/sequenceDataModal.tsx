@@ -51,8 +51,8 @@ const columns: any = [
     // filters: true,
     // onFilter: true,
     valueEnum: {
-      1: { text: "YES", status: "Success" },
-      2: { text: "NO", status: "Default" },
+      1: { text: "✓", status: "Success" },
+      2: { text: "✗", status: "Default" },
     },
   },
 
