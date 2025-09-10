@@ -9,11 +9,11 @@ import { useSetState } from "ahooks";
 import {
   Button,
   Card,
+  Checkbox,
   Form,
   Input,
   List,
   Modal,
-  Radio,
   Space,
   message,
 } from "antd";
@@ -82,28 +82,35 @@ const permissionItems = [
 const defaultRolePermissions = {
   1: {
     // 系统管理员
-    testTask: "operate",
-    testCase: "operate",
-    device: "operate",
-    tool: "operate",
-    system: "operate",
-    cicd: "operate",
-    log: "operate",
+    testTask: ["view", "operate"],
+    testCase: ["view", "operate"],
+    device: ["view", "operate"],
+    tool: ["view", "operate"],
+    system: ["view", "operate"],
+    cicd: ["view", "operate"],
+    log: ["view", "operate"],
   },
   2: {
     // 测试处理
-    testTask: "view",
-    testCase: "operate",
-    device: "view",
-    tool: "view",
-    system: "view",
-    cicd: "",
-    log: "view",
+    testTask: ["view", "operate"],
+    testCase: ["view", "operate"],
+    device: ["view"],
+    tool: ["view"],
+    system: ["view"],
+    cicd: [],
+    log: ["view"],
   },
   // 其他角色可继续补充...
 };
 
 const PermissionManagement: React.FC = () => {
+  const [roles, setRoles] = useState(mockRoles);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(
+    roles[0]?.id
+  );
+  const [rolePermissions, setRolePermissions] = useState<any>(
+    defaultRolePermissions
+  );
   const [addRoleModalOpen, setAddRoleModalOpen] = useState(false);
   const [roleSearch, setRoleSearch] = useState(""); // 实际过滤关键字
   const [roleSearchInput, setRoleSearchInput] = useState(""); // 输入框内容
@@ -115,50 +122,28 @@ const PermissionManagement: React.FC = () => {
     isUpdateModalOpen: false,
     updateValue: {},
     formSchema: schemasForm,
-    roles: [],
-    selectedRoleId: null,
-    currentRole: null,
-    rolePermissions: null,
   });
-  const {
-    isUpdate,
-    isUpdateModalOpen,
-    updateValue,
-    formSchema,
-    roles,
-    selectedRoleId,
-    currentRole,
-    rolePermissions,
-  } = state;
+  const { isUpdate, isUpdateModalOpen, updateValue, formSchema } = state;
 
   useEffect(() => {
-    setState({
-      roles: mockRoles,
-      selectedRoleId: 1,
-      currentRole: mockRoles.find((r) => r.id === 1) || null,
-      rolePermissions: defaultRolePermissions,
-    });
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   // 角色切换
   const handleRoleSelect = (id: number) => {
-    const item = state.roles.find((r: any) => r.id === id);
-    setState({
-      selectedRoleId: id,
-      currentRole: item,
-    });
+    setSelectedRoleId(id);
   };
 
   // 权限勾选
   const handlePermissionChange = (permKey: string, checkedValues: string[]) => {
-    setState((prev) => ({
+    setRolePermissions((prev: any) => ({
       ...prev,
-      rolePermissions: {
-        ...prev.rolePermissions,
-        [prev.selectedRoleId]: {
-          ...prev.rolePermissions[prev.selectedRoleId],
-          [permKey]: checkedValues, // 单值
-        },
+      [selectedRoleId]: {
+        ...prev[selectedRoleId],
+        [permKey]: checkedValues,
       },
     }));
   };
@@ -209,22 +194,16 @@ const PermissionManagement: React.FC = () => {
     Modal.confirm({
       title: "是否确认删除该角色？",
       onOk: () => {
-        setState((prev) => {
+        setRoles((prev) => {
           const newRoles = prev.filter((r) => r.id !== role.id);
-          let newSelected = prev.selectedRoleId;
           // 如果当前选中被删，自动选中第一个
           if (selectedRoleId === role.id && newRoles.length > 0) {
-            newSelected = newRoles[0].id;
+            setSelectedRoleId(newRoles[0].id);
           } else if (newRoles.length === 0) {
-            newSelected = null;
+            setSelectedRoleId(undefined);
           }
-          return {
-            ...prev,
-            roles: newRoles,
-            selectedRoleId: newSelected,
-          };
+          return newRoles;
         });
-
         message.success("删除成功");
       },
     });
@@ -232,9 +211,6 @@ const PermissionManagement: React.FC = () => {
 
   // 保存权限
   const handleSave = () => {
-    console.log(rolePermissions);
-    console.log(currentRole);
-
     message.success("权限已保存（模拟）");
   };
 
@@ -243,7 +219,7 @@ const PermissionManagement: React.FC = () => {
     message.info("已取消更改");
   };
 
-  // const currentRole = roles.find((r: any) => r.id === selectedRoleId);
+  const currentRole = roles.find((r) => r.id === selectedRoleId);
   const currentPermissions = selectedRoleId
     ? rolePermissions[selectedRoleId] || {}
     : {};
@@ -252,9 +228,7 @@ const PermissionManagement: React.FC = () => {
   const rightPanelMinHeight = "calc(100vh - 120px)"; // 适当留出头部和边距
 
   // 角色搜索过滤
-  const filteredRoles = roles.filter((role: any) =>
-    role.name.includes(roleSearch)
-  );
+  const filteredRoles = roles.filter((role) => role.name.includes(roleSearch));
   // 权限分组搜索过滤
   const filteredPermissions = mockPermissions.filter(
     (perm) =>
@@ -267,27 +241,19 @@ const PermissionManagement: React.FC = () => {
     setState({ isUpdateModalOpen: false });
     if (!isUpdate) {
       const newId = Math.max(...roles.map((r) => r.id)) + 1;
-      setState((prev) => ({
-        ...prev,
-        roles: [
-          ...prev.roles,
-          { id: newId, name: value.name, desc: value.desc },
-        ],
-        rolePermissions: { ...rolePermissions, [newId]: {} },
-      }));
-      // setRolePermissions({
-      //   ...rolePermissions,
-      //   [newId]: {},
-      // });
+      setRoles([...roles, { id: newId, name: value.name, desc: value.desc }]);
+      setRolePermissions({
+        ...rolePermissions,
+        [newId]: {},
+      });
       setAddRoleModalOpen(false);
       message.success("添加成功");
     } else {
-      setState((prev) => ({
-        ...prev,
-        roles: prev.roles.map((r: any) =>
+      setRoles(
+        roles.map((r) =>
           r.id === value.id ? { ...r, name: value.name, desc: value.desc } : r
-        ),
-      }));
+        )
+      );
       message.success("修改成功");
     }
   };
@@ -371,7 +337,7 @@ const PermissionManagement: React.FC = () => {
             <List
               itemLayout="horizontal"
               dataSource={filteredRoles}
-              renderItem={(role: any) => (
+              renderItem={(role) => (
                 <List.Item
                   style={{
                     background:
@@ -498,13 +464,13 @@ const PermissionManagement: React.FC = () => {
                     style={{ marginBottom: 16 }}
                     extra={<span style={{ color: "#888" }}>{perm.desc}</span>}
                   >
-                    <Radio.Group
+                    <Checkbox.Group
                       options={permissionItems}
-                      value={currentPermissions[perm.key] ?? null} // 单个值
-                      onChange={(e) =>
-                        handlePermissionChange(perm.key, e.target.value)
+                      value={currentPermissions[perm.key] || []}
+                      onChange={(checked) =>
+                        handlePermissionChange(perm.key, checked as string[])
                       }
-                    ></Radio.Group>
+                    />
                   </Card>
                 ))}
               </Form>
