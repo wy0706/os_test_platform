@@ -116,7 +116,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       {" "}
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
         <Form.Item name="note" label="任务名称" rules={[{ required: true }]}>
-          <Input placeholder="输入任务名称" />
+          <Input placeholder="输入任务名称" disabled={type == "edit"} />
         </Form.Item>
         <Form.Item name="gender1" label="任务描述">
           <Input.TextArea rows={4} placeholder="输入任务描述" />

@@ -24,23 +24,32 @@ const columns: any = [
   {
     title: "序号",
     dataIndex: "index",
+    hideInSearch: true,
     // valueType: "indexBorder",
   },
   {
     title: "测试程序名称",
     dataIndex: "title",
     ellipsis: true,
+    hideInSearch: true,
     // sorter: true,
   },
-
+  {
+    title: "名称",
+    dataIndex: "title",
+    key: "searchTitle",
+    ellipsis: true,
+    hideInTab: true,
+    // sorter: true,
+  },
   {
     title: "发布",
     dataIndex: "title2",
-    search: false,
-    sorter: true,
+    hideInSearch: true,
+    // sorter: true,
     initialValue: "all",
-    filters: true,
-    onFilter: true,
+    // filters: true,
+    // onFilter: true,
     valueEnum: {
       1: { text: "YES", status: "Success" },
       2: { text: "NO", status: "Default" },
@@ -51,8 +60,7 @@ const columns: any = [
     title: "日期和时间",
     dataIndex: "createTime",
     ellipsis: true,
-    sorter: true,
-    search: false,
+    hideInSearch: true,
     valueType: "dateTime",
   },
 ];

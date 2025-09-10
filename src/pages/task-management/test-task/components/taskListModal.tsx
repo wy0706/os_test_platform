@@ -30,8 +30,8 @@ const taskListModal: React.FC<TaskLIstModalProps> = ({
       title: "状态",
       dataIndex: "status",
       initialValue: "all",
-      filters: true,
-      onFilter: true,
+      // filters: true,
+      // onFilter: true,
       valueEnum: {
         all: { text: "已完成", status: "Success" },
         close: { text: "关闭", status: "Default" },

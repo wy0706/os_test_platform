@@ -17,13 +17,14 @@ const ReportModal: React.FC<ModalProps> = ({ open, onCancel }) => {
     }
   }, [open]);
 
-  const columns = [
+  const columns: any = [
     {
       title: "序号",
       dataIndex: "index",
       key: "index",
       valueType: "index",
       width: 100,
+      hideInSearch: true,
     },
     {
       title: "用例名称",
@@ -79,6 +80,7 @@ const ReportModal: React.FC<ModalProps> = ({ open, onCancel }) => {
           cardBordered
           search={false}
           request={requestData}
+          dateFormatter="string"
           rowKey="id"
           pagination={{
             pageSize: 10,
