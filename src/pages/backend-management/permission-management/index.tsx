@@ -1,3 +1,4 @@
+import { transformRolePermissions } from "@/utils/index";
 import {
   DeleteOutlined,
   EditOutlined,
@@ -37,71 +38,90 @@ const mockRoles = [
 // 模拟权限分组数据
 const mockPermissions = [
   {
-    group: "测试任务管理",
+    group: "任务管理",
     desc: "创建、分配和执行测试任务，查看测试进度",
-    key: "testTask",
+    key: "taskManagement",
   },
   {
-    group: "测试用例管理",
+    group: "测试设计",
     desc: "创建、编辑和执行测试用例，管理用例库",
-    key: "testCase",
+    key: "caseManagement",
   },
   {
     group: "设备管理",
     desc: "管理测试设备，分配设备资源，查看设备状态",
-    key: "device",
+    key: "equipmentManagement",
   },
-  {
-    group: "检测工具",
-    desc: "使用和管理各种测试工具，分析测试数据",
-    key: "tool",
-  },
-  {
-    group: "系统管理",
-    desc: "系统设置、用户管理、权限配置等核心权限",
-    key: "system",
-  },
-  {
-    group: "CI/CD",
-    desc: "持续集成的持续部署流水线管理",
-    key: "cicd",
-  },
+
   {
     group: "日志管理",
     desc: "查看系统日志，分析系统运行情况",
-    key: "log",
+    key: "logManagement",
+  },
+  {
+    group: "系统管理",
+    desc: "添加设备，添加命令",
+    key: "systemManagement",
+  },
+  {
+    group: "管理后台",
+    desc: "系统设置、用户管理、权限配置等核心权限",
+    key: "backendManagement",
   },
 ];
 
 // 权限项
 const permissionItems = [
-  { label: "访问", value: "view" },
-  { label: "操作", value: "operate" },
+  { label: "访问", value: "preview" },
+  { label: "操作", value: "edit" },
 ];
 
 const defaultRolePermissions = {
-  1: {
-    // 系统管理员
-    testTask: "operate",
-    testCase: "operate",
-    device: "operate",
-    tool: "operate",
-    system: "operate",
-    cicd: "operate",
-    log: "operate",
-  },
-  2: {
-    // 测试处理
-    testTask: "view",
-    testCase: "operate",
-    device: "view",
-    tool: "view",
-    system: "view",
-    cicd: "",
-    log: "view",
-  },
-  // 其他角色可继续补充...
+  1: [
+    "taskManagement-edit",
+    "caseManagement-edit",
+    "equipmentManagement-edit",
+    "logManagement-edit",
+    "systemManagement-edit",
+    "backendManagement-edit",
+  ],
+
+  2: [
+    "taskManagement-preview",
+    "caseManagement-preview",
+    "equipmentManagement-preview",
+    "logManagement-preview",
+    "systemManagement-preview",
+    "backendManagement-preview",
+  ],
+  3: [
+    "taskManagement-edit",
+    "caseManagement-preview",
+    "equipmentManagement-edit",
+    "logManagement-preview",
+    // "systemManagement-preview",
+    // "backendManagement-edit",
+  ],
 };
+// 系统管理员
+// taskManagement: "edit",
+// caseManagement: "edit",
+// equipmentManagement: "edit",
+// logManagement: "edit",
+// systemManagement: "edit",
+// backendManagement: "edit",
+
+// 2: {
+//   // 测试处理
+//   // taskManagement: "preview",
+//   // caseManagement: "preview",
+//   // equipmentManagement: "preview",
+//   // logManagement: "edit",
+//   // systemManagement: "edit",
+//   // backendManagement: "edit",
+// },
+// 其他角色可继续补充...
+// };
 
 const PermissionManagement: React.FC = () => {
   const [addRoleModalOpen, setAddRoleModalOpen] = useState(false);
@@ -132,11 +152,14 @@ const PermissionManagement: React.FC = () => {
   } = state;
 
   useEffect(() => {
+    let obj = transformRolePermissions(defaultRolePermissions);
+    console.log("obj", obj);
+
     setState({
       roles: mockRoles,
       selectedRoleId: 1,
       currentRole: mockRoles.find((r) => r.id === 1) || null,
-      rolePermissions: defaultRolePermissions,
+      rolePermissions: obj,
     });
   }, []);
 
@@ -315,7 +338,8 @@ const PermissionManagement: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             display: "flex",
             flexDirection: "column",
-            height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
+            maxHeight: "calc(100vh - 200px)",
+            // height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
           }}
         >
           <div
@@ -425,7 +449,8 @@ const PermissionManagement: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             display: "flex",
             flexDirection: "column",
-            height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
+            maxHeight: "calc(100vh - 200px)",
+            // height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
           }}
         >
           <div

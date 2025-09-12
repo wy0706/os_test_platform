@@ -39,7 +39,7 @@ export default [
     path: "/task-management",
     name: "任务管理",
     icon: "Schedule",
-    access: "taskManagement",
+    access: ["taskManagement-preview", "taskManagement-edit"],
     routes: [
       {
         path: "/task-management",
@@ -48,19 +48,18 @@ export default [
       {
         path: "/task-management/test-requirement",
         name: "测试需求",
-        access: ["testRequirement-preview", "testRequirement-edit"],
+        // access: ["testRequirement-preview", "testRequirement-edit"],
         component: "./task-management/test-requirement",
       },
       {
         path: "/task-management/test-task",
         name: "测试任务",
-        access: ["testTask-preview", "testTask-edit"],
+        // access: ["testTask-preview", "testTask-edit"],
         component: "./task-management/test-task",
       },
       {
         path: "/task-management/test-task-one/:id",
         name: "详细任务",
-        // access: ["testTaskOne-preview", "testTaskOne-edit"],
         component: "./task-management/test-task-one",
         hideInMenu: true,
         hideInBreadcrumb: true,
@@ -68,7 +67,7 @@ export default [
       {
         path: "/task-management/test-report/:id",
         name: "测试报告",
-        access: ["testReport-preview", "testReport-edit"],
+        // access: ["testReport-preview", "testReport-edit"],
         component: "./task-management/test-report",
         hideInMenu: true,
       },
@@ -78,7 +77,7 @@ export default [
     path: "/case-management",
     name: "测试设计",
     icon: "fileSearch",
-    access: "caseManagement",
+    access: ["caseManagement-preview", "caseManagement-edit"],
     routes: [
       {
         path: "/case-management",
@@ -87,13 +86,13 @@ export default [
       {
         path: "/case-management/test-case",
         name: "测试用例",
-        access: ["testCase-preview", "testCase-edit"],
+        // access: ["testCase-preview", "testCase-edit"],
         component: "./case-management/test-case",
       },
       {
         path: "/case-management/test-sequence",
         name: "序列编辑",
-        access: ["testSequence-preview", "testSequence-edit"],
+        // access: ["testSequence-preview", "testSequence-edit"],
         component: "./case-management/test-sequence",
         hideFooter: true,
       },
@@ -101,34 +100,32 @@ export default [
       {
         path: "/case-management/test-sequence-edit/:id",
         name: "序列编辑",
-        access: ["testSequenceEdit-preview", "testSequenceEdit-edit"],
+        // access: ["testSequenceEdit-preview", "testSequenceEdit-edit"],
         component: "./case-management/test-sequence-edit",
         hideInMenu: true,
         hideInBreadcrumb: true,
-        hideFooter: true,
       },
       {
         path: "/case-management/test-sequence-integration",
         name: "序列集成",
-        access: [
-          "testSequenceIntegration-preview",
-          "testSequenceIntegration-edit",
-        ],
+        // access: [
+        //   "testSequenceIntegration-preview",
+        //   "testSequenceIntegration-edit",
+        // ],
         component: "./case-management/test-sequence-integration",
       },
       {
         path: "/case-management/test-sequence-process/:id",
         name: "测试流程",
-        access: ["testSequenceProcess-preview", "testSequenceProcess-edit"],
+        // access: ["testSequenceProcess-preview", "testSequenceProcess-edit"],
         component: "./case-management/test-sequence-process",
         hideInMenu: true,
         hideInBreadcrumb: true,
-        hideFooter: true,
       },
       {
         path: "/case-management/case-library",
         name: "序列执行",
-        access: ["caseLibrary-preview", "caseLibrary-edit"],
+        // access: ["caseLibrary-preview", "caseLibrary-edit"],
         component: "./case-management/case-library",
       },
 
@@ -144,10 +141,9 @@ export default [
       {
         path: "/case-management/case-run/:id",
         name: "用例执行",
-        access: ["caseRun-preview", "caseRun-edit"],
+        // access: ["caseRun-preview", "caseRun-edit"],
         component: "./case-management/case-run",
         hideInMenu: true,
-        hideFooter: true,
         hideInBreadcrumb: true,
       },
     ],
@@ -156,7 +152,7 @@ export default [
     path: "/equipment-management",
     name: "设备管理",
     icon: "database",
-    access: "equipmentManagement",
+    access: ["equipmentManagement-preview", "equipmentManagement-edit"],
     routes: [
       {
         path: "/equipment-management",
@@ -165,17 +161,16 @@ export default [
       {
         path: "/equipment-management/equipment-library",
         name: "设备配置文件",
-        access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
+        // access: ["equipmentLibrary-preview", "equipmentLibrary-edit"],
         component: "./equipment-management/equipment-library",
       },
       {
         path: "/equipment-management/equipment-library-edit/:id",
         name: "外设导入",
-        access: ["equipmentLibraryEdit-preview", "equipmentLibraryEdit-edit"],
+        // access: ["equipmentLibraryEdit-preview", "equipmentLibraryEdit-edit"],
         component: "./equipment-management/equipment-library-edit",
         hideInMenu: true,
         hideInBreadcrumb: true,
-        hideFooter: true,
       },
     ],
   },
@@ -204,25 +199,25 @@ export default [
     path: "/log-management",
     name: "日志管理",
     icon: "table",
-    access: "logManagement",
+    access: ["logManagement-preview", "logManagement-edit"],
     routes: [
       {
         path: "/log-management/login-log",
         name: "登录日志",
-        access: ["loginLog-preview", "loginLog-edit"],
+        // access: ["loginLog-preview", "loginLog-edit"],
         component: "./log-management/login-log",
       },
       {
         path: "/log-management/operation-log",
         name: "操作日志",
-        access: ["operationLog-preview", "operationLog-edit"],
+        // access: ["operationLog-preview", "operationLog-edit"],
         component: "./log-management/operation-log",
       },
 
       {
         path: "/log-management/test-log",
         name: "测试日志",
-        access: ["testLog-preview", "testLog-edit"],
+        // access: ["testLog-preview", "testLog-edit"],
         component: "./log-management/test-log",
       },
     ],
@@ -231,18 +226,18 @@ export default [
     path: "/system-management",
     name: "系统管理",
     icon: "fileText",
-    access: "systemManagement",
+    access: ["systemManagement-preview", "systemManagement-edit"],
     routes: [
       {
         path: "/system-management/equip-management",
         name: "添加设备",
-        access: ["equipManagement-preview", "equipManagement-edit"],
+        // access: ["equipManagement-preview", "equipManagement-edit"],
         component: "./system-management/equip-management",
       },
       {
         path: "/system-management/command-management",
         name: "添加命令",
-        access: ["commandManagement-preview", "commandManagement-edit"],
+        // access: ["commandManagement-preview", "commandManagement-edit"],
         component: "./system-management/command-management",
       },
     ],
@@ -255,7 +250,7 @@ export default [
     path: "/backend-management",
     name: "后台管理",
     component: "./backend-management",
-    access: "backendManagement",
+    access: ["backendManagement-preview", "backendManagement-edit"],
     hideInMenu: true,
     routes: [
       {
@@ -265,7 +260,7 @@ export default [
       {
         path: "/backend-management/user-management",
         name: "用户管理",
-        access: ["userManagement-preview", "userManagement-edit"],
+        // access: ["userManagement-preview", "userManagement-edit"],
         component: "./backend-management/user-management",
         hideInMenu: true,
         hideInBreadcrumb: true,
@@ -273,7 +268,7 @@ export default [
       {
         path: "/backend-management/permission-management",
         name: "权限管理",
-        access: ["permissionManagement-preview", "permissionManagement-edit"],
+        // access: ["permissionManagement-preview", "permissionManagement-edit"],
         hideInMenu: true,
         component: "./backend-management/permission-management",
         hideInBreadcrumb: true,

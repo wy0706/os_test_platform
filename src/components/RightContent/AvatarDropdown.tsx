@@ -67,6 +67,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const { styles } = useStyles();
 
   const { initialState, setInitialState } = useModel("@@initialState");
+  console.log("initialState", initialState);
 
   const onMenuClick: MenuProps["onClick"] = (event) => {
     const { key } = event;
@@ -105,7 +106,36 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   if (!currentUser || !currentUser.name) {
     return loading;
   }
+  const adminCodes = ["backendManagement-preview", "sbackendManagement-edit"];
+  const hasAdminPermission = currentUser?.resourceList?.some((res: any) =>
+    adminCodes.includes(res.resourceCode)
+  );
+  console.log("是否有后台管理权限", hasAdminPermission);
 
+  // const menuItems = [
+  //   ...(menu
+  //     ? [
+  //         {
+  //           key: "center",
+  //           icon: <UserOutlined />,
+  //           label: "个人中心",
+  //         },
+  //         {
+  //           key: "settings",
+  //           icon: <SettingOutlined />,
+  //           label: "管理后台",
+  //         },
+  //         {
+  //           type: "divider" as const,
+  //         },
+  //       ]
+  //     : []),
+  //   {
+  //     key: "logout",
+  //     icon: <LogoutOutlined />,
+  //     label: "退出登录",
+  //   },
+  // ];
   const menuItems = [
     ...(menu
       ? [
@@ -114,14 +144,16 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
             icon: <UserOutlined />,
             label: "个人中心",
           },
-          {
-            key: "settings",
-            icon: <SettingOutlined />,
-            label: "管理后台",
-          },
-          {
-            type: "divider" as const,
-          },
+          ...(hasAdminPermission
+            ? [
+                {
+                  key: "settings",
+                  icon: <SettingOutlined />,
+                  label: "管理后台",
+                },
+                { type: "divider" as const },
+              ]
+            : []),
         ]
       : []),
     {
@@ -130,7 +162,6 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       label: "退出登录",
     },
   ];
-
   return (
     <HeaderDropdown
       menu={{
