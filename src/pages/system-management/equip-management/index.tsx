@@ -295,7 +295,7 @@ const Page: React.FC = () => {
                     background:
                       currentSelectedTypeId === item.id ? "#e6f7ff" : undefined,
                     cursor: "pointer",
-                    // paddingLeft: 16,
+                    paddingLeft: 16,
                   }}
                   onClick={() => handleTypeSelect(item.id)}
                   actions={
@@ -391,7 +391,19 @@ const Page: React.FC = () => {
                   //   ></Button>,
                   // ]}
                 >
-                  <List.Item.Meta title={<span>{item.name}</span>} />
+                  <List.Item.Meta
+                    title={
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          fontSize: 12,
+                          color: "rgba(0,0,0,.8)",
+                        }}
+                      >
+                        {item.name}
+                      </span>
+                    }
+                  />
                 </List.Item>
               )}
             />

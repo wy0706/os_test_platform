@@ -114,7 +114,33 @@ const Page: React.FC = () => {
               switch (key) {
                 case "delete":
                   Modal.confirm({
-                    title: "确认删除吗？",
+                    title: (
+                      <div>
+                        <div>
+                          确认删除用户{" "}
+                          <span
+                            style={{ color: "#ff4d4f", fontWeight: "bold" }}
+                          >
+                            {record.username}
+                          </span>{" "}
+                          吗？
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#666",
+                            marginTop: "8px",
+                          }}
+                        >
+                          删除用户会使该用户的登录和操作信息一同删除
+                        </div>
+                      </div>
+                    ),
+                    // content: (
+                    //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                    //     {record.title}
+                    //   </div>
+                    // ),
                     onOk: async () => {
                       await deleteOne(record.id);
                       if (actionRef.current) {

@@ -223,6 +223,7 @@ const Welcome: React.FC = () => {
                 styles={{ body: cardBodyStyle }}
                 onClick={() => {
                   console.log("item", item);
+                  return;
                   if (item.key !== "tast") return;
                   history.push(
                     `/task-management/test-task?taskId=${item.taskId}`
