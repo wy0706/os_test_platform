@@ -110,7 +110,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const hasAdminPermission = currentUser?.resourceList?.some((res: any) =>
     adminCodes.includes(res.resourceCode)
   );
-  console.log("是否有后台管理权限", hasAdminPermission);
+  // console.log("是否有后台管理权限", hasAdminPermission);
 
   // const menuItems = [
   //   ...(menu

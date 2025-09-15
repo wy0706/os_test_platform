@@ -91,12 +91,12 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
         <Form.Item name="name" label="文件名" initialValue={"YSW-GC.hwc"}>
           <Input disabled />
         </Form.Item>
-        <Form.Item name="rate" label="发布" initialValue={"2"}>
+        {/* <Form.Item name="rate" label="发布" initialValue={"2"}>
           <Select placeholder="发布" disabled>
             <Option value="1 ">✓</Option>
             <Option value="2">✗</Option>
           </Select>
-        </Form.Item>
+        </Form.Item> */}
         <Form.Item name="stopbits" label="保存文件名（*.hwc）">
           <Input placeholder="输入文件名" allowClear />
         </Form.Item>

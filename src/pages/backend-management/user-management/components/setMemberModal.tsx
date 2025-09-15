@@ -90,7 +90,11 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
       open={open}
       onCancel={handleCancel}
       width={"50%"}
-      bodyStyle={{ minHeight: 300 }}
+      styles={{
+        body: {
+          minHeight: 300,
+        },
+      }}
       footer={[
         <div
           key="checkbox"

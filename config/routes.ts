@@ -39,7 +39,7 @@ export default [
     path: "/task-management",
     name: "任务管理",
     icon: "Schedule",
-    access: ["taskManagement-preview", "taskManagement-edit"],
+    access: "taskManagement",
     routes: [
       {
         path: "/task-management",
@@ -77,7 +77,7 @@ export default [
     path: "/case-management",
     name: "测试设计",
     icon: "fileSearch",
-    access: ["caseManagement-preview", "caseManagement-edit"],
+    access: "caseManagement",
     routes: [
       {
         path: "/case-management",
@@ -152,7 +152,7 @@ export default [
     path: "/equipment-management",
     name: "设备管理",
     icon: "database",
-    access: ["equipmentManagement-preview", "equipmentManagement-edit"],
+    access: "equipmentManagement",
     routes: [
       {
         path: "/equipment-management",
@@ -199,7 +199,7 @@ export default [
     path: "/log-management",
     name: "日志管理",
     icon: "table",
-    access: ["logManagement-preview", "logManagement-edit"],
+    access: "logManagement",
     routes: [
       {
         path: "/log-management/login-log",
@@ -226,7 +226,7 @@ export default [
     path: "/system-management",
     name: "系统管理",
     icon: "fileText",
-    access: ["systemManagement-preview", "systemManagement-edit"],
+    access: "systemManagement",
     routes: [
       {
         path: "/system-management/equip-management",
@@ -250,7 +250,7 @@ export default [
     path: "/backend-management",
     name: "后台管理",
     component: "./backend-management",
-    access: ["backendManagement-preview", "backendManagement-edit"],
+    access: "backendManagement",
     hideInMenu: true,
     routes: [
       {

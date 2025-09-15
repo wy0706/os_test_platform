@@ -22,6 +22,26 @@ export async function getInitialState(): Promise<{
   console.log("process.env.REACT_APP_ENV", REACT_APP_ENV);
   const fetchUserInfo = async () => {
     try {
+      // demo
+      const list = [
+        "taskManagement-edit",
+        "caseManagement-edit",
+        "equipmentManagement-edit",
+        "logManagement-edit",
+        "systemManagement-edit",
+        "backendManagement-edit",
+      ];
+      const resourceSet = new Set(list.map((item) => item.split("-")[0]));
+
+      const result = [
+        // 先加模块名对象
+        ...Array.from(resourceSet).map((res) => ({ resourceCode: res })),
+        // 再加原始字符串对象
+        ...list.map((item) => ({ resourceCode: item })),
+      ];
+
+      console.log("result", result);
+
       // const msg = await queryCurrentUser({
       //   skipErrorHandler: true,
       // });
@@ -30,6 +50,12 @@ export async function getInitialState(): Promise<{
         avatar:
           "https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png",
         resourceList: [
+          { resourceCode: "taskManagement" },
+          { resourceCode: "equipmentManagement" },
+          { resourceCode: "caseManagement" },
+          { resourceCode: "backendManagement" },
+          { resourceCode: "logManagement" },
+          { resourceCode: "systemManagement" },
           { resourceCode: "equipmentManagement-preview" },
           { resourceCode: "equipmentManagement-edit" },
           { resourceCode: "caseManagement-preview" },

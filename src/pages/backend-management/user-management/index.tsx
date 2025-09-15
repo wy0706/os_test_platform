@@ -2,7 +2,7 @@ import {
   deleteOne,
   getList,
 } from "@/services/system-management/role-management.service";
-import { EditOutlined, KeyOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, LockOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
   PageContainer,
@@ -12,8 +12,8 @@ import {
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Modal } from "antd";
-import React, { useRef, useState } from "react";
-import { useAccess } from "umi";
+import React, { useEffect, useRef, useState } from "react";
+import { Access, useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
 import {
@@ -51,114 +51,7 @@ const Page: React.FC = () => {
     isPreviewModalOpen: false,
     detailsId: null,
     descriptionsColumns: userSchemasDescriptions,
-    columns: userSchemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, index: any, action: any) => [
-          // <Button
-          //   key="preview"
-          //   type="primary"
-          //   icon={<EyeOutlined />}
-          //   onClick={() => {
-          //     setState({
-          //       detailsId: record.id,
-          //       isPreviewModalOpen: true,
-          //     });
-          //   }}
-          // >
-          //   详情
-          // </Button>,
-          <Button
-            key="edit"
-            color="primary"
-            variant="link"
-            icon={<EditOutlined />}
-            onClick={() => {
-              // form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            设置成员信息
-          </Button>,
-          <Button
-            variant="link"
-            color="primary"
-            icon={<KeyOutlined />}
-            key="delete"
-            onClick={() => {
-              Modal.confirm({
-                title: "是否确认重置密码？",
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
-            }}
-          >
-            重置密码
-          </Button>,
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: (
-                      <div>
-                        <div>
-                          确认删除用户{" "}
-                          <span
-                            style={{ color: "#ff4d4f", fontWeight: "bold" }}
-                          >
-                            {record.username}
-                          </span>{" "}
-                          吗？
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            marginTop: "8px",
-                          }}
-                        >
-                          删除用户会使该用户的登录和操作信息一同删除
-                        </div>
-                      </div>
-                    ),
-                    // content: (
-                    //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                    //     {record.title}
-                    //   </div>
-                    // ),
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-
-                default:
-                  return;
-              }
-            }}
-            menus={[{ key: "delete", name: "删除" }]}
-          />,
-        ],
-      },
-    ]),
+    columns: [],
   });
 
   const {
@@ -172,6 +65,126 @@ const Page: React.FC = () => {
     detailsId,
     descriptionsColumns,
   } = state;
+
+  useEffect(() => {
+    if (!!access["backendManagement-edit"]) {
+      setState({
+        columns: userSchemasColumns.concat([
+          {
+            title: "操作",
+            valueType: "option",
+            key: "option",
+            width: 200,
+            render: (text: any, record: any, index: any, action: any) => [
+              // <Button
+              //   key="preview"
+              //   type="primary"
+              //   icon={<EyeOutlined />}
+              //   onClick={() => {
+              //     setState({
+              //       detailsId: record.id,
+              //       isPreviewModalOpen: true,
+              //     });
+              //   }}
+              // >
+              //   详情
+              // </Button>,
+              <Button
+                key="edit"
+                color="primary"
+                variant="link"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  // form.setFieldsValue(record);
+                  setState({
+                    updateValue: record,
+                    isUpdate: true,
+                    isUpdateModalOpen: true,
+                  });
+                }}
+              >
+                设置成员信息
+              </Button>,
+              <Button
+                variant="link"
+                color="primary"
+                icon={<LockOutlined />}
+                key="delete"
+                onClick={() => {
+                  Modal.confirm({
+                    title: "是否确认重置密码？",
+                    onOk: async () => {
+                      await deleteOne(record.id);
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                    },
+                  });
+                }}
+              >
+                重置密码
+              </Button>,
+              <TableDropdown
+                key={index}
+                onSelect={(key: string) => {
+                  console.log("key----", key);
+                  console.log(key);
+                  switch (key) {
+                    case "delete":
+                      Modal.confirm({
+                        title: (
+                          <div>
+                            <div>
+                              确认删除用户{" "}
+                              <span
+                                style={{ color: "#ff4d4f", fontWeight: "bold" }}
+                              >
+                                {record.username}
+                              </span>{" "}
+                              吗？
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                color: "#666",
+                                marginTop: "8px",
+                              }}
+                            >
+                              删除用户会使该用户的登录和操作信息一同删除
+                            </div>
+                          </div>
+                        ),
+                        // content: (
+                        //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                        //     {record.title}
+                        //   </div>
+                        // ),
+                        onOk: async () => {
+                          await deleteOne(record.id);
+                          if (actionRef.current) {
+                            actionRef.current.reload();
+                          }
+                        },
+                      });
+                      return;
+
+                    default:
+                      return;
+                  }
+                }}
+                menus={[{ key: "delete", name: "删除" }]}
+              />,
+            ],
+          },
+        ]),
+      });
+    } else {
+      setState({
+        columns: userSchemasColumns,
+      });
+    }
+  }, [access]);
+
   const formRef = useRef<ProFormInstance | null>(null);
   const requestData: any = async (...args: any) => {
     try {
@@ -200,35 +213,37 @@ const Page: React.FC = () => {
   };
   return (
     <PageContainer>
-      <ProTable
-        actionRef={actionRef}
-        columns={columns}
-        request={requestData}
-        rowKey="key"
-        cardBordered
-        // search={false}
-        options={false}
-        pagination={{
-          pageSize: 10,
-          onChange: (page) => requestData,
-        }}
-        headerTitle={title.label}
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                isUpdate: false,
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
-        ]}
-      />
+      <Access accessible={!!access["backendManagement-edit"]} fallback={<></>}>
+        <ProTable
+          actionRef={actionRef}
+          columns={columns}
+          request={requestData}
+          rowKey="key"
+          cardBordered
+          // options={false}
+          pagination={{
+            pageSize: 10,
+            onChange: (page) => requestData,
+          }}
+          headerTitle={title.label}
+          toolBarRender={() => [
+            <Button
+              key="button"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setState({
+                  isUpdate: false,
+                  isUpdateModalOpen: true,
+                });
+              }}
+              type="primary"
+            >
+              新建
+            </Button>,
+          ]}
+        />
+      </Access>
+
       <SetMemberModal
         onOk={handleOk}
         open={isUpdateModalOpen}
