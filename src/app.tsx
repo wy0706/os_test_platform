@@ -124,21 +124,6 @@ export const layout: RunTimeLayoutConfig = ({
   const location = history.location;
   const currentPath = location.pathname;
 
-  // 检查当前路由是否需要隐藏footer
-  const shouldHideFooter = () => {
-    // 这里可以根据路径判断是否需要隐藏footer
-    const hideFooterPaths = [
-      "/case-management/test-case-example",
-      "/equipment-management/equipment-library-edit",
-      "/equipment-management/peripheral-import",
-      "/case-management/test-sequence",
-      "/case-management/test-sequence-edit",
-      "/case-management/case-run",
-      "/system-management/equip-management",
-      // "/backend-management/permission-management",
-    ];
-    return hideFooterPaths.some((path) => currentPath.startsWith(path));
-  };
   // 忽略特定 React warning（如 findDOMNode）
   if (isDev) {
     const originalWarn = console.warn;
@@ -168,7 +153,7 @@ export const layout: RunTimeLayoutConfig = ({
     waterMarkProps: {
       content: "nevc",
     },
-    footerRender: () => (shouldHideFooter() ? null : <Footer />),
+    footerRender: () => <Footer />,
     onPageChange: () => {
       const { location } = history;
       // 如果没有登录，重定向到 login

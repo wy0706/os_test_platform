@@ -61,15 +61,18 @@ export default [
         path: "/task-management/test-task-one/:id",
         name: "详细任务",
         component: "./task-management/test-task-one",
-        hideInMenu: true,
-        hideInBreadcrumb: true,
+        hideInMenu: true, // 菜单中隐藏
+        headerRender: true,
+        parentKeys: ["/task-management/test-task"],
       },
       {
         path: "/task-management/test-report/:id",
         name: "测试报告",
         // access: ["testReport-preview", "testReport-edit"],
         component: "./task-management/test-report",
-        hideInMenu: true,
+        hideInMenu: true, // 菜单中隐藏
+        headerRender: true,
+        parentKeys: ["/task-management/test-task"],
       },
     ],
   },
@@ -90,11 +93,21 @@ export default [
         component: "./case-management/test-case",
       },
       {
+        path: "/case-management/test-case-example/:id",
+        name: "示例测试库",
+        access: ["testCaseExample-preview", "testCaseExample-edit"],
+        component: "./case-management/test-case-example",
+        hideInMenu: true,
+        hideInBreadcrumb: true,
+        footerRender: false,
+        parentKeys: ["/case-management/test-case"],
+      },
+      {
         path: "/case-management/test-sequence",
         name: "序列编辑",
         // access: ["testSequence-preview", "testSequence-edit"],
         component: "./case-management/test-sequence",
-        hideFooter: true,
+        footerRender: false,
       },
 
       {
@@ -104,6 +117,8 @@ export default [
         component: "./case-management/test-sequence-edit",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        footerRender: false,
+        parentKeys: ["/case-management/test-sequence"],
       },
       {
         path: "/case-management/test-sequence-integration",
@@ -121,6 +136,7 @@ export default [
         component: "./case-management/test-sequence-process",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        parentKeys: ["/case-management/test-sequence-integration"],
       },
       {
         path: "/case-management/case-library",
@@ -130,21 +146,14 @@ export default [
       },
 
       {
-        path: "/case-management/test-case-example/:id",
-        name: "示例测试库",
-        access: ["testCaseExample-preview", "testCaseExample-edit"],
-        component: "./case-management/test-case-example",
-        hideInMenu: true,
-        hideInBreadcrumb: true,
-        hideFooter: true,
-      },
-      {
         path: "/case-management/case-run/:id",
         name: "用例执行",
         // access: ["caseRun-preview", "caseRun-edit"],
         component: "./case-management/case-run",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        footerRender: false,
+        parentKeys: ["/case-management/case-library"],
       },
     ],
   },
@@ -171,6 +180,8 @@ export default [
         component: "./equipment-management/equipment-library-edit",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        footerRender: false,
+        parentKeys: ["/equipment-management/equipment-library"],
       },
     ],
   },
@@ -233,6 +244,7 @@ export default [
         name: "添加设备",
         // access: ["equipManagement-preview", "equipManagement-edit"],
         component: "./system-management/equip-management",
+        footerRender: false,
       },
       {
         path: "/system-management/command-management",
