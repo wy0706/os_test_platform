@@ -17,7 +17,7 @@ import {
 import { history, useLocation, useSearchParams } from "@umijs/max";
 
 import { useSetState } from "ahooks";
-import { Button, Checkbox, Form, Modal } from "antd";
+import { Button, Form, Modal } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import CreateReportModal from "./components/createReport";
@@ -74,8 +74,8 @@ const Page: React.FC = () => {
           onClick={(e) => {
             e.stopPropagation();
             setState({
-              isRunModalOpen: isShowProcess,
-              runData: isShowProcess ? record : {},
+              isRunModalOpen: true,
+              runData: record,
             });
           }}
         >
@@ -261,7 +261,7 @@ const Page: React.FC = () => {
         headerTitle={title.label}
         toolBarRender={() => [
           <div style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ marginRight: 20 }}>
+            {/* <div style={{ marginRight: 20 }}>
               <Checkbox
                 onChange={(e) => {
                   console.log(e.target.checked);
@@ -270,7 +270,7 @@ const Page: React.FC = () => {
               >
                 显示测试过程
               </Checkbox>
-            </div>
+            </div> */}
             <Button
               key="button"
               icon={<PlusOutlined />}

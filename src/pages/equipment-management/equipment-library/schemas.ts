@@ -13,8 +13,18 @@ export const schemasColumns: any = [
   {
     title: "创建时间",
     dataIndex: "createTime",
+    key: "showTime",
     ellipsis: true,
     sorter: true,
+    valueType: "dateTime",
+    hideInSearch: true,
+  },
+  {
+    title: "创建时间",
+    dataIndex: "createTime",
+
+    valueType: "date",
+    hideInTable: true,
   },
 ];
 
