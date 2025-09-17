@@ -1,4 +1,5 @@
 import { Footer } from "@/components";
+import { login } from "@/services/ant-design-pro/api";
 import {
   AlipayCircleOutlined,
   LockOutlined,
@@ -113,111 +114,121 @@ const LoginMessage: React.FC<{
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
   const [type, setType] = useState<string>("account");
-  const { initialState, setInitialState } = useModel("@@initialState");
+  const { setInitialState } = useModel("@@initialState");
   const { styles } = useStyles();
   const { message } = App.useApp();
 
   const intl = useIntl();
 
-  const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
-    if (userInfo) {
-      flushSync(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: userInfo,
-        }));
-      });
-    }
-  };
+  // const fetchUserInfo = async () => {
+  //   const userInfo = await initialState?.fetchUserInfo?.();
+  //   if (userInfo) {
+  //     flushSync(() => {
+  //       setInitialState((s) => ({
+  //         ...s,
+  //         currentUser: userInfo,
+  //       }));
+  //     });
+  //   }
+  // };
   const [form] = ProForm.useForm();
-  const [attemptsLeft, setAttemptsLeft] = useState(5);
+  // const [attemptsLeft, setAttemptsLeft] = useState(5);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const captchaRef = useRef<CaptFieldRef | null | undefined>();
   const [captchaExpired, setCaptchaExpired] = useState(false); //倒计时是否结束
-  const [captchaShow, setCaptchaShow] = useState(false);
+  // const [captchaShow, setCaptchaShow] = useState(false);
   // 验证码错误消息
   const [captchaerrorMsg, setCaptchaErrorMsg] = useState("");
   const inputRef = useRef();
   const handleSubmit = async (values: API.LoginParams) => {
-    try {
-      // 登录
-      // const msg = await login({ ...values, type });
-      // if (msg.status === 'ok') {
-      //   const defaultLoginSuccessMessage = intl.formatMessage({
-      //     id: 'pages.login.success',
-      //     defaultMessage: '登录成功！',
-      //   });
-      //   message.success(defaultLoginSuccessMessage);
-      //   await fetchUserInfo();
-      //   const urlParams = new URL(window.location.href).searchParams;
-      //   window.location.href = urlParams.get('redirect') || '/';
-      //   return;
-      // }
-      // console.log(msg);
-      // 如果失败去设置用户错误信息
-      // setUserLoginState(msg);
-      if (attemptsLeft <= 0) {
-        setErrorMsg("账号已锁定，请联系管理员");
+    const { username, password, captcha, mobile } = values;
+    if (username && password) {
+      try {
+        // 登录
+        console.log("values", values);
+        if (username && password) {
+        }
+        const data = await login({ ...values });
+        if (!data) {
+          message.error("登录失败，未返回用户信息");
+          setUserLoginState({ status: "error", type: "account" });
+          return;
+        }
+        const defaultLoginSuccessMessage = intl.formatMessage({
+          id: "pages.login.success",
+          defaultMessage: "登录成功！",
+        });
+        const {
+          user_info: { resource_code },
+        } = data;
+        let result: any = [];
+        if (resource_code && Array.isArray(resource_code)) {
+          const resourceSet = new Set(
+            resource_code.map((item: any) => item.split("-")[0])
+          );
+          result = [
+            // 先加模块名对象
+            ...Array.from(resourceSet).map((res) => ({ resourceCode: res })),
+            // 再加原始字符串对象
+            ...resource_code.map((item: any) => ({ resourceCode: item })),
+          ];
+        } else {
+          result = [];
+        }
+        const currentUser = { ...data?.user_info, resourceList: result };
+        flushSync(() => {
+          setInitialState((s) => ({
+            ...s,
+            currentUser,
+          }));
+        });
+        // 存储到 localStorage，刷新保留登录状态
+        localStorage.setItem("ACCESS-TOKEN", data.access_token);
+        localStorage.setItem("REFRESH-TOKEN", data.refresh_token);
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        message.success(defaultLoginSuccessMessage);
+        const urlParams = new URL(window.location.href).searchParams;
+        window.location.href = urlParams.get("redirect") || "/";
+      } catch (error: any) {
+        // console.log("error.response", error);
+        if (!error.response) return;
+        const { message: msg, retry_cnt } = error.response.data;
+        const defaultMessage = `${msg},你还有${retry_cnt}次重试机会`;
+        setErrorMsg(defaultMessage);
+      }
+    }
+
+    // 验证码
+    if (captcha && mobile) {
+      console.log("验证码是否失效", captchaExpired);
+
+      if (captcha !== "1234") {
+        setCaptchaErrorMsg("验证码输入错误");
         return;
       }
-      console.log("value====", values);
-
-      const { username, password, captcha, mobile } = values;
-      // 如果是账号密码登录
-      if (username && password) {
-        if (username !== "user" && username !== "admin") {
-          const newAttempts = attemptsLeft - 1;
-          setAttemptsLeft(newAttempts);
-          setSuccessMsg("");
-          if (newAttempts > 0) {
-            setErrorMsg(`账号或密码错误，你还有 ${newAttempts} 次重试机会`);
-          } else {
-            setErrorMsg("账号已锁定，请联系管理员");
-          }
-          return;
-        }
+      if (captcha === "1234" && captchaExpired) {
+        //已结束
+        setCaptchaErrorMsg("验证码已过期请重新输入");
+        return;
       }
-
-      // 验证码
-      if (captcha && mobile) {
-        console.log("验证码是否失效", captchaExpired);
-
-        if (captcha !== "1234") {
-          setCaptchaErrorMsg("验证码输入错误");
-          return;
-        }
-        if (captcha === "1234" && captchaExpired) {
-          //已结束
-          setCaptchaErrorMsg("验证码已过期请重新输入");
-          return;
-        }
-      }
-
-      const defaultLoginSuccessMessage = intl.formatMessage({
-        id: "pages.login.success",
-        defaultMessage: "登录成功！",
-      });
-      message.success(defaultLoginSuccessMessage);
-      await fetchUserInfo();
-      // 重置尝试次数
-      setErrorMsg("");
-      setAttemptsLeft(5);
-      // 验证码提示信息初始化
-      setCaptchaErrorMsg("");
-      setCaptchaShow(false);
-      const urlParams = new URL(window.location.href).searchParams;
-      window.location.href = urlParams.get("redirect") || "/";
-      return;
-    } catch (error) {
-      const defaultLoginFailureMessage = intl.formatMessage({
-        id: "pages.login.failure",
-        defaultMessage: "登录失败，请重试！",
-      });
-      console.log(error);
-      message.error(defaultLoginFailureMessage);
     }
+
+    // const defaultLoginSuccessMessage = intl.formatMessage({
+    //   id: "pages.login.success",
+    //   defaultMessage: "登录成功！",
+    // });
+    // message.success(defaultLoginSuccessMessage);
+    // await fetchUserInfo();
+    // 重置尝试次数
+
+    // setAttemptsLeft(5);
+    // 验证码提示信息初始化
+    setCaptchaErrorMsg("");
+    // setCaptchaShow(false);
+    // const urlParams = new URL(window.location.href).searchParams;
+    // window.location.href = urlParams.get("redirect") || "/";
+    // return;
   };
 
   const waitTime = (time: number = 100) => {
@@ -320,7 +331,7 @@ const Login: React.FC = () => {
             <LoginMessage
               content={intl.formatMessage({
                 id: "pages.login.accountLogin.errorMessage",
-                defaultMessage: "账户或密码错误(admin/ant.design)",
+                defaultMessage: "账户或密码错误",
               })}
             />
           )}
@@ -346,10 +357,7 @@ const Login: React.FC = () => {
                   size: "large",
                   prefix: <UserOutlined />,
                 }}
-                placeholder={intl.formatMessage({
-                  id: "pages.login.username.placeholder",
-                  defaultMessage: "用户名: admin or user",
-                })}
+                placeholder="请输入用户名"
                 rules={[
                   {
                     required: true,
@@ -368,10 +376,7 @@ const Login: React.FC = () => {
                   size: "large",
                   prefix: <LockOutlined />,
                 }}
-                placeholder={intl.formatMessage({
-                  id: "pages.login.password.placeholder",
-                  defaultMessage: "密码: ant.design",
-                })}
+                placeholder="请输入手机号"
                 rules={[
                   {
                     required: true,

@@ -117,8 +117,19 @@ const Page: React.FC = () => {
     });
   };
   const requestData: any = async (...args: any) => {
+    console.log(" args[0]", args);
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
+      const params = {
+        ...args[0],
+        sort: args[1],
+        page_size: args[0].pageSize,
+        page_index: args[0].current,
+        pageSize: null,
+        current: null,
+      };
+      console.log("params", params);
+
+      const res = await getList(params);
       return res;
     } catch {
       return {

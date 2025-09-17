@@ -1,14 +1,12 @@
 import { request } from "@umijs/max";
-// /api/taskManagement/testRequirement
-const baseUrl = "";
+
+const baseUrl = "/user";
 
 export async function getList(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/loginLog/getList`, {
+  const result: any = await request<{}>(`${baseUrl}/getList`, {
     method: "GET",
     params: params,
   });
-  console.log("result", result);
-
   return result;
 }
 

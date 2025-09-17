@@ -80,7 +80,7 @@ export default [
     path: "/case-management",
     name: "测试设计",
     icon: "fileSearch",
-    access: "caseManagement",
+    access: "testDesign",
     routes: [
       {
         path: "/case-management",
@@ -189,7 +189,7 @@ export default [
   //   path: "/tool-management",
   //   name: "检测工具",
   //   icon: "tool",
-  //   access: "toolManagement",
+  //   access: "backendManagement",
   //   routes: [
   //     {
   //       path: "/tool-management/ide-tool",

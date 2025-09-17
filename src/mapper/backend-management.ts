@@ -1,0 +1,1 @@
+import createMapping from 'map-factory';

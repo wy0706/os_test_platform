@@ -1,7 +1,8 @@
 ﻿import type { RequestOptions } from "@@/plugin-request/request";
 import type { RequestConfig } from "@umijs/max";
+import { history } from "@umijs/max";
 import { message, notification } from "antd";
-
+const loginPath = "/user/login";
 // 错误处理方案： 错误类型
 enum ErrorShowType {
   SILENT = 0,
@@ -72,7 +73,13 @@ export const errorConfig: RequestConfig = {
       } else if (error.response) {
         // Axios 的错误
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
-        message.error(`Response status:${error.response.status}`);
+        if (error.response.status === 408) {
+          message.error("登录已过期，请重新登录");
+          localStorage.clear();
+          history.push(loginPath);
+          return;
+        }
+        message.error(`${error.response.data?.message}`);
       } else if (error.request) {
         // 请求已经成功发起，但没有收到响应
         // \`error.request\` 在浏览器中是 XMLHttpRequest 的实例，
@@ -88,15 +95,17 @@ export const errorConfig: RequestConfig = {
   // 请求拦截器
   requestInterceptors: [
     (config: RequestOptions) => {
-      console.log("config", config);
-
-      // if (token) {
-      //   console.log("有token", token);
-      // }
-      config["headers"] = {
+      const accessToken = localStorage.getItem("ACCESS-TOKEN");
+      const refreshToken = localStorage.getItem("REFRESH-TOKEN");
+      // config["headers"] = {
+      //   ...config.headers,
+      //   "ACCESS-TOKEN": `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU4NjgzMjk4LCJpYXQiOjE3NTgwNzg0OTgsImp0aSI6Ijc5NGI3ZDliMjc4ODRlMWJhNDY0ZDg5NGQzODkxOWY2IiwidXNlcl9pZCI6IjEifQ.Nq7faCz-JGA4tacPc1uERZOT6-88Twee8Hcjpe8jJ8k`,
+      //   "REFRESH-TOKEN": `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1ODY4MzI5OCwiaWF0IjoxNzU4MDc4NDk4LCJqdGkiOiJlNmYzOTBhNzVjOWQ0ZmUyODkzZjI2M2EyNWU1NmRkZiIsInVzZXJfaWQiOiIxIn0.K8XmRdsf5mJzf02Y8iek7Q6BCfT_FWD-91W_R2Y6wzM`,
+      // };
+      config.headers = {
         ...config.headers,
-        "ACCESS-TOKEN": `123`,
-        "REFRESH-TOKEN": `321`,
+        ...(accessToken ? { "ACCESS-TOKEN": accessToken } : {}),
+        ...(refreshToken ? { "REFRESH-TOKEN": refreshToken } : {}),
       };
       // 拦截请求配置，进行个性化处理。
       // const url = config?.url?.concat('?token=123');
@@ -110,7 +119,14 @@ export const errorConfig: RequestConfig = {
     (response) => {
       // 拦截响应数据，进行个性化处理
       const { data } = response as unknown as ResponseStructure;
-
+      console.log("data-====", data);
+      // 如果后端返回了新的 token，就更新本地存储
+      const newAccessToken = data.access_token;
+      const newRefreshToken = data.refresh_token;
+      if (newAccessToken && newRefreshToken) {
+        localStorage.setItem("ACCESS-TOKEN", newAccessToken);
+        localStorage.setItem("REFRESH-TOKEN", newRefreshToken);
+      }
       if (data?.success === false) {
         message.error("请求失败！");
       }

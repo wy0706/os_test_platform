@@ -5,6 +5,9 @@ export default function access(
   initialState: { currentUser?: API.CurrentUser } | undefined
 ) {
   const { currentUser } = initialState ?? {};
+
+  console.log("currentUser", currentUser);
+
   const tmp: any = { resourceList: [], ...currentUser };
   console.log("access", tmp);
 
@@ -15,7 +18,4 @@ export default function access(
     });
   }
   return access;
-  // return {
-  //   canAdmin: currentUser && currentUser.access === 'admin',
-  // };
 }

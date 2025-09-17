@@ -45,7 +45,7 @@ const mockPermissions = [
   {
     group: "测试设计",
     desc: "创建、编辑和执行测试用例，管理用例库",
-    key: "caseManagement",
+    key: "testDesign",
   },
   {
     group: "设备管理",
@@ -79,7 +79,7 @@ const permissionItems = [
 const defaultRolePermissions = {
   1: [
     "taskManagement-edit",
-    "caseManagement-edit",
+    "testDesign-edit",
     "equipmentManagement-edit",
     "logManagement-edit",
     "systemManagement-edit",
@@ -88,7 +88,7 @@ const defaultRolePermissions = {
 
   2: [
     "taskManagement-preview",
-    "caseManagement-preview",
+    "testDesign-preview",
     "equipmentManagement-preview",
     "logManagement-preview",
     "systemManagement-preview",
@@ -96,7 +96,7 @@ const defaultRolePermissions = {
   ],
   3: [
     "taskManagement-edit",
-    "caseManagement-preview",
+    "testDesign-preview",
     "equipmentManagement-edit",
     "logManagement-preview",
     // "systemManagement-preview",
@@ -105,7 +105,7 @@ const defaultRolePermissions = {
 };
 // 系统管理员
 // taskManagement: "edit",
-// caseManagement: "edit",
+// testDesign: "edit",
 // equipmentManagement: "edit",
 // logManagement: "edit",
 // systemManagement: "edit",
@@ -114,7 +114,7 @@ const defaultRolePermissions = {
 // 2: {
 //   // 测试处理
 //   // taskManagement: "preview",
-//   // caseManagement: "preview",
+//   // testDesign: "preview",
 //   // equipmentManagement: "preview",
 //   // logManagement: "edit",
 //   // systemManagement: "edit",

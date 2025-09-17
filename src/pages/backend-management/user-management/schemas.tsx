@@ -7,34 +7,30 @@ export const userSchemasTitle: any = {
 };
 
 export const userSchemasColumns: any = [
-  // {
-  //   title: "名称",
-  //   dataIndex: "title",
-  //   ellipsis: true,
-  //   sorter: true,
-  // },
-  // {
-  //   title: "创建时间",
-  //   dataIndex: "createTime",
-  //   ellipsis: true,
-  //   sorter: true,
-  // },
-  { title: "姓名", dataIndex: "username", key: "username" },
-  { title: "用户名", dataIndex: "email", key: "email" },
-  { title: "所属角色", dataIndex: "email1", key: "email1", hideInSearch: true },
+  { title: "姓名", dataIndex: "name", ellipsis: true },
+  {
+    title: "用户名",
+    dataIndex: "username",
+    ellipsis: true,
+    hideInSearch: true,
+  },
+  {
+    title: "所属角色",
+    dataIndex: "role_name",
+    hideInSearch: true,
+    ellipsis: true,
+  },
   {
     title: "密码",
-    dataIndex: "email2",
-    key: "email2",
+    dataIndex: "id",
     render: () => "******",
     hideInSearch: true,
   },
-  { title: "手机号", dataIndex: "email3", key: "email3" },
+  { title: "手机号", dataIndex: "phone_num", ellipsis: true },
   {
     title: "账户状态",
-    dataIndex: "email4",
-    key: "email4",
-    search: false,
+    dataIndex: "is_active",
+    hideInSearch: true,
     render: (value: boolean, record: any, _: any, action: any) => (
       <Switch
         checked={value}

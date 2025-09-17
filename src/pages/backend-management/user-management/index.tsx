@@ -1,7 +1,6 @@
-import {
-  deleteOne,
-  getList,
-} from "@/services/system-management/role-management.service";
+import { deleteOne } from "@/services/system-management/role-management.service";
+
+import { getList } from "@/services/backend-management/user-management.service";
 import { EditOutlined, LockOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -187,16 +186,32 @@ const Page: React.FC = () => {
 
   const formRef = useRef<ProFormInstance | null>(null);
   const requestData: any = async (...args: any) => {
+    const params = {
+      ...args[0],
+      sort: args[1],
+      page_size: args[0].pageSize,
+      page_index: args[0].current,
+      pageSize: null,
+      current: null,
+    };
+    console.log("params", params);
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
+      const res = await getList(params);
+      console.log("res===", res);
+      let list = Array.isArray(res.list)
+        ? res.list.map((item) => {
+            return {
+              ...item,
+              role_name: item.role_info?.name || "",
+            };
+          })
+        : [];
       return {
-        data: userData,
-        total: userData.length,
+        data: list,
+        total: res?.total_cnt,
         success: true,
       };
-    }
+    } catch {}
   };
   // 移除 formRef、form、continueAdd、handleOk、handleCancel 相关内容
   // 只保留控制弹窗开关的 isUpdateModalOpen、isUpdate、updateValue 相关 state
@@ -218,7 +233,7 @@ const Page: React.FC = () => {
           actionRef={actionRef}
           columns={columns}
           request={requestData}
-          rowKey="key"
+          rowKey="id"
           cardBordered
           // options={false}
           pagination={{

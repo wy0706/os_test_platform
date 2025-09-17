@@ -49,6 +49,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
    */
   const loginOut = async () => {
     // await outLogin();
+    localStorage.clear(); //清除用户信息
     const { search, pathname } = window.location;
     const urlParams = new URL(window.location.href).searchParams;
     const searchParams = new URLSearchParams({
@@ -67,7 +68,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const { styles } = useStyles();
 
   const { initialState, setInitialState } = useModel("@@initialState");
-  console.log("initialState", initialState);
+  // console.log("initialState", initialState);
 
   const onMenuClick: MenuProps["onClick"] = (event) => {
     const { key } = event;
@@ -106,7 +107,8 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   if (!currentUser || !currentUser.name) {
     return loading;
   }
-  const adminCodes = ["backendManagement-preview", "sbackendManagement-edit"];
+  const adminCodes = ["backendManagement"];
+
   const hasAdminPermission = currentUser?.resourceList?.some((res: any) =>
     adminCodes.includes(res.resourceCode)
   );

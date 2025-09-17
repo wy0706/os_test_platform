@@ -17,104 +17,15 @@ export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: API.CurrentUser;
   loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
-  console.log("process.env.REACT_APP_ENV", REACT_APP_ENV);
-  const fetchUserInfo = async () => {
-    try {
-      // demo
-      const list = [
-        "taskManagement-edit",
-        "caseManagement-edit",
-        "equipmentManagement-edit",
-        "logManagement-edit",
-        "systemManagement-edit",
-        "backendManagement-edit",
-      ];
-      const resourceSet = new Set(list.map((item) => item.split("-")[0]));
+  const storedUser = localStorage.getItem("currentUser");
 
-      const result = [
-        // 先加模块名对象
-        ...Array.from(resourceSet).map((res) => ({ resourceCode: res })),
-        // 再加原始字符串对象
-        ...list.map((item) => ({ resourceCode: item })),
-      ];
-
-      console.log("result", result);
-
-      // const msg = await queryCurrentUser({
-      //   skipErrorHandler: true,
-      // });
-      const currentUser: any = {
-        name: "admin",
-        avatar:
-          "https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png",
-        resourceList: [
-          { resourceCode: "taskManagement" },
-          { resourceCode: "equipmentManagement" },
-          { resourceCode: "caseManagement" },
-          { resourceCode: "backendManagement" },
-          { resourceCode: "logManagement" },
-          { resourceCode: "systemManagement" },
-          { resourceCode: "equipmentManagement-preview" },
-          { resourceCode: "equipmentManagement-edit" },
-          { resourceCode: "caseManagement-preview" },
-          { resourceCode: "caseManagement-edit" },
-          { resourceCode: "taskManagement-preview" },
-          { resourceCode: "taskManagement-edit" },
-          { resourceCode: "backendManagement-preview" },
-          { resourceCode: "backendManagement-edit" },
-          { resourceCode: "logManagement-preview" },
-          { resourceCode: "logManagement-edit" },
-          { resourceCode: "systemManagement-preview" },
-          { resourceCode: "systemManagement-edit" },
-
-          // { resourceCode: "testExecution-edit" },
-          // { resourceCode: "testReport-edit" },
-          // { resourceCode: "testRequirement-edit" },
-          // { resourceCode: "testTask-edit" },
-          // { resourceCode: "testExecutionResult-edit" },
-          // { resourceCode: "equipmentLibrary-edit" },
-          // { resourceCode: "caseLibrary-edit" },
-          // { resourceCode: "userManagement-edit" },
-          // { resourceCode: "ideTool-edit" },
-          // { resourceCode: "testSequenceIntegration-edit" },
-          // { resourceCode: "testCase-edit" },
-          // { resourceCode: "operationLog-edit" },
-          // { resourceCode: "roleManagement-edit" },
-          // { resourceCode: "loginLog-edit" },
-          // { resourceCode: "deployTool-edit" },
-          // { resourceCode: "permissionManagement-edit" },
-        ],
-      };
-      // console.log(msg.data);
-      return currentUser;
-      // return msg.data;
-    } catch (_error) {
-      history.push(loginPath);
-    }
-    return undefined;
-  };
-  // 如果不是登录页面，执行
-  const { location } = history;
-  if (
-    ![loginPath, "/user/register", "/user/register-result"].includes(
-      location.pathname
-    )
-  ) {
-    const currentUser = await fetchUserInfo();
-    return {
-      fetchUserInfo,
-      currentUser,
-      settings: defaultSettings as Partial<LayoutSettings>,
-    };
-  }
   return {
-    fetchUserInfo,
+    // fetchUserInfo,
+    currentUser: storedUser ? JSON.parse(storedUser) : undefined,
     settings: defaultSettings as Partial<LayoutSettings>,
   };
 }
-
 // ProLayout 支持的api https://procomponents.ant.design/components/layout 运行时配置
 export const layout: RunTimeLayoutConfig = ({
   initialState,
@@ -144,7 +55,7 @@ export const layout: RunTimeLayoutConfig = ({
     //   <SelectLang key="SelectLang" />,
     // ],
     avatarProps: {
-      src: initialState?.currentUser?.avatar,
+      src: initialState?.currentUser?.avatar_url,
       title: <AvatarName />,
       render: (_, avatarChildren) => {
         return <AvatarDropdown menu={true}>{avatarChildren}</AvatarDropdown>;
@@ -225,6 +136,7 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: "/api",
+  timeout: 15000,
   ...errorConfig,
 };
