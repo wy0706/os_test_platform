@@ -16,7 +16,7 @@ export const userSchemasColumns: any = [
   },
   {
     title: "所属角色",
-    dataIndex: "role_name",
+    dataIndex: ["role_info", "name"], // 多级路径
     hideInSearch: true,
     ellipsis: true,
   },
@@ -63,7 +63,7 @@ export const userSchemasForm: any = {
   columns: [
     {
       title: "姓名",
-      dataIndex: "username",
+      dataIndex: "name",
       formItemProps: {
         rules: [
           {
@@ -75,11 +75,11 @@ export const userSchemasForm: any = {
     },
     {
       title: "用户名",
-      dataIndex: "email",
+      dataIndex: "username",
       formItemProps: {
         rules: [
           {
-            required: true,
+            required: false,
             message: "此项为必填项",
           },
         ],
@@ -87,7 +87,7 @@ export const userSchemasForm: any = {
     },
     {
       title: "手机号",
-      dataIndex: "email3",
+      dataIndex: "phone_num",
       formItemProps: {
         rules: [
           {
@@ -103,7 +103,7 @@ export const userSchemasForm: any = {
     },
     {
       title: "角色",
-      dataIndex: "email1",
+      dataIndex: "role_id",
       valueType: "select",
       fieldProps: {
         options: [
@@ -117,25 +117,12 @@ export const userSchemasForm: any = {
       formItemProps: {
         rules: [
           {
-            required: true,
+            required: false,
             message: "此项为必选项",
           },
         ],
       },
     },
-
-    // {
-    //   title: "创建时间",
-    //   dataIndex: "createTime",
-    //   formItemProps: {
-    //     rules: [
-    //       {
-    //         required: true,
-    //         message: "此项为必填项",
-    //       },
-    //     ],
-    //   },
-    // },
   ],
 };
 

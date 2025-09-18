@@ -1,27 +1,44 @@
+import { updatePassWord } from "@/services/backend-management/user-management.service";
 import type { ProFormInstance } from "@ant-design/pro-components";
 import {
   PageContainer,
   ProForm,
   ProFormText,
 } from "@ant-design/pro-components";
+import { history, useModel } from "@umijs/max";
 import { Button, Form, Input, Menu, message } from "antd";
 import React, { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import "./index.less";
 
 const ChangePasswordForm: React.FC = () => {
+  const loginPath = "/user/login";
+  const { setInitialState } = useModel("@@initialState");
   const [loading, setLoading] = useState(false);
   const formRef = useRef<ProFormInstance>();
 
-  // 模拟异步修改密码请求
+  // 修改密码请求
   const handleChangePassword = async (values: any) => {
     setLoading(true);
     try {
-      // 模拟网络请求延迟
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      // 这里可以对接真实接口
-      console.log("提交的密码数据:", values);
+      console.log("values", values);
+
+      // await new Promise((resolve) => setTimeout(resolve, 1200));
+      await updatePassWord({
+        ...values,
+        confirmPassword: null,
+      });
+
       message.success("密码修改成功");
-      formRef.current?.resetFields();
+      localStorage.clear();
+      flushSync(() => {
+        setInitialState((s) => ({
+          ...s,
+          currentUser: {},
+        }));
+      });
+
+      history.push(loginPath);
       return true;
     } catch (error) {
       message.error("密码修改失败，请重试");
@@ -60,7 +77,7 @@ const ChangePasswordForm: React.FC = () => {
       style={{ borderRadius: 6 }} // 设置表单圆角
     >
       <ProFormText.Password
-        name="oldPassword"
+        name="old_password"
         label="旧密码"
         placeholder="请输入旧密码"
         rules={[{ required: true, message: "请输入旧密码" }]}
@@ -68,7 +85,7 @@ const ChangePasswordForm: React.FC = () => {
       />
 
       <ProFormText.Password
-        name="newPassword"
+        name="new_password"
         label="新密码"
         placeholder="请输入新密码"
         rules={[
@@ -82,12 +99,12 @@ const ChangePasswordForm: React.FC = () => {
         name="confirmPassword"
         label="确认新密码"
         placeholder="请再次输入新密码"
-        dependencies={["newPassword"]}
+        dependencies={["new_password"]}
         rules={[
           { required: true, message: "请确认新密码" },
           ({ getFieldValue }) => ({
             validator(_, value) {
-              if (!value || getFieldValue("newPassword") === value) {
+              if (!value || getFieldValue("new_password") === value) {
                 return Promise.resolve();
               }
               return Promise.reject(new Error("两次输入的密码不一致"));

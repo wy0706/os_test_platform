@@ -1,57 +1,61 @@
+import { transformParams } from "@/utils/params";
 import { request } from "@umijs/max";
-
 const baseUrl = "/user";
 
+// 获取用户列表
 export async function getList(params: any) {
+  const data = transformParams(params); //先转换成后端需要的数据
   const result: any = await request<{}>(`${baseUrl}/getList`, {
     method: "GET",
-    params: params,
+    params: data,
   });
   return result;
 }
-
+// 创建用户信息
 export async function createOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/createOne`, {
+  const result: any = await request<{}>(`${baseUrl}/create`, {
     method: "POST",
     data: data,
   });
   return result;
 }
 
-export async function getAll(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getAll`, {
-    method: "GET",
-    params: params,
-  });
-  return result;
-}
-
-export async function getOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/getOne/${id}`, {
-    method: "GET",
-  });
-  return result;
-}
-
+// export async function getOne(id: any) {
+//   const result: any = await request<{}>(`${baseUrl}/getOneById`, {
+//     method: "GET",
+//     params: { id },
+//   });
+//   return result;
+// }
+// 编辑用户
 export async function updateOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
-    method: "POST",
+  const result: any = await request<{}>(`${baseUrl}/edit`, {
+    method: "PUT",
     data: data,
   });
   return result;
 }
-
+// 删除
 export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
+  const result: any = await request<{}>(`${baseUrl}/delete/${id}`, {
     method: "DELETE",
   });
   return result;
 }
-
-export async function deleteBatch(ids: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-    method: "DELETE",
-    data: ids,
+// 解锁状态
+export async function deleteBatch(user_id: any) {
+  const result: any = await request<{}>(`${baseUrl}/activeAccount`, {
+    method: "PATCH",
+    // data: ids,
+    data: { user_id },
+  });
+  return result;
+}
+// 用户修改密码 PATCH
+export async function updatePassWord(params: any) {
+  const result: any = await request<{}>(`${baseUrl}/changePassword`, {
+    method: "PATCH",
+    data: params,
   });
   return result;
 }

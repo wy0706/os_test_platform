@@ -7,7 +7,6 @@ import {
   PageContainer,
   ProTable,
   TableDropdown,
-  type ProFormInstance,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Modal } from "antd";
@@ -15,12 +14,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Access, useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
-import {
-  userSchemasColumns,
-  userSchemasDescriptions,
-  userSchemasForm,
-  userSchemasTitle,
-} from "./schemas";
+import { userSchemasColumns, userSchemasTitle } from "./schemas";
 
 const userData = [
   {
@@ -46,24 +40,10 @@ const Page: React.FC = () => {
     isUpdate: false,
     isUpdateModalOpen: false,
     updateValue: {},
-    formSchema: userSchemasForm,
-    isPreviewModalOpen: false,
-    detailsId: null,
-    descriptionsColumns: userSchemasDescriptions,
     columns: [],
   });
 
-  const {
-    columns,
-    title,
-    isUpdate,
-    isUpdateModalOpen,
-    updateValue,
-    formSchema,
-    isPreviewModalOpen,
-    detailsId,
-    descriptionsColumns,
-  } = state;
+  const { columns, title, isUpdate, isUpdateModalOpen, updateValue } = state;
 
   useEffect(() => {
     if (!!access["backendManagement-edit"]) {
@@ -73,7 +53,7 @@ const Page: React.FC = () => {
             title: "操作",
             valueType: "option",
             key: "option",
-            width: 200,
+            width: 250,
             render: (text: any, record: any, index: any, action: any) => [
               // <Button
               //   key="preview"
@@ -184,35 +164,25 @@ const Page: React.FC = () => {
     }
   }, [access]);
 
-  const formRef = useRef<ProFormInstance | null>(null);
   const requestData: any = async (...args: any) => {
-    const params = {
-      ...args[0],
-      sort: args[1],
-      page_size: args[0].pageSize,
-      page_index: args[0].current,
-      pageSize: null,
-      current: null,
-    };
-    console.log("params", params);
     try {
-      const res = await getList(params);
-      console.log("res===", res);
-      let list = Array.isArray(res.list)
-        ? res.list.map((item) => {
-            return {
-              ...item,
-              role_name: item.role_info?.name || "",
-            };
-          })
-        : [];
-      return {
-        data: list,
-        total: res?.total_cnt,
-        success: true,
-      };
-    } catch {}
+      const { code, data } = await getList({
+        params: args[0],
+        sort: args[1],
+      });
+
+      return code === 0
+        ? {
+            data: data?.list || [],
+            total: data?.total_cnt,
+            success: true,
+          }
+        : {};
+    } catch {
+      return {};
+    }
   };
+
   // 移除 formRef、form、continueAdd、handleOk、handleCancel 相关内容
   // 只保留控制弹窗开关的 isUpdateModalOpen、isUpdate、updateValue 相关 state
 
@@ -224,7 +194,7 @@ const Page: React.FC = () => {
     }
   };
   const handleOk = () => {
-    console.log("1111");
+    actionRef.current?.reload();
   };
   return (
     <PageContainer>
@@ -264,9 +234,9 @@ const Page: React.FC = () => {
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}
-        onSuccess={handleSetMemberSuccess}
+        // onOk={handleSetMemberSuccess}
         onCancel={() => setState({ isUpdateModalOpen: false })}
-        formSchema={formSchema}
+        // formSchema={formSchema}
       />
     </PageContainer>
   );

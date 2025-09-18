@@ -19,6 +19,7 @@ import {
 import {
   FormattedMessage,
   Helmet,
+  history,
   SelectLang,
   useIntl,
   useModel,
@@ -132,7 +133,6 @@ const Login: React.FC = () => {
   //   }
   // };
   const [form] = ProForm.useForm();
-  // const [attemptsLeft, setAttemptsLeft] = useState(5);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const captchaRef = useRef<CaptFieldRef | null | undefined>();
@@ -142,61 +142,65 @@ const Login: React.FC = () => {
   const [captchaerrorMsg, setCaptchaErrorMsg] = useState("");
   const inputRef = useRef();
   const handleSubmit = async (values: API.LoginParams) => {
+    setErrorMsg("");
     const { username, password, captcha, mobile } = values;
     if (username && password) {
       try {
         // 登录
-        console.log("values", values);
-        if (username && password) {
-        }
-        const data = await login({ ...values });
-        if (!data) {
-          message.error("登录失败，未返回用户信息");
-          setUserLoginState({ status: "error", type: "account" });
-          return;
-        }
-        const defaultLoginSuccessMessage = intl.formatMessage({
-          id: "pages.login.success",
-          defaultMessage: "登录成功！",
-        });
+
         const {
-          user_info: { resource_code },
-        } = data;
-        let result: any = [];
-        if (resource_code && Array.isArray(resource_code)) {
-          const resourceSet = new Set(
-            resource_code.map((item: any) => item.split("-")[0])
-          );
-          result = [
-            // 先加模块名对象
-            ...Array.from(resourceSet).map((res) => ({ resourceCode: res })),
-            // 再加原始字符串对象
-            ...resource_code.map((item: any) => ({ resourceCode: item })),
-          ];
+          code,
+          data,
+          refresh_token,
+          access_token,
+          message: msg,
+        } = await login({ ...values });
+
+        if (code === 0) {
+          let result: any = [];
+          if (data?.resource_code && Array.isArray(data?.resource_code)) {
+            const resourceSet = new Set(
+              data.resource_code.map((item: any) => item.split("-")[0])
+            );
+            result = [
+              // 先加模块名对象
+              ...Array.from(resourceSet).map((res) => ({
+                resourceCode: res,
+              })),
+              // 再加原始字符串对象
+              ...data.resource_code.map((item: any) => ({
+                resourceCode: item,
+              })),
+            ];
+          } else {
+            result = [];
+          }
+          const currentUser = { ...data, resourceList: result };
+
+          flushSync(() => {
+            setInitialState((s) => ({
+              ...s,
+              currentUser,
+            }));
+          });
+          // 存储到 localStorage，刷新保留登录状态
+          localStorage.setItem("ACCESS-TOKEN", access_token);
+          localStorage.setItem("REFRESH-TOKEN", refresh_token);
+          localStorage.setItem("currentUser", JSON.stringify(currentUser));
+          const defaultLoginSuccessMessage = intl.formatMessage({
+            id: "pages.login.success",
+            defaultMessage: "登录成功！",
+          });
+          message.success(defaultLoginSuccessMessage);
+          const urlParams = new URL(window.location.href).searchParams;
+          history.push(urlParams.get("redirect") || "/");
+        } else if (code === 1) {
+          const defaultMessage = `${msg},你还有${data?.retry_cnt}次重试机会`;
+          setErrorMsg(defaultMessage);
         } else {
-          result = [];
+          setErrorMsg(msg);
         }
-        const currentUser = { ...data?.user_info, resourceList: result };
-        flushSync(() => {
-          setInitialState((s) => ({
-            ...s,
-            currentUser,
-          }));
-        });
-        // 存储到 localStorage，刷新保留登录状态
-        localStorage.setItem("ACCESS-TOKEN", data.access_token);
-        localStorage.setItem("REFRESH-TOKEN", data.refresh_token);
-        localStorage.setItem("currentUser", JSON.stringify(currentUser));
-        message.success(defaultLoginSuccessMessage);
-        const urlParams = new URL(window.location.href).searchParams;
-        window.location.href = urlParams.get("redirect") || "/";
-      } catch (error: any) {
-        // console.log("error.response", error);
-        if (!error.response) return;
-        const { message: msg, retry_cnt } = error.response.data;
-        const defaultMessage = `${msg},你还有${retry_cnt}次重试机会`;
-        setErrorMsg(defaultMessage);
-      }
+      } catch (error: any) {}
     }
 
     // 验证码

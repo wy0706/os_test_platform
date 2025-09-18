@@ -100,7 +100,7 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
         <Form.Item name="title" label="设备类型" rules={[{ required: true }]}>
           <Input placeholder="输入设备类型" allowClear />
         </Form.Item>{" "}
-        <Form.Item
+        {/* <Form.Item
           name="name6"
           label="安全操作"
           initialValue={"0"}
@@ -110,7 +110,7 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
             <Option value="1">✓</Option>
             <Option value="0">✗</Option>
           </Select>
-        </Form.Item>
+        </Form.Item> */}
         <Form.Item name="name1" label="设备类型编码">
           <Input placeholder="系统自动分配" disabled />
         </Form.Item>

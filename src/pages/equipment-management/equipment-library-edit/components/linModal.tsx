@@ -51,7 +51,7 @@ const LinModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     //当“主从模式”选择从机时，“同步间隔宽度（bit）”不可配，只能为13
-    if (port == 2) {
+    if (port == "slave") {
       form.setFieldsValue({
         databits: 13,
       });
@@ -103,8 +103,8 @@ const LinModal: React.FC<SetMemberModalProps> = ({
       <Form {...layout} form={form} name="control-hooks">
         <Form.Item name="port" label="主从模式">
           <Select placeholder="选择主从模式" allowClear>
-            <Option value="1">主机</Option>
-            <Option value="2">丛机</Option>
+            <Option value="1">master</Option>
+            <Option value="2">slave</Option>
           </Select>
         </Form.Item>
         <Form.Item name="rate" label="波特率值">
