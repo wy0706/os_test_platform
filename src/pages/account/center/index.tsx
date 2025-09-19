@@ -22,13 +22,14 @@ const ChangePasswordForm: React.FC = () => {
     setLoading(true);
     try {
       console.log("values", values);
-
-      // await new Promise((resolve) => setTimeout(resolve, 1200));
-      await updatePassWord({
+      const { code, message: msg } = await updatePassWord({
         ...values,
         confirmPassword: null,
       });
-
+      if (code !== 0) {
+        message.error(msg);
+        return false;
+      }
       message.success("密码修改成功");
       localStorage.clear();
       flushSync(() => {

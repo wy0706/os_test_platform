@@ -38,14 +38,6 @@ const tabList = [
       </span>
     ),
   },
-  // {
-  //   key: "/backend-management/role-management",
-  //   label: (
-  //     <span>
-  //       <TeamOutlined style={{ marginRight: 4 }} /> 角色管理
-  //     </span>
-  //   ),
-  // },
   {
     key: "/backend-management/permission-management",
     label: (
@@ -72,7 +64,6 @@ const BackendManagement: React.FC = () => {
         items={tabList}
         style={{ paddingLeft: 32 }}
       />
-
       <Outlet />
     </div>
   );

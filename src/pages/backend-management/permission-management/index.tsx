@@ -1,8 +1,10 @@
 import {
+  deleteOne,
   getList as getAllRoleList,
   getOne,
+  updateOne,
 } from "@/services/backend-management/permission-management.service";
-import { isArray } from "@/utils/index";
+import { arrayToObject, isArray } from "@/utils/index";
 import {
   DeleteOutlined,
   EditOutlined,
@@ -14,31 +16,16 @@ import { useSetState } from "ahooks";
 import {
   Button,
   Card,
+  Checkbox,
   Form,
   Input,
   List,
   Modal,
-  Radio,
   Space,
   message,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import AddRoleModal from "./components/addRoleModal";
-import { schemasForm } from "./schemas";
-
-// 模拟角色数据
-const mockRoles = [
-  { id: 1, name: "系统管理员", desc: "拥有所有权限" },
-  { id: 2, name: "测试处理", desc: "管理测试相关功能" },
-  { id: 3, name: "开发工程师", desc: "开发相关权限" },
-  { id: 4, name: "运维工程师", desc: "设备管理权限" },
-  { id: 5, name: "质量保证", desc: "测试归档管理权限" },
-  { id: 6, name: "访客", desc: "只读权限" },
-  // { id: 7, name: "访客", desc: "只读权限" },
-  // { id: 8, name: "访客", desc: "只读权限" },
-  // { id: 9, name: "访客", desc: "只读权限" },
-  // { id: 16, name: "访客", desc: "只读权限" },
-];
 
 // 模拟权限分组数据
 const mockPermissions = [
@@ -46,32 +33,37 @@ const mockPermissions = [
     group: "任务管理",
     desc: "创建、分配和执行测试任务，查看测试进度",
     key: "taskManagement",
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
   {
     group: "测试设计",
     desc: "创建、编辑和执行测试用例，管理用例库",
     key: "testDesign",
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
   {
     group: "设备管理",
     desc: "管理测试设备，分配设备资源，查看设备状态",
     key: "equipmentManagement",
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
-
   {
     group: "日志管理",
     desc: "查看系统日志，分析系统运行情况",
     key: "logManagement",
+    allowed: ["preview"], // 只支持访问
   },
   {
     group: "系统管理",
     desc: "添加设备，添加命令",
     key: "systemManagement",
+    allowed: ["preview", "edit"],
   },
   {
     group: "管理后台",
     desc: "系统设置、用户管理、权限配置等核心权限",
     key: "backendManagement",
+    allowed: ["preview", "edit"],
   },
 ];
 
@@ -81,96 +73,36 @@ const permissionItems = [
   { label: "操作", value: "edit" },
 ];
 
-const defaultRolePermissions = {
-  1: [
-    "taskManagement-edit",
-    "testDesign-edit",
-    "equipmentManagement-edit",
-    "logManagement-edit",
-    "systemManagement-edit",
-    "backendManagement-edit",
-  ],
-
-  2: [
-    "taskManagement-preview",
-    "testDesign-preview",
-    "equipmentManagement-preview",
-    "logManagement-preview",
-    "systemManagement-preview",
-    "backendManagement-preview",
-  ],
-  3: [
-    "taskManagement-edit",
-    "testDesign-preview",
-    "equipmentManagement-edit",
-    "logManagement-preview",
-    // "systemManagement-preview",
-    // "backendManagement-edit",
-  ],
-};
-// 系统管理员
-// taskManagement: "edit",
-// testDesign: "edit",
-// equipmentManagement: "edit",
-// logManagement: "edit",
-// systemManagement: "edit",
-// backendManagement: "edit",
-
-// 2: {
-//   // 测试处理
-//   // taskManagement: "preview",
-//   // testDesign: "preview",
-//   // equipmentManagement: "preview",
-//   // logManagement: "edit",
-//   // systemManagement: "edit",
-//   // backendManagement: "edit",
-// },
-// 其他角色可继续补充...
-// };
-
 const PermissionManagement: React.FC = () => {
-  const [addRoleModalOpen, setAddRoleModalOpen] = useState(false);
-  const [roleSearch, setRoleSearch] = useState(""); // 实际过滤关键字
-  // const [roleSearchInput, setRoleSearchInput] = useState(""); // 输入框内容
-  const [permSearch, setPermSearch] = useState(""); // 实际过滤关键字
-  const [permSearchInput, setPermSearchInput] = useState(""); // 输入框内容
-
   const [state, setState] = useSetState<any>({
     isUpdate: false,
     isUpdateModalOpen: false,
     updateValue: {},
-    formSchema: schemasForm,
     roles: [],
     roleLoading: false,
     selectedRoleId: null,
     currentRole: null,
-    rolePermissions: null,
     roleSearchInput: null,
-    currentPermissions: [], //当前用户的权限
+    currentPermissions: {}, //当前用户的权限
+    originalPermissions: {},
+    loadError: false,
+    saving: false,
   });
   const {
     isUpdate,
     isUpdateModalOpen,
     updateValue,
-    formSchema,
     roles,
     selectedRoleId,
     currentRole,
-    rolePermissions,
     roleLoading,
     roleSearchInput,
     currentPermissions,
+    loadError,
+    saving,
   } = state;
 
   useEffect(() => {
-    // let obj = transformRolePermissions(defaultRolePermissions);
-    // console.log("obj", obj);
-    // setState({
-    //   roles: mockRoles,
-    //   selectedRoleId: 1,
-    //   currentRole: mockRoles.find((r) => r.id === 1) || null,
-    //   rolePermissions: obj,
-    // });
     const fetchRoles = async () => {
       await getRoleList({ roleSearchInput });
     };
@@ -183,21 +115,41 @@ const PermissionManagement: React.FC = () => {
       roleLoading: true,
     });
     try {
-      const { list } = await getAllRoleList({
+      const {
+        code,
+        data,
+        message: msg,
+      } = await getAllRoleList({
         role_name: params.roleSearchInput,
         page_index: 1,
         page_size: 999,
       });
+
+      if (code !== 0) {
+        message.error(msg);
+        return;
+      }
       setState({
-        roles: isArray(list) ? list : [],
-        selectedRoleId: isArray(list) && list.length > 0 ? list[0].id : null,
-        currentRole: isArray(list) && list.length > 0 ? list[0] : null,
+        roles: isArray(data?.list) ? data.list : [],
+        selectedRoleId:
+          isArray(data?.list) && data.list.length > 0 ? data.list[0].id : null,
+        currentRole:
+          isArray(data?.list) && data?.list.length > 0 ? data.list[0] : null,
       });
-      if (isArray(list) && list.length > 0) {
-        console.log(list[0].id);
-        const { resource_code } = await getOne(list[0].id);
+      if (isArray(data?.list) && data.list.length > 0) {
+        const {
+          code,
+          data: pressions,
+          message: msg,
+        } = await getOne(data.list[0].id);
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
+        let obj = arrayToObject(pressions.resource_code);
         setState({
-          currentPermissions: resource_code || [],
+          currentPermissions: obj,
+          originalPermissions: obj, // 备份一份原始,取消的时候用
         });
       }
     } finally {
@@ -206,157 +158,110 @@ const PermissionManagement: React.FC = () => {
       });
     }
   };
-  // 角色切换
-  const handleRoleSelect = (id: number) => {
-    const item = state.roles.find((r: any) => r.id === id);
-    setState({
-      selectedRoleId: id,
-      currentRole: item,
-    });
-  };
 
-  // 权限勾选
-  const handlePermissionChange = (permKey: string, checkedValues: string[]) => {
+  // 角色切换并加载权限
+  const handleRoleSelect = async (role: any) => {
     setState((prev) => ({
       ...prev,
-      rolePermissions: {
-        ...prev.rolePermissions,
-        [prev.selectedRoleId]: {
-          ...prev.rolePermissions[prev.selectedRoleId],
-          [permKey]: checkedValues, // 单值
-        },
-      },
+      selectedRoleId: role.id,
+      currentRole: { ...role },
+      currentPermissions: {},
+      originalPermissions: {},
+      loadError: false,
     }));
+
+    try {
+      const { code, data: pressions, message: msg } = await getOne(role.id);
+
+      if (code !== 0) {
+        message.error(msg || "加载权限失败");
+        setState((prev) => ({
+          ...prev,
+          currentPermissions: {},
+          originalPermissions: {},
+          loadError: true,
+        }));
+        return;
+      }
+
+      // 即使 resource_code 是 [] 也正常渲染
+      const obj = arrayToObject(pressions?.resource_code || []);
+      setState((prev) => ({
+        ...prev,
+        currentPermissions: obj,
+        originalPermissions: obj,
+        loadError: false,
+      }));
+    } catch (error) {
+      setState({
+        currentPermissions: {},
+        originalPermissions: {},
+        loadError: true,
+      });
+    }
   };
-
-  // 添加角色
-  // const handleAddRole = () => {
-  //   if (!newRoleName) {
-  //     message.warning("请输入角色名称");
-  //     return;
-  //   }
-
-  //   const newId = Math.max(...roles.map((r) => r.id)) + 1;
-  //   setRoles([...roles, { id: newId, name: newRoleName, desc: newRoleDesc }]);
-  //   setRolePermissions({
-  //     ...rolePermissions,
-  //     [newId]: {},
-  //   });
-  //   setAddRoleModalOpen(false);
-  //   setNewRoleName("");
-  //   setNewRoleDesc("");
-  //   message.success("添加成功");
-  // };
-
-  // 编辑角色
-  const handleEditRole = (role: any) => {
-    setState({
-      isUpdate: true,
-      isUpdateModalOpen: true,
-      updateValue: role,
-    });
-  };
-  // const handleEditRoleOk = () => {
-  //   setRoles(
-  //     roles.map((r) =>
-  //       r.id === editRoleId
-  //         ? { ...r, name: editRoleName, desc: editRoleDesc }
-  //         : r
-  //     )
-  //   );
-  //   setEditRoleId(null);
-  //   setEditRoleName("");
-  //   setEditRoleDesc("");
-  //   message.success("修改成功");
-  // };
 
   // 删除角色
   const handleDeleteRole = (role: any) => {
     Modal.confirm({
       title: "是否确认删除该角色？",
-      onOk: () => {
-        setState((prev) => {
-          const newRoles = prev.filter((r) => r.id !== role.id);
-          let newSelected = prev.selectedRoleId;
-          // 如果当前选中被删，自动选中第一个
-          if (selectedRoleId === role.id && newRoles.length > 0) {
-            newSelected = newRoles[0].id;
-          } else if (newRoles.length === 0) {
-            newSelected = null;
-          }
-          return {
-            ...prev,
-            roles: newRoles,
-            selectedRoleId: newSelected,
-          };
-        });
-
-        message.success("删除成功");
+      onOk: async () => {
+        const { code, message: msg } = await deleteOne(role.id);
+        if (code === 0) {
+          message.success("删除成功");
+          getRoleList({ roleSearchInput });
+        } else {
+          message.error(msg);
+        }
       },
     });
   };
 
-  // 保存权限
-  const handleSave = () => {
-    console.log(rolePermissions);
-    console.log(currentRole);
-
-    message.success("权限已保存（模拟）");
+  const handleSave = async () => {
+    setState({ saving: true }); // 开始保存，禁用按钮
+    try {
+      const { code, message: msg } = await updateOne({
+        role_id: selectedRoleId,
+        ...currentPermissions,
+      });
+      if (code === 0) {
+        message.success(msg || "保存成功");
+        // 更新originalPermissions为最新保存值
+        setState((prev) => ({
+          ...prev,
+          originalPermissions: { ...prev.currentPermissions },
+        }));
+      } else {
+        message.error(msg || "保存失败，已恢复原权限");
+        setState((prev) => ({
+          ...prev,
+          currentPermissions: { ...prev.originalPermissions },
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("请求异常，已恢复原权限");
+      setState((prev) => ({
+        ...prev,
+        currentPermissions: { ...prev.originalPermissions },
+      }));
+    } finally {
+      setState({ saving: false });
+    }
   };
 
   // 取消
   const handleCancel = () => {
+    setState((prev) => ({
+      ...prev,
+      currentPermissions: { ...prev.originalPermissions },
+    }));
     message.info("已取消更改");
   };
-
-  // const currentRole = roles.find((r: any) => r.id === selectedRoleId);
-
-  // 计算右侧内容高度，适配窗口高度
-  const rightPanelMinHeight = "calc(100vh - 120px)"; // 适当留出头部和边距
-
-  // 角色搜索过滤
-  const filteredRoles = roles.filter((role: any) =>
-    role.name.includes(roleSearch)
-  );
-  // 权限分组搜索过滤
-  const filteredPermissions = mockPermissions.filter(
-    (perm) =>
-      perm.group.includes(permSearch) ||
-      (perm.desc && perm.desc.includes(permSearch))
-  );
-
-  const handleOk = (value: any) => {
-    console.log("1=====", value);
+  // 添加角色
+  const handleOk = async (value: any) => {
     setState({ isUpdateModalOpen: false });
-    if (!isUpdate) {
-      const newId = Math.max(...roles.map((r) => r.id)) + 1;
-      setState((prev) => ({
-        ...prev,
-        roles: [
-          ...prev.roles,
-          { id: newId, name: value.name, desc: value.desc },
-        ],
-        rolePermissions: { ...rolePermissions, [newId]: {} },
-      }));
-      // setRolePermissions({
-      //   ...rolePermissions,
-      //   [newId]: {},
-      // });
-      setAddRoleModalOpen(false);
-      message.success("添加成功");
-    } else {
-      setState((prev) => ({
-        ...prev,
-        roles: prev.roles.map((r: any) =>
-          r.id === value.id ? { ...r, name: value.name, desc: value.desc } : r
-        ),
-      }));
-      message.success("修改成功");
-    }
-  };
-
-  const handleSuccess = () => {
-    setState({ isUpdateModalOpen: false });
+    await getRoleList({ roleSearchInput });
   };
 
   return (
@@ -395,7 +300,6 @@ const PermissionManagement: React.FC = () => {
               type="primary"
               icon={<PlusOutlined />}
               size="small"
-              // onClick={() => setAddRoleModalOpen(true)}
               onClick={() => {
                 setState({
                   isUpdate: false,
@@ -418,9 +322,11 @@ const PermissionManagement: React.FC = () => {
               }}
               // size="small"
               onPressEnter={() => {
-                // setState({
-                //   roleSearchInput: roleSearchInput,
-                // });
+                setState({
+                  roles: [],
+                  selectedRoleId: null,
+                  currentRole: null,
+                });
 
                 getRoleList({ roleSearchInput });
               }}
@@ -430,6 +336,11 @@ const PermissionManagement: React.FC = () => {
               // size="small"
               type="primary"
               onClick={() => {
+                setState({
+                  roles: [],
+                  selectedRoleId: null,
+                  currentRole: null,
+                });
                 getRoleList({ roleSearchInput });
               }}
             >
@@ -456,7 +367,7 @@ const PermissionManagement: React.FC = () => {
                     cursor: "pointer",
                     paddingLeft: 16,
                   }}
-                  onClick={() => handleRoleSelect(role.id)}
+                  onClick={() => handleRoleSelect(role)}
                   actions={[
                     <Button
                       icon={<EditOutlined />}
@@ -464,7 +375,15 @@ const PermissionManagement: React.FC = () => {
                       type="link"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleEditRole(role);
+                        console.log(role);
+
+                        setState({
+                          isUpdate: true,
+                          isUpdateModalOpen: true,
+                          updateValue: {
+                            ...role,
+                          },
+                        });
                       }}
                       key="edit"
                     ></Button>,
@@ -529,33 +448,6 @@ const PermissionManagement: React.FC = () => {
             <span style={{ color: "#888" }}>{currentRole?.desc || ""}</span>
           </div>
 
-          {/* 权限分组搜索框 */}
-          {/* <div
-                style={{
-                  padding: 24,
-                  paddingBottom: 0,
-                  display: "flex",
-                  gap: 8,
-                }}
-              >
-                <Input
-                  placeholder="搜索权限分组或描述"
-                  allowClear
-                  value={permSearchInput}
-                  onChange={(e) => setPermSearchInput(e.target.value)}
-                  size="small"
-                  style={{ width: 300 }}
-                  onPressEnter={() => setPermSearch(permSearchInput)}
-                />
-                <Button
-                  icon={<SearchOutlined />}
-                  size="small"
-                  type="primary"
-                  onClick={() => setPermSearch(permSearchInput)}
-                >
-                  搜索
-                </Button>
-              </div> */}
           {/* 滚动内容区 */}
           <div
             style={{
@@ -567,32 +459,64 @@ const PermissionManagement: React.FC = () => {
             }}
           >
             {currentRole ? (
-              <Form layout="vertical">
-                {mockPermissions.map((perm) => (
-                  <Card
-                    key={perm.key}
-                    type="inner"
-                    title={perm.group}
-                    style={{ marginBottom: 16 }}
-                    extra={<span style={{ color: "#888" }}>{perm.desc}</span>}
-                  >
-                    <Radio.Group
-                      options={permissionItems}
-                      value={currentPermissions[perm.key] ?? null} // 单个值
-                      onChange={(e) =>
-                        handlePermissionChange(perm.key, e.target.value)
-                      }
-                    ></Radio.Group>
-                  </Card>
-                ))}
-              </Form>
+              loadError ? (
+                <div
+                  style={{ color: "#888", textAlign: "center", marginTop: 60 }}
+                >
+                  权限加载失败，请重试
+                </div>
+              ) : (
+                <Form layout="vertical">
+                  {mockPermissions.map((perm) => {
+                    const options = permissionItems.filter((item) =>
+                      perm.allowed.includes(item.value)
+                    );
+                    return (
+                      <Card
+                        key={perm.key}
+                        type="inner"
+                        title={perm.group}
+                        style={{ marginBottom: 16 }}
+                        extra={
+                          <span style={{ color: "#888" }}>{perm.desc}</span>
+                        }
+                      >
+                        <div>
+                          {options.map((opt) => (
+                            <Checkbox
+                              key={opt.value}
+                              checked={
+                                currentPermissions?.[perm.key] === opt.value
+                              }
+                              onChange={() => {
+                                setState((prev) => {
+                                  const curr =
+                                    prev.currentPermissions?.[perm.key];
+                                  const nextValue =
+                                    curr === opt.value ? null : opt.value;
+                                  return {
+                                    ...prev,
+                                    currentPermissions: {
+                                      ...prev.currentPermissions,
+                                      [perm.key]: nextValue,
+                                    },
+                                  };
+                                });
+                              }}
+                              style={{ marginRight: 16 }}
+                            >
+                              {opt.label}
+                            </Checkbox>
+                          ))}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </Form>
+              )
             ) : (
               <div
-                style={{
-                  color: "#888",
-                  textAlign: "center",
-                  marginTop: 60,
-                }}
+                style={{ color: "#888", textAlign: "center", marginTop: 60 }}
               >
                 暂无角色，请先添加角色
               </div>
@@ -614,13 +538,14 @@ const PermissionManagement: React.FC = () => {
             }}
           >
             <Space>
-              <Button onClick={handleCancel} disabled={!currentRole}>
+              {/* <Button onClick={handleCancel} disabled={!currentRole}>
                 取消
-              </Button>
+              </Button> */}
               <Button
                 type="primary"
                 onClick={handleSave}
-                disabled={!currentRole}
+                loading={saving}
+                disabled={!currentRole || loadError || saving}
               >
                 保存更改
               </Button>
@@ -636,9 +561,7 @@ const PermissionManagement: React.FC = () => {
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}
-        onSuccess={handleSuccess}
         onCancel={() => setState({ isUpdateModalOpen: false })}
-        formSchema={formSchema}
       />
     </PageContainer>
   );

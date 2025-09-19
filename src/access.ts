@@ -6,10 +6,10 @@ export default function access(
 ) {
   const { currentUser } = initialState ?? {};
 
-  console.log("currentUser", currentUser);
+  // console.log("currentUser", currentUser);
 
   const tmp: any = { resourceList: [], ...currentUser };
-  console.log("access", tmp);
+  // console.log("access", tmp);
 
   const access: any = {};
   if (tmp.resourceList) {

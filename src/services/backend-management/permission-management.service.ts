@@ -10,14 +10,14 @@ export async function getList(params: any) {
   });
   return result;
 }
-
-// export async function createOne(data: any) {
-//   const result: any = await request<{}>(`${baseUrl}/createOne`, {
-//     method: "POST",
-//     data: data,
-//   });
-//   return result;
-// }
+// 创建角色
+export async function createOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/create`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
 
 // export async function getAll(params: any) {
 //   const result: any = await request<{}>(`${baseUrl}/getAll`, {
@@ -34,21 +34,24 @@ export async function getOne(role_id: any) {
   });
   return result;
 }
-
-// export async function updateOne(data: any) {
-//   const result: any = await request<{}>(`${baseUrl}/updateOne`, {
-//     method: "POST",
-//     data: data,
-//   });
-//   return result;
-// }
-
-// export async function deleteOne(id: any) {
-//   const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
-//     method: "DELETE",
-//   });
-//   return result;
-// }
+// 角色/权限编辑
+export async function updateOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/edit`, {
+    method: "PUT",
+    data: data,
+  });
+  return result;
+}
+// 删除角色
+export async function deleteOne(role_id: any) {
+  const result: any = await request<{}>(`${baseUrl}/delete`, {
+    method: "DELETE",
+    data: {
+      role_id,
+    },
+  });
+  return result;
+}
 
 // export async function deleteBatch(ids: any) {
 //   const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {

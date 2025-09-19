@@ -36,17 +36,19 @@ export async function updateOne(data: any) {
   return result;
 }
 // 删除
-export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/delete/${id}`, {
+export async function deleteOne(user_id: any) {
+  const result: any = await request<{}>(`${baseUrl}/delete`, {
     method: "DELETE",
+    data: {
+      user_id,
+    },
   });
   return result;
 }
 // 解锁状态
-export async function deleteBatch(user_id: any) {
+export async function activeOne(user_id: any) {
   const result: any = await request<{}>(`${baseUrl}/activeAccount`, {
     method: "PATCH",
-    // data: ids,
     data: { user_id },
   });
   return result;
@@ -56,6 +58,14 @@ export async function updatePassWord(params: any) {
   const result: any = await request<{}>(`${baseUrl}/changePassword`, {
     method: "PATCH",
     data: params,
+  });
+  return result;
+}
+// 重置密码
+export async function resetPassWord(user_id: any) {
+  const result: any = await request<{}>(`${baseUrl}/resetPassword`, {
+    method: "PATCH",
+    data: { user_id },
   });
   return result;
 }

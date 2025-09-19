@@ -27,51 +27,31 @@ export const schemasForm: any = {
     span: 24,
   },
   grid: true,
-  // formItemLayout: {
-  //   labelCol: { span: 4 },
-  //   wrapperCol: { span: 20 },
-  // },
+
   columns: [
     {
       title: "角色名称",
-      dataIndex: "name",
+      dataIndex: "role_name",
       formItemProps: {
         rules: [
           {
             required: true,
-            message: "此项为必填项",
+            message: "请输入角色名称",
           },
         ],
       },
     },
     {
       title: "角色描述",
-      dataIndex: "desc",
+      dataIndex: "role_description",
       formItemProps: {
         rules: [
           {
             required: true,
-            message: "此项为必填项",
+            message: "请输入角色描述",
           },
         ],
       },
     },
   ],
 };
-
-export const schemasDescriptions: any = [
-  {
-    title: "名称",
-    key: "title",
-    dataIndex: "title",
-    copyable: true,
-    ellipsis: true,
-  },
-  {
-    title: "创建时间",
-    key: "createTime",
-    dataIndex: "createTime",
-    copyable: true,
-    ellipsis: true,
-  },
-];

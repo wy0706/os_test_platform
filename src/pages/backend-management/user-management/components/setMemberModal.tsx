@@ -6,12 +6,11 @@ import {
 import { isArray } from "@/utils";
 import { Button, Checkbox, Form, Input, message, Modal, Select } from "antd";
 import React, { useEffect, useState } from "react";
-const { Option } = Select;
 interface SetMemberModalProps {
   open: boolean;
   isUpdate: boolean;
   updateValue: any;
-  onCancel: () => void;
+  onCancel: (values: any) => void;
   onOk?: (values: any) => void; // 新增
 }
 
@@ -77,28 +76,32 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
       } else {
         message.error(msg);
       }
-      //编辑
     } else {
       const { code, message: msg } = await createOne({ ...values });
       if (code === 0) {
         message.success(msg);
+        if (continueAdd) {
+          form?.resetFields();
+          return;
+        }
         onOk?.(values);
       } else {
         message.error(msg);
       }
     }
+    setContinueAdd(false);
   };
-
+  const handleCancel = () => {
+    onCancel && onCancel(continueAdd);
+    form?.resetFields();
+    setContinueAdd(false);
+  };
   return (
     <Modal
       title={isUpdate ? "编辑成员信息" : "新增成员信息"}
       open={open}
       width={"50%"}
-      // styles={{
-      //   body: {
-      //     minHeight: 300,
-      //   },
-      // }}
+      onCancel={handleCancel}
       footer={[
         <div
           key="checkbox"
@@ -118,14 +121,8 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
           ) : (
             <div />
           )}
-
           <div>
-            <Button
-              onClick={() => {
-                onCancel && onCancel();
-              }}
-              style={{ marginRight: 8 }}
-            >
+            <Button onClick={handleCancel} style={{ marginRight: 8 }}>
               取消
             </Button>
             <Button type="primary" onClick={handleOk}>
@@ -139,8 +136,19 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
         <Form.Item name="name" label="姓名" rules={[{ required: true }]}>
           <Input placeholder="输入姓名" />
         </Form.Item>{" "}
-        <Form.Item name="username" label="用户名" rules={[{ required: true }]}>
-          <Input placeholder="输入姓名" />
+        <Form.Item
+          name="username"
+          label="用户名"
+          rules={[
+            { required: true, message: "请输入用户名" },
+            {
+              pattern: /^[A-Za-z0-9._-]{3,20}$/,
+              message:
+                "用户名需为3-20位，且只能包含字母、数字、点、下划线或短横线",
+            },
+          ]}
+        >
+          <Input placeholder="输入用户名" disabled={isUpdate} />
         </Form.Item>
         <Form.Item
           name="phone_num"
@@ -155,7 +163,7 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
         >
           <Input placeholder="输入手机号" />
         </Form.Item>
-        <Form.Item name="role_id" label="角色">
+        <Form.Item name="role_id" label="角色" rules={[{ required: true }]}>
           <Select
             placeholder="选择角色"
             allowClear

@@ -1,6 +1,9 @@
-import { deleteOne } from "@/services/system-management/role-management.service";
-
-import { getList } from "@/services/backend-management/user-management.service";
+import {
+  activeOne,
+  deleteOne,
+  getList,
+  resetPassWord,
+} from "@/services/backend-management/user-management.service";
 import { EditOutlined, LockOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -9,7 +12,7 @@ import {
   TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Modal } from "antd";
+import { Button, Modal, message } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { Access, useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
@@ -74,9 +77,11 @@ const Page: React.FC = () => {
                 variant="link"
                 icon={<EditOutlined />}
                 onClick={() => {
-                  // form.setFieldsValue(record);
                   setState({
-                    updateValue: record,
+                    updateValue: {
+                      ...record,
+                      role_id: record?.role_info?.id,
+                    },
                     isUpdate: true,
                     isUpdateModalOpen: true,
                   });
@@ -93,10 +98,11 @@ const Page: React.FC = () => {
                   Modal.confirm({
                     title: "是否确认重置密码？",
                     onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
+                      const { code, message: msg } = await resetPassWord(
+                        record.id
+                      );
+                      message.success(msg);
+                      // 是否需要判断如果是当前登录用户，是否需要返回到登录页
                     },
                   });
                 }}
@@ -105,11 +111,28 @@ const Page: React.FC = () => {
               </Button>,
               <TableDropdown
                 key={index}
-                onSelect={(key: string) => {
-                  console.log("key----", key);
-                  console.log(key);
+                onSelect={async (key: string) => {
                   switch (key) {
-                    case "delete":
+                    case "unblock": {
+                      if (record.is_active) {
+                        message.info("账户状态正常，无需解封");
+                        return;
+                      }
+
+                      const { code, message: msg } = await activeOne(record.id);
+                      if (code !== 0) {
+                        message.error(msg);
+                        return;
+                      }
+                      message.success(msg);
+                      // 刷新表格
+                      if (actionRef.current) {
+                        actionRef.current.reload();
+                      }
+                      break;
+                    }
+
+                    case "delete": {
                       Modal.confirm({
                         title: (
                           <div>
@@ -133,25 +156,31 @@ const Page: React.FC = () => {
                             </div>
                           </div>
                         ),
-                        // content: (
-                        //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                        //     {record.title}
-                        //   </div>
-                        // ),
                         onOk: async () => {
-                          await deleteOne(record.id);
+                          const { code, message: msg } = await deleteOne(
+                            record.id
+                          );
+                          if (code !== 0) {
+                            message.error(msg);
+                            return;
+                          }
+                          message.success(msg);
                           if (actionRef.current) {
                             actionRef.current.reload();
                           }
                         },
                       });
-                      return;
+                      break;
+                    }
 
                     default:
-                      return;
+                      break;
                   }
                 }}
-                menus={[{ key: "delete", name: "删除" }]}
+                menus={[
+                  { key: "unblock", name: "账户解封" },
+                  { key: "delete", name: "删除" },
+                ]}
               />,
             ],
           },
@@ -183,17 +212,8 @@ const Page: React.FC = () => {
     }
   };
 
-  // 移除 formRef、form、continueAdd、handleOk、handleCancel 相关内容
-  // 只保留控制弹窗开关的 isUpdateModalOpen、isUpdate、updateValue 相关 state
-
-  // 新增 onSuccess 回调
-  const handleSetMemberSuccess = () => {
-    setState({ isUpdateModalOpen: false });
-    if (actionRef.current) {
-      actionRef.current.reload();
-    }
-  };
   const handleOk = () => {
+    setState({ isUpdateModalOpen: false });
     actionRef.current?.reload();
   };
   return (
@@ -234,9 +254,12 @@ const Page: React.FC = () => {
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}
-        // onOk={handleSetMemberSuccess}
-        onCancel={() => setState({ isUpdateModalOpen: false })}
-        // formSchema={formSchema}
+        onCancel={(value: any) => {
+          setState({ isUpdateModalOpen: false });
+          if (value) {
+            actionRef.current?.reload();
+          }
+        }}
       />
     </PageContainer>
   );

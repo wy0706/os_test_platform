@@ -1,19 +1,21 @@
 import {
+  createOne,
+  updateOne,
+} from "@/services/backend-management/permission-management.service";
+import {
   BetaSchemaForm,
   type ProFormInstance,
 } from "@ant-design/pro-components";
-import { Button, Form, Modal } from "antd";
-import React, { useRef, useState } from "react";
+import { Form, message, Modal } from "antd";
+import React, { useEffect, useRef } from "react";
+import { schemasForm } from "../schemas";
 
 interface SetMemberModalProps {
   open: boolean;
   isUpdate: boolean;
   updateValue: any;
-  onSuccess: () => void;
   onCancel: () => void;
-  formSchema: any;
-  onOk?: (values: any) => void; // 新增
-  onInnerCancel?: () => void; // 新增
+  onOk?: (values: any) => void;
 }
 
 // const formItemLayout = {
@@ -25,37 +27,50 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
   open,
   isUpdate,
   updateValue,
-  onSuccess,
   onCancel,
-  formSchema,
   onOk, // 新增
-  onInnerCancel, // 新增
 }) => {
-  const [continueAdd, setContinueAdd] = useState(false);
   const formRef = useRef<ProFormInstance | null>(null);
   const [form] = Form.useForm();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       form.resetFields();
       if (isUpdate && updateValue) {
-        console.log("uodateCalue", updateValue);
-
-        form.setFieldsValue(updateValue);
+        form.setFieldsValue({
+          role_name: updateValue?.name,
+          role_description: updateValue?.description,
+        });
       }
     }
   }, [open, isUpdate, updateValue, form]);
 
   const handleOk = async () => {
-    const values = await formRef.current?.validateFields();
-    const params = isUpdate ? { ...updateValue, ...values } : values;
-    if (onOk) {
-      onOk(params); // 新增
-      return;
-    }
-    if (!continueAdd) {
-      onSuccess();
-    }
+    try {
+      const values = await formRef.current?.validateFields();
+      const params = isUpdate ? { ...updateValue, ...values } : values;
+      if (isUpdate) {
+        const { code, message: msg } = await updateOne({
+          ...params,
+          role_id: updateValue.id,
+        });
+        if (code === 0) {
+          message.success(msg);
+          onOk?.(params);
+        } else {
+          message.error(msg);
+        }
+      } else {
+        const { code, message: msg } = await createOne(params);
+        if (code === 0) {
+          message.success(msg);
+          onOk?.(params);
+        } else {
+          message.error(msg);
+        }
+      }
+    } catch (error) {}
+
     // try {
     //   const values = await formRef.current?.validateFields();
     //   if (onOk) {
@@ -88,11 +103,7 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
   };
 
   const handleCancel = () => {
-    if (onInnerCancel) {
-      onInnerCancel(); // 新增
-      return;
-    }
-    onCancel();
+    onCancel?.();
     formRef.current?.resetFields();
   };
 
@@ -102,43 +113,12 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
       open={open}
       onCancel={handleCancel}
       width={"50%"}
-      styles={{ body: { minHeight: 300 } }}
-      footer={[
-        <div
-          key="checkbox"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          {/* {!isUpdate ? (
-            <Checkbox
-              checked={continueAdd}
-              onChange={(e) => setContinueAdd(e.target.checked)}
-            >
-              是否继续增加一条
-            </Checkbox>
-          ) : (
-            <div />
-          )} */}
-          <div></div>
-          <div>
-            <Button onClick={handleCancel} style={{ marginRight: 8 }}>
-              取消
-            </Button>
-            <Button type="primary" onClick={handleOk}>
-              确认
-            </Button>
-          </div>
-        </div>,
-      ]}
+      onOk={handleOk}
     >
       <BetaSchemaForm<any>
         submitter={false}
-        // formItemLayout={formItemLayout}
         formRef={formRef}
-        {...formSchema}
+        {...schemasForm}
         defaultValue={updateValue}
         form={form}
       />

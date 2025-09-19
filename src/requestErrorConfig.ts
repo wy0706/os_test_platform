@@ -1,4 +1,5 @@
-﻿import type { RequestOptions } from "@@/plugin-request/request";
+﻿import { NETWORK_ERROR_CODE, NETWORK_ERROR_TEXT } from "@/utils/error";
+import type { RequestOptions } from "@@/plugin-request/request";
 import type { RequestConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import { message, notification } from "antd";
@@ -73,12 +74,50 @@ export const errorConfig: RequestConfig = {
       } else if (error.response) {
         // Axios 的错误
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
-        if (error.response.status === 408) {
-          message.error("登录已过期，请重新登录");
-          localStorage.clear();
-          history.push(loginPath);
-          return;
+        // if (error.response.status === 408) {
+        //   message.error("登录已过期，请重新登录");
+        //   localStorage.clear();
+        //   history.push(loginPath);
+        //   return;
+        // }
+
+        if (/Network Error/.test(error.message)) {
+          return message.error(`无法连接的服务器`);
         }
+        switch (error.response.status) {
+          case NETWORK_ERROR_CODE.BADREQUEST:
+            message.error(`${NETWORK_ERROR_TEXT.BADREQUEST}`);
+            break;
+          case NETWORK_ERROR_CODE.CONFLICT:
+            message.error(`${NETWORK_ERROR_TEXT.CONFLICT}`);
+            break;
+          case NETWORK_ERROR_CODE.FORBIDDEN:
+            message.error(`${NETWORK_ERROR_TEXT.FORBIDDEN}`);
+            break;
+          case NETWORK_ERROR_CODE.MANYREQUESTS:
+            message.error(`${NETWORK_ERROR_TEXT.MANYREQUESTS}`);
+            break;
+          case NETWORK_ERROR_CODE.NOTEXIST:
+            message.error(`${NETWORK_ERROR_TEXT.NOTEXIST}`);
+            break;
+          case NETWORK_ERROR_CODE.UNAUTHORIZED:
+            localStorage.clear();
+            history.push(loginPath);
+            message.error(`${NETWORK_ERROR_TEXT.UNAUTHORIZED},请重新登录`);
+            break;
+          case NETWORK_ERROR_CODE.UNAVAILABLE:
+            message.error(`${NETWORK_ERROR_TEXT.UNAVAILABLE}`);
+            break;
+          case NETWORK_ERROR_CODE.UNKNOWNERROR:
+            message.error(`${NETWORK_ERROR_TEXT.UNKNOWNERROR}`);
+            break;
+
+          default:
+            break;
+        }
+
+        console.log(1111, error.response);
+
         message.error(`${error.response.data?.message}`);
       } else if (error.request) {
         // 请求已经成功发起，但没有收到响应
@@ -119,7 +158,7 @@ export const errorConfig: RequestConfig = {
     (response) => {
       // 拦截响应数据，进行个性化处理
       const { data } = response as unknown as ResponseStructure;
-      console.log("data-====", data);
+
       // 如果后端返回了新的 token，就更新本地存储
       const newAccessToken = data.access_token;
       const newRefreshToken = data.refresh_token;
@@ -130,6 +169,7 @@ export const errorConfig: RequestConfig = {
       if (data?.success === false) {
         message.error("请求失败！");
       }
+
       return response;
     },
   ],

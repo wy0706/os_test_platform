@@ -1,6 +1,3 @@
-import { updateOne } from "@/services/system-management/user-management.service";
-import { Switch, message } from "antd";
-
 export const userSchemasTitle: any = {
   label: "用户管理",
   value: "roleManagement",
@@ -31,23 +28,10 @@ export const userSchemasColumns: any = [
     title: "账户状态",
     dataIndex: "is_active",
     hideInSearch: true,
-    render: (value: boolean, record: any, _: any, action: any) => (
-      <Switch
-        checked={value}
-        onChange={async (checked) => {
-          console.log("checked", checked);
-          const hide = message.loading("正在更新状态...");
-          try {
-            await updateOne({ ...record, email4: checked });
-            // message.success("状态更新成功");
-            action?.reload?.();
-          } catch {
-            // message.error("状态更新失败");
-          }
-          hide();
-        }}
-      />
-    ),
+    valueEnum: {
+      false: { text: "锁定", status: "Error" },
+      true: { text: "正常", status: "Success" },
+    },
   },
 ];
 
