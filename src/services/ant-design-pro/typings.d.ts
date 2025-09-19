@@ -3,6 +3,7 @@
 
 declare namespace API {
   type CurrentUser = {
+    id?: number;
     name?: string;
     avatar_url?: string;
     userid?: string;
@@ -20,7 +21,7 @@ declare namespace API {
       city?: { label?: string; key?: string };
     };
     address?: string;
-    phone?: string;
+    phone_num?: string;
     resourceList?: any;
   };
 

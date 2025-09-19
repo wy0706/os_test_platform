@@ -239,8 +239,7 @@ const PermissionManagement: React.FC = () => {
         }));
       }
     } catch (error) {
-      console.error(error);
-      message.error("请求异常，已恢复原权限");
+      // message.error("请求异常，已恢复原权限");
       setState((prev) => ({
         ...prev,
         currentPermissions: { ...prev.originalPermissions },

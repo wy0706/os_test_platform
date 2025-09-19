@@ -14,7 +14,7 @@ import {
 import { useSetState } from "ahooks";
 import { Button, Modal, message } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { Access, useAccess } from "umi";
+import { useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
 import { userSchemasColumns, userSchemasTitle } from "./schemas";
@@ -133,6 +133,10 @@ const Page: React.FC = () => {
                     }
 
                     case "delete": {
+                      if (record.is_superuser) {
+                        message.info("超级用户不可删除");
+                        return;
+                      }
                       Modal.confirm({
                         title: (
                           <div>
@@ -218,36 +222,36 @@ const Page: React.FC = () => {
   };
   return (
     <PageContainer>
-      <Access accessible={!!access["backendManagement-edit"]} fallback={<></>}>
-        <ProTable
-          actionRef={actionRef}
-          columns={columns}
-          request={requestData}
-          rowKey="id"
-          cardBordered
-          // options={false}
-          pagination={{
-            pageSize: 10,
-            onChange: (page) => requestData,
-          }}
-          headerTitle={title.label}
-          toolBarRender={() => [
-            <Button
-              key="button"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setState({
-                  isUpdate: false,
-                  isUpdateModalOpen: true,
-                });
-              }}
-              type="primary"
-            >
-              新建
-            </Button>,
-          ]}
-        />
-      </Access>
+      {/* <Access accessible={!!access["backendManagement-edit"]} fallback={<></>}> */}
+      <ProTable
+        actionRef={actionRef}
+        columns={columns}
+        request={requestData}
+        rowKey="id"
+        cardBordered
+        // options={false}
+        pagination={{
+          pageSize: 10,
+          onChange: (page) => requestData,
+        }}
+        headerTitle={title.label}
+        toolBarRender={() => [
+          <Button
+            key="button"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setState({
+                isUpdate: false,
+                isUpdateModalOpen: true,
+              });
+            }}
+            type="primary"
+          >
+            新建
+          </Button>,
+        ]}
+      />
+      {/* </Access> */}
 
       <SetMemberModal
         onOk={handleOk}

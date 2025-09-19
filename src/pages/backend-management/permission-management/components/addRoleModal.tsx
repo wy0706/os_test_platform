@@ -48,58 +48,28 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
   const handleOk = async () => {
     try {
       const values = await formRef.current?.validateFields();
-      const params = isUpdate ? { ...updateValue, ...values } : values;
+
       if (isUpdate) {
         const { code, message: msg } = await updateOne({
-          ...params,
+          ...values,
           role_id: updateValue.id,
         });
         if (code === 0) {
           message.success(msg);
-          onOk?.(params);
+          onOk?.(values);
         } else {
           message.error(msg);
         }
       } else {
-        const { code, message: msg } = await createOne(params);
+        const { code, message: msg } = await createOne(values);
         if (code === 0) {
           message.success(msg);
-          onOk?.(params);
+          onOk?.(values);
         } else {
           message.error(msg);
         }
       }
     } catch (error) {}
-
-    // try {
-    //   const values = await formRef.current?.validateFields();
-    //   if (onOk) {
-    //     onOk(values); // 新增
-    //     return;
-    //   }
-    //   if (isUpdate) {
-    //     values.id = updateValue.id;
-    //     const res: any = await updateOne({ ...values, id: updateValue.id });
-    //     if (res.code === "0") {
-    //       message.success("操作成功");
-    //       formRef.current?.resetFields();
-    //       if (!continueAdd) {
-    //         onSuccess();
-    //       }
-    //     }
-    //   } else {
-    //     const res: any = await createOne({ ...values, config: "{}" });
-    //     if (res.code === "0") {
-    //       message.success("操作成功");
-    //       formRef.current?.resetFields();
-    //       if (!continueAdd) {
-    //         onSuccess();
-    //       }
-    //     }
-    //   }
-    // } catch (err) {
-    //   console.log("表单校验失败:", err);
-    // }
   };
 
   const handleCancel = () => {

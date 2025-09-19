@@ -1,7 +1,4 @@
-import {
-  updateOne,
-  updatePassWord,
-} from "@/services/backend-management/user-management.service";
+import { updatePassWord } from "@/services/backend-management/user-management.service";
 import type { ProFormInstance } from "@ant-design/pro-components";
 import {
   PageContainer,
@@ -9,7 +6,7 @@ import {
   ProFormText,
 } from "@ant-design/pro-components";
 import { history, useModel } from "@umijs/max";
-import { Button, Form, Input, Menu, message, Space } from "antd";
+import { Button, Form, Input, Menu, message } from "antd";
 import React, { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import "./index.less";
@@ -24,6 +21,7 @@ const ChangePasswordForm: React.FC = () => {
   const handleChangePassword = async (values: any) => {
     setLoading(true);
     try {
+      console.log("values", values);
       const { code, message: msg } = await updatePassWord({
         ...values,
         confirmPassword: null,
@@ -77,14 +75,7 @@ const ChangePasswordForm: React.FC = () => {
         ),
       }}
       disabled={loading}
-      // style={{ borderRadius: 6 }} // 设置表单圆角
-      style={{
-        background: "#fff",
-        padding: 24,
-        borderRadius: 8,
-        maxWidth: 600,
-        margin: "0 auto",
-      }}
+      style={{ borderRadius: 6 }} // 设置表单圆角
     >
       <ProFormText.Password
         name="old_password"
@@ -126,148 +117,154 @@ const ChangePasswordForm: React.FC = () => {
     </ProForm>
   );
 };
+
 const AccountInfo: React.FC = () => {
-  const { initialState, setInitialState } = useModel("@@initialState");
-  const { currentUser } = initialState || {};
+  const [form] = Form.useForm();
+  const [username, setUsername] = useState("admin");
+  const [mobile, setMobile] = useState("18701493522");
   const [newUsername, setNewUsername] = useState("");
   const [newMobile, setNewMobile] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [form] = Form.useForm();
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
-  const handleSubmit = async (values: any) => {
-    // 先判断至少有一项有值
-    if (!values.name && !values.phone_num) {
-      message.info("请至少填写一个要修改的字段");
+  // 模拟发送验证码
+  const handleSendCode = () => {
+    if (!/^1\d{10}$/.test(newMobile)) {
+      message.error("请输入有效的手机号");
       return;
     }
-    // 如果手机号有值就校验手机号
-    if (values.phone_num && !/^1[3-9]\d{9}$/.test(values.phone_num)) {
-      message.error("请输入正确的11位手机号码");
-      return;
-    }
-
-    if (!currentUser?.id) {
-      message.error("用户信息缺失");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { code, message: msg } = await updateOne({
-        user_id: currentUser.id,
-        // 只传有值的字段
-        ...(values.name ? { name: values.name } : {}),
-        ...(values.phone_num ? { phone_num: values.phone_num } : {}),
+    setCodeSent(true);
+    setCountdown(60);
+    message.success("验证码已发送");
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCodeSent(false);
+          return 0;
+        }
+        return prev - 1;
       });
-      if (code === 0) {
-        message.success(msg);
-        // 更新全局状态
-        const updatedUser = {
-          ...currentUser,
-          name: values.name || currentUser.name,
-          phone_num: values.phone_num || currentUser.phone_num,
-        };
-
-        setInitialState((prev) => ({
-          ...prev,
-          currentUser: updatedUser,
-        }));
-
-        // 更新 localStorage
-        localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-        setNewUsername("");
-        setNewMobile("");
-        form.resetFields();
-      } else {
-        message.error(msg);
-      }
-    } catch (err) {
-    } finally {
-      setSaving(false);
-    }
+    }, 1000);
   };
 
-  const handleReset = () => {
+  // 修改用户名
+  const handleChangeUsername = () => {
+    if (!newUsername) {
+      message.error("请输入新用户名");
+      return;
+    }
+    setUsername(newUsername);
     setNewUsername("");
+    message.success("用户名已修改");
+  };
+
+  // 修改手机号
+  const handleChangeMobile = () => {
+    if (!/^1\d{10}$/.test(newMobile)) {
+      message.error("请输入新手机号");
+      return;
+    }
+    if (!code) {
+      message.error("请输入验证码");
+      return;
+    }
+    setMobile(newMobile);
     setNewMobile("");
-    form.resetFields();
+    setCode("");
+    message.success("手机号已修改");
   };
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      style={{
-        background: "#fff",
-        padding: 24,
-        borderRadius: 8,
-        maxWidth: 600,
-        margin: "0 auto",
-      }}
-      onFinish={handleSubmit}
-    >
-      {/* 用户名行 */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ minWidth: 60, fontWeight: 500 }}>用户名</div>
-        <div style={{ minWidth: 100, marginRight: 16 }}>
-          {currentUser?.name || "-"}
-        </div>
-        <Form.Item
-          name="name"
-          style={{ flex: 1, marginBottom: 0 }}
-          initialValue={newUsername}
+    <div style={{ padding: "32px 0" }}>
+      {/* 用户名分组 */}
+      <div style={{ display: "flex", marginBottom: 20, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            marginBottom: 20,
+          }}
         >
-          <Input
-            size="large"
-            placeholder="输入新的用户名"
-            onChange={(e) => setNewUsername(e.target.value)}
-          />
-        </Form.Item>
-      </div>
-
-      {/* 手机号行 */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ minWidth: 60, fontWeight: 500 }}>手机</div>
-        <div style={{ minWidth: 100, marginRight: 16 }}>
-          {currentUser?.phone_num || "-"}
+          <div style={{ minWidth: 60, fontWeight: 500, marginTop: 8 }}>
+            用户名
+          </div>
+          <div style={{ minWidth: 100, marginTop: 8 }}>{username}</div>
         </div>
-        <Form.Item
-          name="phone_num"
-          style={{ flex: 1, marginBottom: 0 }}
-          initialValue={newMobile}
-        >
-          <Input
-            size="large"
-            placeholder="输入新的手机号"
-            onChange={(e) => setNewMobile(e.target.value)}
-          />
-        </Form.Item>
-      </div>
 
-      {/* 按钮单独一行居中 */}
-      <Form.Item style={{ textAlign: "center", marginTop: 24 }}>
-        <Space>
-          <Button
-            onClick={handleReset}
-            size="large"
-            style={{ marginRight: 10 }}
-            disabled={saving}
-          >
-            重置
-          </Button>
+        <div style={{ flex: 1, display: "flex", alignItems: "flex-start" }}>
+          <div>
+            <Input
+              size="large"
+              placeholder="输入新的用户名"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              style={{ marginBottom: 0, width: "100%" }}
+            />
+          </div>
           <Button
             type="primary"
             size="large"
-            htmlType="submit"
-            // style={{ width: 140 }}
-            loading={saving}
-            disabled={saving}
+            style={{ marginLeft: 24, width: 100 }}
+            onClick={handleChangeUsername}
           >
             修改
           </Button>
-        </Space>
-      </Form.Item>
-    </Form>
+        </div>
+      </div>
+      {/* 手机号分组 */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          marginBottom: 40,
+        }}
+      >
+        <div style={{ display: "flex", marginBottom: 20 }}>
+          <div style={{ minWidth: 60, fontWeight: 500, marginTop: 8 }}>
+            手机
+          </div>
+          <div style={{ minWidth: 100, marginTop: 8 }}>{mobile}</div>
+        </div>
+
+        <div style={{ display: "flex", flex: 1 }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <Input
+              size="large"
+              placeholder="输入新的手机号"
+              value={newMobile}
+              onChange={(e) => setNewMobile(e.target.value)}
+              style={{ flex: 1, minWidth: 180 }}
+            />
+            <Input
+              size="large"
+              placeholder="输入验证码"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              style={{ width: 100 }}
+            />
+            <Button
+              size="large"
+              disabled={codeSent || !/^1\d{10}$/.test(newMobile)}
+              onClick={handleSendCode}
+              style={{ minWidth: 120 }}
+            >
+              {codeSent ? `${countdown}s后重试` : "获取验证码"}
+            </Button>
+          </div>
+          <Button
+            type="primary"
+            size="large"
+            style={{ marginLeft: 24, width: 100 }}
+            onClick={handleChangeMobile}
+          >
+            修改
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -278,6 +275,7 @@ const menuItems = [
 
 const Page: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState("account");
+
   return (
     <PageContainer>
       <div

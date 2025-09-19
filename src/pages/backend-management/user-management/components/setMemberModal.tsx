@@ -163,23 +163,25 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
         >
           <Input placeholder="输入手机号" />
         </Form.Item>
-        <Form.Item name="role_id" label="角色" rules={[{ required: true }]}>
-          <Select
-            placeholder="选择角色"
-            allowClear
-            showSearch
-            options={roleList.map((item: any) => ({
-              value: item.id,
-              label: item.name,
-            }))}
-            // 过滤时用 String() 转字符串防止类型错误
-            filterOption={(input, option) =>
-              String(option?.label ?? "")
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          />
-        </Form.Item>
+        {updateValue.is_superuser ? null : (
+          <Form.Item name="role_id" label="角色" rules={[{ required: true }]}>
+            <Select
+              placeholder="选择角色"
+              allowClear
+              showSearch
+              options={roleList.map((item: any) => ({
+                value: item.id,
+                label: item.name,
+              }))}
+              // 过滤时用 String() 转字符串防止类型错误
+              filterOption={(input, option) =>
+                String(option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

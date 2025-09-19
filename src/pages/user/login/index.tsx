@@ -134,7 +134,6 @@ const Login: React.FC = () => {
   // };
   const [form] = ProForm.useForm();
   const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   const captchaRef = useRef<CaptFieldRef | null | undefined>();
   const [captchaExpired, setCaptchaExpired] = useState(false); //倒计时是否结束
   // const [captchaShow, setCaptchaShow] = useState(false);
@@ -194,11 +193,11 @@ const Login: React.FC = () => {
           message.success(defaultLoginSuccessMessage);
           const urlParams = new URL(window.location.href).searchParams;
           history.push(urlParams.get("redirect") || "/");
-        } else if (code === 1) {
+        } else if (code === 2) {
           const defaultMessage = `${msg},你还有${data?.retry_cnt}次重试机会`;
           setErrorMsg(defaultMessage);
         } else {
-          setErrorMsg(msg);
+          message.error(msg);
         }
       } catch (error: any) {}
     }
@@ -426,7 +425,7 @@ const Login: React.FC = () => {
                     message: (
                       <FormattedMessage
                         id="pages.login.phoneNumber.required"
-                        defaultMessage="请输入手机号！"
+                        defaultMessage="请输入手机号"
                       />
                     ),
                   },
@@ -435,7 +434,7 @@ const Login: React.FC = () => {
                     message: (
                       <FormattedMessage
                         id="pages.login.phoneNumber.invalid"
-                        defaultMessage="手机号格式错误！"
+                        defaultMessage="手机号格式错误"
                       />
                     ),
                   },
@@ -474,7 +473,7 @@ const Login: React.FC = () => {
                     message: (
                       <FormattedMessage
                         id="pages.login.captcha.required"
-                        defaultMessage="请输入验证码！"
+                        defaultMessage="请输入验证码"
                       />
                     ),
                   },
