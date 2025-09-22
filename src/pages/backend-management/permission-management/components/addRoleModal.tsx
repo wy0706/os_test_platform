@@ -2,6 +2,7 @@ import {
   createOne,
   updateOne,
 } from "@/services/backend-management/permission-management.service";
+import { arrayToObject, isArray } from "@/utils/index";
 import {
   BetaSchemaForm,
   type ProFormInstance,
@@ -9,7 +10,6 @@ import {
 import { Form, message, Modal } from "antd";
 import React, { useEffect, useRef } from "react";
 import { schemasForm } from "../schemas";
-
 interface SetMemberModalProps {
   open: boolean;
   isUpdate: boolean;
@@ -50,9 +50,17 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
       const values = await formRef.current?.validateFields();
 
       if (isUpdate) {
+        let codeData = {};
+        if (
+          isArray(updateValue.resource_code) &&
+          updateValue.resource_code.length > 0
+        ) {
+          codeData = arrayToObject(updateValue.resource_code);
+        }
         const { code, message: msg } = await updateOne({
           ...values,
           role_id: updateValue.id,
+          ...codeData,
         });
         if (code === 0) {
           message.success(msg);

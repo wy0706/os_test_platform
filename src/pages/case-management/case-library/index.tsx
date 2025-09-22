@@ -4,12 +4,14 @@ import {
   PageContainer,
   ProTable,
 } from "@ant-design/pro-components";
-import { history } from "@umijs/max";
+import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
 import React, { useRef, useState } from "react";
 import RunModal from "../components/runModal";
 import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
+  const access = useAccess();
+
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
@@ -62,17 +64,21 @@ const Page: React.FC = () => {
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        onRow={(record, index) => ({
-          onClick: () => {
-            setSelectedRow(record);
-            setState({ isRunModalOpen: true, details: record });
-          },
-          style: {
-            cursor: "pointer",
-            backgroundColor:
-              selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-          },
-        })}
+        onRow={(record, index) =>
+          access["testDesign-edit"]
+            ? {
+                onClick: () => {
+                  setSelectedRow(record);
+                  setState({ isRunModalOpen: true, details: record });
+                },
+                style: {
+                  cursor: "pointer",
+                  backgroundColor:
+                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+                },
+              }
+            : {}
+        }
       />
       <RunModal
         open={isRunModalOpen}

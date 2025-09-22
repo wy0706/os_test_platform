@@ -87,38 +87,35 @@ export const errorConfig: RequestConfig = {
         switch (error.response.status) {
           case NETWORK_ERROR_CODE.BADREQUEST:
             message.error(`${NETWORK_ERROR_TEXT.BADREQUEST}`);
-            break;
+            return;
+
           case NETWORK_ERROR_CODE.CONFLICT:
             message.error(`${NETWORK_ERROR_TEXT.CONFLICT}`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.FORBIDDEN:
             message.error(`${NETWORK_ERROR_TEXT.FORBIDDEN}`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.MANYREQUESTS:
             message.error(`${NETWORK_ERROR_TEXT.MANYREQUESTS}`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.NOTEXIST:
             message.error(`${NETWORK_ERROR_TEXT.NOTEXIST}`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.UNAUTHORIZED:
             localStorage.clear();
             history.push(loginPath);
             message.error(`${NETWORK_ERROR_TEXT.UNAUTHORIZED},请重新登录`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.UNAVAILABLE:
             message.error(`${NETWORK_ERROR_TEXT.UNAVAILABLE}`);
-            break;
+            return;
           case NETWORK_ERROR_CODE.UNKNOWNERROR:
             message.error(`${NETWORK_ERROR_TEXT.UNKNOWNERROR}`);
-            break;
-
+            return;
           default:
-            break;
+            message.error(`${error.response.data?.message}`);
+            return;
         }
-
-        console.log(1111, error.response);
-
-        message.error(`${error.response.data?.message}`);
       } else if (error.request) {
         // 请求已经成功发起，但没有收到响应
         // \`error.request\` 在浏览器中是 XMLHttpRequest 的实例，

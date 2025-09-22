@@ -8,12 +8,15 @@ import {
   PageContainer,
   ProTable,
 } from "@ant-design/pro-components";
+import { useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Form, Modal, Switch } from "antd";
 import React, { useRef } from "react";
 import AddModal from "./components/addModal";
 import { schemasTitle } from "./schemas";
 const Page: React.FC = () => {
+  const access = useAccess();
+
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
@@ -36,7 +39,49 @@ const Page: React.FC = () => {
       };
     }
   };
-  const columns: any = [
+  const operationColumn = {
+    title: "操作",
+    valueType: "option",
+    key: "option",
+    width: 150,
+    render: (text: any, record: any, index: any, action: any) => [
+      <Button
+        color="primary"
+        variant="link"
+        key="edit"
+        icon={<EditOutlined />}
+        onClick={() => {
+          setState({
+            updateValue: record,
+            isUpdateModalOpen: true,
+            optionType: "edit",
+          });
+        }}
+      >
+        编辑
+      </Button>,
+      <Button
+        color="danger"
+        variant="link"
+        key="preview"
+        icon={<DeleteOutlined />}
+        onClick={() => {
+          Modal.confirm({
+            title: "确认删除吗？",
+            onOk: async () => {
+              await deleteOne(record.id);
+              if (actionRef.current) {
+                actionRef.current.reload();
+              }
+            },
+          });
+        }}
+      >
+        删除
+      </Button>,
+    ],
+  };
+  const schemasColumns: any = [
     {
       title: "命令名称",
       dataIndex: "title",
@@ -78,50 +123,12 @@ const Page: React.FC = () => {
       sorter: true,
       hideInSearch: true,
     },
-
-    {
-      title: "操作",
-      valueType: "option",
-      key: "option",
-      width: 150,
-      render: (text: any, record: any, index: any, action: any) => [
-        <Button
-          color="primary"
-          variant="link"
-          key="edit"
-          icon={<EditOutlined />}
-          onClick={() => {
-            setState({
-              updateValue: record,
-              isUpdateModalOpen: true,
-              optionType: "edit",
-            });
-          }}
-        >
-          编辑
-        </Button>,
-        <Button
-          color="danger"
-          variant="link"
-          key="preview"
-          icon={<DeleteOutlined />}
-          onClick={() => {
-            Modal.confirm({
-              title: "确认删除吗？",
-              onOk: async () => {
-                await deleteOne(record.id);
-                if (actionRef.current) {
-                  actionRef.current.reload();
-                }
-              },
-            });
-          }}
-        >
-          删除
-        </Button>,
-      ],
-    },
   ];
+
+  const columns = access["systemManagement-edit"]
+    ? [...schemasColumns, operationColumn]
+    : schemasColumns;
+
   return (
     <PageContainer>
       <ProTable<any>
@@ -135,21 +142,25 @@ const Page: React.FC = () => {
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                optionType: "add",
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
-        ]}
+        toolBarRender={() =>
+          access["systemManagement-edit"]
+            ? [
+                <Button
+                  key="button"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setState({
+                      optionType: "add",
+                      isUpdateModalOpen: true,
+                    });
+                  }}
+                  type="primary"
+                >
+                  新建
+                </Button>,
+              ]
+            : []
+        }
       />
       <AddModal
         type={optionType}

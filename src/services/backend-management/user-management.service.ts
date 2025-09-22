@@ -1,13 +1,11 @@
-import { transformParams } from "@/utils/params";
 import { request } from "@umijs/max";
 const baseUrl = "/user";
 
 // 获取用户列表
 export async function getList(params: any) {
-  const data = transformParams(params); //先转换成后端需要的数据
   const result: any = await request<{}>(`${baseUrl}/getList`, {
     method: "GET",
-    params: data,
+    params,
   });
   return result;
 }

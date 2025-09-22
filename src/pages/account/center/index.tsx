@@ -33,6 +33,7 @@ const ChangePasswordForm: React.FC = () => {
         return false;
       }
       message.success("密码修改成功");
+      formRef.current?.resetFields();
       localStorage.clear();
       flushSync(() => {
         setInitialState((s) => ({

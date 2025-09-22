@@ -8,6 +8,7 @@ import {
   PageContainer,
   ProTable,
 } from "@ant-design/pro-components";
+import { useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, List, Modal } from "antd";
 import React, { useEffect, useRef } from "react";
@@ -22,6 +23,7 @@ const mockRoles = [
 
 const Page: React.FC = () => {
   const actionRef = useRef<ActionType>();
+  const access = useAccess();
 
   const [state, setState] = useSetState<any>({
     isAddModalOpen: false,
@@ -82,7 +84,49 @@ const Page: React.FC = () => {
     item.name.includes(typeSearch)
   );
 
-  const columns: any = [
+  const operationColumn = {
+    title: "操作",
+    valueType: "option",
+    key: "option",
+    width: 150,
+    render: (text: any, record: any, index: any, action: any) => [
+      <Button
+        color="primary"
+        variant="link"
+        key="edit"
+        icon={<EditOutlined />}
+        onClick={() => {
+          setState({
+            addEquipValue: record,
+            isAddModalOpen: true,
+            addOptionType: "edit",
+          });
+        }}
+      >
+        编辑
+      </Button>,
+      <Button
+        color="danger"
+        variant="link"
+        key="preview"
+        icon={<DeleteOutlined />}
+        onClick={() => {
+          Modal.confirm({
+            title: "确认删除吗？",
+            onOk: async () => {
+              await deleteOne(record.id);
+              if (actionRef.current) {
+                actionRef.current.reload();
+              }
+            },
+          });
+        }}
+      >
+        删除
+      </Button>,
+    ],
+  };
+  const schemasColumns = [
     {
       title: "设备型号",
       dataIndex: "title",
@@ -107,49 +151,11 @@ const Page: React.FC = () => {
       hideInSearch: true,
       sorter: true,
     },
-    {
-      title: "操作",
-      valueType: "option",
-      key: "option",
-      width: 150,
-      render: (text: any, record: any, index: any, action: any) => [
-        <Button
-          color="primary"
-          variant="link"
-          key="edit"
-          icon={<EditOutlined />}
-          onClick={() => {
-            setState({
-              addEquipValue: record,
-              isAddModalOpen: true,
-              addOptionType: "edit",
-            });
-          }}
-        >
-          编辑
-        </Button>,
-        <Button
-          color="danger"
-          variant="link"
-          key="preview"
-          icon={<DeleteOutlined />}
-          onClick={() => {
-            Modal.confirm({
-              title: "确认删除吗？",
-              onOk: async () => {
-                await deleteOne(record.id);
-                if (actionRef.current) {
-                  actionRef.current.reload();
-                }
-              },
-            });
-          }}
-        >
-          删除
-        </Button>,
-      ],
-    },
   ];
+  const columns: any = access["systemManagement-edit"]
+    ? [...schemasColumns, operationColumn]
+    : schemasColumns;
+
   const requestData: any = async (...args: any) => {
     if (!currentSelectedTypeId) {
       return {
@@ -200,34 +206,6 @@ const Page: React.FC = () => {
           }}
         >
           {" "}
-          {/* <Card
-            bordered={false}
-            title={
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span>设备类型</span>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  size="small"
-                  onClick={() => {
-                    setState({
-                      isAddTypeModalOpen: true,
-                      typeOptionType: "add",
-                      addTypeValue: {},
-                    });
-                  }}
-                >
-                  新建
-                </Button>
-              </div>
-            }
-          > */}
           <div
             style={{
               display: "flex",
@@ -246,20 +224,6 @@ const Page: React.FC = () => {
             >
               设备类型
             </h4>
-            {/* <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="small"
-              onClick={() => {
-                setState({
-                  isAddTypeModalOpen: true,
-                  typeOptionType: "add",
-                  addTypeValue: {},
-                });
-              }}
-            >
-              新建
-            </Button> */}
           </div>
           {/* <div style={{ padding: 12, display: "flex", gap: 8 }}>
               <Input
@@ -287,6 +251,95 @@ const Page: React.FC = () => {
             }}
           >
             <List
+              itemLayout="horizontal"
+              dataSource={filterEquipType}
+              renderItem={(item: any) => {
+                const hasEdit = !!access["systemManagement-edit"];
+                const actions = hasEdit
+                  ? item.id !== "all"
+                    ? [
+                        <Button
+                          key="edit"
+                          icon={<EditOutlined />}
+                          size="small"
+                          type="link"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setState({
+                              isAddTypeModalOpen: true,
+                              typeOptionType: "edit",
+                              addTypeValue: item,
+                            });
+                          }}
+                        />,
+                        <Button
+                          key="del"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          type="link"
+                          danger
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            Modal.confirm({
+                              title: "确认删除吗？",
+                              onOk: async () => {
+                                await deleteOne(item.id);
+                                if (item.id === currentSelectedTypeId) {
+                                  setState({ currentSelectedTypeId: null });
+                                }
+                              },
+                            });
+                          }}
+                        />,
+                      ]
+                    : [
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          size="small"
+                          onClick={() => {
+                            setState({
+                              isAddTypeModalOpen: true,
+                              typeOptionType: "add",
+                              addTypeValue: {},
+                            });
+                          }}
+                        ></Button>,
+                      ]
+                  : undefined; // ❗️无编辑权限：完全不渲染 actions，不留空白
+
+                return (
+                  <List.Item
+                    style={{
+                      background:
+                        currentSelectedTypeId === item.id
+                          ? "#e6f7ff"
+                          : undefined,
+                      cursor: "pointer",
+                      paddingLeft: 16,
+                    }}
+                    onClick={() => handleTypeSelect(item.id)}
+                    actions={actions}
+                  >
+                    <List.Item.Meta
+                      title={
+                        <span
+                          style={{
+                            fontWeight: 400,
+                            fontSize: 12,
+                            color: "rgba(0,0,0,.8)",
+                          }}
+                        >
+                          {item.name}
+                        </span>
+                      }
+                    />
+                  </List.Item>
+                );
+              }}
+            />
+
+            {/* <List
               itemLayout="horizontal"
               dataSource={filterEquipType}
               renderItem={(item: any) => (
@@ -347,49 +400,9 @@ const Page: React.FC = () => {
                                 addTypeValue: {},
                               });
                             }}
-                          >
-                            {/* 新建 */}
-                          </Button>,
+                          ></Button>,
                         ]
                   }
-                  // actions={[
-                  //   <Button
-                  //     icon={<EditOutlined />}
-                  //     size="small"
-                  //     type="link"
-                  //     onClick={(e) => {
-                  //       e.stopPropagation();
-                  //       setState({
-                  //         isAddTypeModalOpen: true,
-                  //         typeOptionType: "edit",
-                  //         addTypeValue: item,
-                  //       });
-                  //     }}
-                  //     key="edit"
-                  //   >
-                  //     {/* 编辑 */}
-                  //   </Button>,
-                  //   <Button
-                  //     size="small"
-                  //     icon={<DeleteOutlined />}
-                  //     type="link"
-                  //     danger
-                  //     onClick={(e) => {
-                  //       e.stopPropagation();
-                  //       Modal.confirm({
-                  //         title: "确认删除吗？",
-                  //         onOk: async () => {
-                  //           await deleteOne(item.id);
-                  //           if (item.id === currentSelectedTypeId) {
-                  //             setState({ currentSelectedTypeId: null });
-                  //           }
-                  //           // fetchRoles();
-                  //         },
-                  //       });
-                  //     }}
-                  //     key="del"
-                  //   ></Button>,
-                  // ]}
                 >
                   <List.Item.Meta
                     title={
@@ -406,7 +419,7 @@ const Page: React.FC = () => {
                   />
                 </List.Item>
               )}
-            />
+            /> */}
           </div>
         </div>
         {/* </Card> */}
@@ -425,38 +438,6 @@ const Page: React.FC = () => {
           }}
         >
           {" "}
-          {/* <Card
-            title={
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  paddingTop: 5,
-                  paddingBottom: 10,
-                  boxSizing: "border-box",
-                }}
-              >
-                <span>
-                  <b style={{ color: "#1890FF" }}>
-                    {currentSelectedType?.name || ""}
-                  </b>
-                </span>
-              </div>
-            }
-            extra={
-              <span style={{ color: "#888" }}>
-                {currentSelectedType?.desc || ""}
-              </span>
-            }
-            styles={{
-              body: {
-                display: "flex",
-                flexDirection: "column",
-                minHeight: "55vh",
-                padding: 0,
-              },
-            }}
-          > */}
           <div
             style={{
               display: "flex",
@@ -498,23 +479,26 @@ const Page: React.FC = () => {
               pageSize: 10,
               onChange: (page) => requestData,
             }}
-            toolBarRender={() => [
-              <Button
-                key="button"
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  setState({
-                    isAddModalOpen: true,
-                    addOptionType: "add",
-                  });
-                }}
-                type="primary"
-              >
-                新建
-              </Button>,
-            ]}
+            toolBarRender={() =>
+              access["systemManagement-edit"]
+                ? [
+                    <Button
+                      key="button"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        setState({
+                          isAddModalOpen: true,
+                          addOptionType: "add",
+                        });
+                      }}
+                      type="primary"
+                    >
+                      新建
+                    </Button>,
+                  ]
+                : []
+            }
           />
-          {/* </Card> */}
         </div>
       </div>
       <AddTypeModal

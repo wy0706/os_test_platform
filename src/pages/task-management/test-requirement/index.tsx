@@ -12,11 +12,15 @@ import {
 import { useSetState } from "ahooks";
 import { Button, Form, Modal } from "antd";
 import React, { useRef } from "react";
+import { useAccess } from "umi";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import TasksModal from "./components/tasksModal";
 import { schemasColumns, schemasTitle } from "./schemas";
+
 const Page: React.FC = () => {
+  const access = useAccess();
+
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
@@ -29,75 +33,8 @@ const Page: React.FC = () => {
     isSelectModalOpen: false, //选择任务modal
     selectKeys: [], // 选择的任务keys
     selectRows: [], // 选择的任务rows
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 180,
-        render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            color="primary"
-            variant="link"
-            key="preview"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setState({
-                detailsId: record.id,
-                isPreviewModalOpen: true,
-                updateValue: record,
-              });
-            }}
-          >
-            详情
-          </Button>,
-          <Button
-            color="primary"
-            variant="link"
-            key="edit"
-            icon={<EditOutlined />}
-            onClick={() => {
-              form.setFieldsValue(record);
-              setState({
-                updateValue: record,
-                isUpdate: true,
-                isUpdateModalOpen: true,
-              });
-            }}
-          >
-            编辑
-          </Button>,
-
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              console.log("key----", key);
-              console.log(key);
-              switch (key) {
-                case "delete":
-                  Modal.confirm({
-                    title: "确认删除吗？",
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-
-                default:
-                  return;
-              }
-            }}
-            menus={[{ key: "delete", name: "删除" }]}
-          />,
-        ],
-      },
-    ]),
   });
   const {
-    columns,
     title,
     isUpdate,
     isUpdateModalOpen,
@@ -108,7 +45,70 @@ const Page: React.FC = () => {
     selectKeys,
     selectRows,
   } = state;
+  const operationColumn = {
+    title: "操作",
+    valueType: "option",
+    key: "option",
+    width: 180,
+    render: (text: any, record: any, index: any, action: any) => [
+      <Button
+        color="primary"
+        variant="link"
+        key="preview"
+        icon={<EyeOutlined />}
+        onClick={() => {
+          setState({
+            detailsId: record.id,
+            isPreviewModalOpen: true,
+            updateValue: record,
+          });
+        }}
+      >
+        详情
+      </Button>,
+      <Button
+        color="primary"
+        variant="link"
+        key="edit"
+        icon={<EditOutlined />}
+        onClick={() => {
+          form.setFieldsValue(record);
+          setState({
+            updateValue: record,
+            isUpdate: true,
+            isUpdateModalOpen: true,
+          });
+        }}
+      >
+        编辑
+      </Button>,
 
+      <TableDropdown
+        key={index}
+        onSelect={(key: string) => {
+          console.log("key----", key);
+          console.log(key);
+          switch (key) {
+            case "delete":
+              Modal.confirm({
+                title: "确认删除吗？",
+                onOk: async () => {
+                  await deleteOne(record.id);
+                  if (actionRef.current) {
+                    actionRef.current.reload();
+                  }
+                },
+              });
+              return;
+
+            default:
+              return;
+          }
+        }}
+        menus={[{ key: "delete", name: "删除" }]}
+      />,
+    ],
+  };
   const handleOk = (values: any) => {
     const params = { ...values, lists: selectKeys };
     console.log("params", params);
@@ -117,24 +117,28 @@ const Page: React.FC = () => {
     });
   };
   const requestData: any = async (...args: any) => {
-    console.log(" args[0]", args);
+    let obj = { ...args[0], taskId: state.taskId };
+    console.log("args参数", obj);
     try {
-      const params = {
-        ...args[0],
+      const res = await getList({
+        params: obj,
         sort: args[1],
-        page_size: args[0].pageSize,
-        page_index: args[0].current,
-        pageSize: null,
-        current: null,
-      };
-      console.log("params", params);
-
-      const res = await getList(params);
+      });
       return res;
     } catch {
       return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
-        total: 1,
+        data: [
+          {
+            id: 2,
+            title: "测试数据2",
+            title2: 70,
+            title3: "李四",
+            title4: "测试数据",
+            createTime: "2025-07-30",
+            status: "all",
+          },
+        ],
+        total: 2,
         success: true,
       };
     }
@@ -145,7 +149,11 @@ const Page: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<any>
-        columns={columns}
+        columns={
+          access["taskManagement-edit"]
+            ? [...schemasColumns, operationColumn]
+            : schemasColumns
+        }
         actionRef={actionRef}
         cardBordered
         request={requestData}
@@ -155,21 +163,25 @@ const Page: React.FC = () => {
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setState({
-                isUpdate: false,
-                isUpdateModalOpen: true,
-              });
-            }}
-            type="primary"
-          >
-            新建
-          </Button>,
-        ]}
+        toolBarRender={() =>
+          access["taskManagement-edit"]
+            ? [
+                <Button
+                  key="button"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setState({
+                      isUpdate: false,
+                      isUpdateModalOpen: true,
+                    });
+                  }}
+                  type="primary"
+                >
+                  新建
+                </Button>,
+              ]
+            : []
+        }
       />
       <DetailModal
         details={updateValue}

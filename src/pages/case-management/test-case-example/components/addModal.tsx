@@ -1,5 +1,5 @@
 import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Button, Col, Divider, Form, Input, Modal, Row, Select } from "antd";
+import { Col, Divider, Form, Input, Modal, Row, Select } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
@@ -133,15 +133,16 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
-        <Form.Item name="gender1" label="描述">
+        <Form.Item name="gender1" label="备注">
           <Input.TextArea
             rows={4}
-            placeholder="输入任务描述"
+            placeholder="输入任务备注"
             maxLength={2048}
           />
         </Form.Item>
 
         <Row gutter={16}>
+          {/* 树型结构 包含测试库和所属模块 */}
           <Col span={8}>
             <Form.Item
               name="gender9"
@@ -149,7 +150,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               rules={[{ required: true }]}
             >
               <Select
-                placeholder="选择所属测试库"
+                placeholder="选择所属测试库模块"
                 showSearch
                 filterOption={(input, option) =>
                   (option?.children as unknown as string)
@@ -159,7 +160,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               ></Select>
             </Form.Item>
           </Col>
-          <Col span={8}>
+          {/* <Col span={8}>
             <Form.Item name="gender" label="模块">
               <Select placeholder="选择模块">
                 <Option value="1">模块1</Option>
@@ -167,7 +168,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 <Option value="2">模块3</Option>
               </Select>
             </Form.Item>
-          </Col>
+          </Col> */}
           <Col span={8}>
             {" "}
             <Form.Item name="gender5" label="重要程度">
@@ -198,8 +199,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               </Select>
             </Form.Item>
           </Col>
-
-          <Col span={8}>
+          {/* 预留界面，暂时不接入 */}
+          {/* <Col span={8}>
             {" "}
             <Form.Item name="gender22" label="关联测试序列">
               <Button
@@ -212,7 +213,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 <span></span>
               </Button>
             </Form.Item>
-          </Col>
+          </Col> */}
         </Row>
       </Form>
     </Modal>

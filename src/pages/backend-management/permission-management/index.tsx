@@ -12,6 +12,7 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import { PageContainer } from "@ant-design/pro-components";
+import { Access, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
 import {
   Button,
@@ -55,13 +56,13 @@ const mockPermissions = [
   },
   {
     group: "系统管理",
-    desc: "添加设备，添加命令",
+    desc: "设备添加、命令添加、系统设置等基本功能操作",
     key: "systemManagement",
     allowed: ["preview", "edit"],
   },
   {
     group: "管理后台",
-    desc: "系统设置、用户管理、权限配置等核心权限",
+    desc: "用户管理、权限配置等核心权限",
     key: "backendManagement",
     allowed: ["preview", "edit"],
   },
@@ -74,6 +75,7 @@ const permissionItems = [
 ];
 
 const PermissionManagement: React.FC = () => {
+  const access = useAccess();
   const [state, setState] = useSetState<any>({
     isUpdate: false,
     isUpdateModalOpen: false,
@@ -172,7 +174,6 @@ const PermissionManagement: React.FC = () => {
 
     try {
       const { code, data: pressions, message: msg } = await getOne(role.id);
-
       if (code !== 0) {
         message.error(msg || "加载权限失败");
         setState((prev) => ({
@@ -184,7 +185,6 @@ const PermissionManagement: React.FC = () => {
         return;
       }
 
-      // 即使 resource_code 是 [] 也正常渲染
       const obj = arrayToObject(pressions?.resource_code || []);
       setState((prev) => ({
         ...prev,
@@ -249,20 +249,27 @@ const PermissionManagement: React.FC = () => {
     }
   };
 
-  // 取消
-  const handleCancel = () => {
-    setState((prev) => ({
-      ...prev,
-      currentPermissions: { ...prev.originalPermissions },
-    }));
-    message.info("已取消更改");
-  };
   // 添加角色
   const handleOk = async (value: any) => {
     setState({ isUpdateModalOpen: false });
     await getRoleList({ roleSearchInput });
   };
-
+  const handleEditRole = async (role: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    console.log(role);
+    const { code, data, message: msg } = await getOne(role.id);
+    if (code !== 0) {
+      message.error(msg);
+      return;
+    }
+    setState({
+      isUpdate: true,
+      isUpdateModalOpen: true,
+      updateValue: {
+        ...data,
+      },
+    });
+  };
   return (
     <PageContainer>
       <div
@@ -295,19 +302,21 @@ const PermissionManagement: React.FC = () => {
             }}
           >
             <h3>角色列表</h3>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="small"
-              onClick={() => {
-                setState({
-                  isUpdate: false,
-                  isUpdateModalOpen: true,
-                });
-              }}
-            >
-              添加角色
-            </Button>
+            {access["backendManagement-edit"] && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="small"
+                onClick={() => {
+                  setState({
+                    isUpdate: false,
+                    isUpdateModalOpen: true,
+                  });
+                }}
+              >
+                添加角色
+              </Button>
+            )}
           </div>
           <div style={{ padding: 12, display: "flex", gap: 8 }}>
             <Input
@@ -354,58 +363,72 @@ const PermissionManagement: React.FC = () => {
               paddingRight: 20,
             }}
           >
-            <List
-              itemLayout="horizontal"
-              loading={roleLoading} // ✅ loading 状态
-              dataSource={roles}
-              renderItem={(role: any) => (
-                <List.Item
-                  style={{
-                    background:
-                      selectedRoleId === role.id ? "#e6f7ff" : undefined,
-                    cursor: "pointer",
-                    paddingLeft: 16,
-                  }}
-                  onClick={() => handleRoleSelect(role)}
-                  actions={[
-                    <Button
-                      icon={<EditOutlined />}
-                      size="small"
-                      type="link"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log(role);
-
-                        setState({
-                          isUpdate: true,
-                          isUpdateModalOpen: true,
-                          updateValue: {
-                            ...role,
-                          },
-                        });
-                      }}
-                      key="edit"
-                    ></Button>,
-                    <Button
-                      size="small"
-                      type="link"
-                      icon={<DeleteOutlined />}
-                      danger
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteRole(role);
-                      }}
-                      key="del"
-                    ></Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={<span>{role.name}</span>}
-                    description={role.description}
-                  />
-                </List.Item>
-              )}
-            />
+            <Access
+              accessible={
+                !!(
+                  access["backendManagement-edit"] ||
+                  access["backendManagement-preview"]
+                )
+              }
+            >
+              <List
+                itemLayout="horizontal"
+                loading={roleLoading}
+                dataSource={roles}
+                renderItem={(role: any) => (
+                  <List.Item
+                    key={role.id}
+                    style={{
+                      background:
+                        selectedRoleId === role.id ? "#e6f7ff" : undefined,
+                      cursor: "pointer",
+                      paddingLeft: 16,
+                    }}
+                    onClick={() => handleRoleSelect(role)}
+                    actions={
+                      access["backendManagement-edit"]
+                        ? [
+                            <Button
+                              icon={<EditOutlined />}
+                              size="small"
+                              type="link"
+                              // onClick={(e) => {
+                              //   e.stopPropagation();
+                              //   console.log(role);
+                              //   setState({
+                              //     isUpdate: true,
+                              //     isUpdateModalOpen: true,
+                              //     updateValue: {
+                              //       ...role,
+                              //     },
+                              //   });
+                              // }}
+                              onClick={(e) => handleEditRole(role, e)}
+                              key="edit"
+                            />,
+                            <Button
+                              size="small"
+                              type="link"
+                              icon={<DeleteOutlined />}
+                              danger
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteRole(role);
+                              }}
+                              key="del"
+                            />,
+                          ]
+                        : undefined
+                    }
+                  >
+                    <List.Item.Meta
+                      title={<span>{role.name}</span>}
+                      description={role.description}
+                    />
+                  </List.Item>
+                )}
+              />
+            </Access>
           </div>
         </div>
 
@@ -487,7 +510,10 @@ const PermissionManagement: React.FC = () => {
                               checked={
                                 currentPermissions?.[perm.key] === opt.value
                               }
+                              disabled={!access["backendManagement-edit"]} // 👈 没有edit权限则禁用
                               onChange={() => {
+                                // 只有在edit时才执行setState
+                                if (!access["backendManagement-edit"]) return;
                                 setState((prev) => {
                                   const curr =
                                     prev.currentPermissions?.[perm.key];
@@ -522,34 +548,36 @@ const PermissionManagement: React.FC = () => {
             )}
           </div>
           {/* 固定底部按钮区 */}
-          <div
-            style={{
-              borderTop: "1px solid #f0f0f0",
-              background: "#fff",
-              padding: "16px 24px",
-              textAlign: "right",
-              position: "sticky",
-              bottom: 0,
-              zIndex: 10,
-              borderRadius: 10,
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-            }}
-          >
-            <Space>
-              {/* <Button onClick={handleCancel} disabled={!currentRole}>
+          {access["backendManagement-edit"] && (
+            <div
+              style={{
+                borderTop: "1px solid #f0f0f0",
+                background: "#fff",
+                padding: "16px 24px",
+                textAlign: "right",
+                position: "sticky",
+                bottom: 0,
+                zIndex: 10,
+                borderRadius: 10,
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+              }}
+            >
+              <Space>
+                {/* <Button onClick={handleCancel} disabled={!currentRole}>
                 取消
               </Button> */}
-              <Button
-                type="primary"
-                onClick={handleSave}
-                loading={saving}
-                disabled={!currentRole || loadError || saving}
-              >
-                保存更改
-              </Button>
-            </Space>
-          </div>
+                <Button
+                  type="primary"
+                  onClick={handleSave}
+                  loading={saving}
+                  disabled={!currentRole || loadError || saving}
+                >
+                  保存更改
+                </Button>
+              </Space>
+            </div>
+          )}
           {/* </Card> */}
         </div>
       </div>

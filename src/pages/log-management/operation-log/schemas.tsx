@@ -6,37 +6,37 @@ export const schemasTitle: any = {
 export const schemasColumns: any = [
   {
     title: "日志编号",
-    dataIndex: "title",
+    dataIndex: "id",
     ellipsis: true,
     hideInSearch: true,
   },
   {
     title: "操作模块",
-    dataIndex: "title1",
+    dataIndex: "module_name",
     hideInSearch: true,
     ellipsis: true,
   },
   {
     title: "操作模块ID",
-    dataIndex: "title2",
+    dataIndex: "instance_id",
     hideInSearch: true,
     ellipsis: true,
   },
   {
     title: "操作类型",
-    dataIndex: "title3",
+    dataIndex: "opt_type",
     hideInSearch: true,
     ellipsis: true,
   },
   {
     title: "操作人",
-    dataIndex: "title4",
     ellipsis: true,
+    dataIndex: ["user_info", "name"],
   },
   {
     title: "操作日期",
     key: "showTime",
-    dataIndex: "createTime",
+    dataIndex: "create_time",
     ellipsis: true,
     sorter: true,
     valueType: "dateTime",
@@ -45,7 +45,7 @@ export const schemasColumns: any = [
 
   {
     title: "操作日期",
-    dataIndex: "createTime",
+    dataIndex: "create_time",
     valueType: "date",
     hideInTable: true,
   },

@@ -14,10 +14,10 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { history, useLocation, useSearchParams } from "@umijs/max";
+import { history, useAccess, useLocation, useSearchParams } from "@umijs/max";
 
 import { useSetState } from "ahooks";
-import { Button, Form, Modal } from "antd";
+import { Button, Modal } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import CreateReportModal from "./components/createReport";
@@ -25,10 +25,11 @@ import DetailModal from "./components/detailModal";
 import SequenceDataModal from "./components/sequenceDataModal";
 import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
+  const access = useAccess();
+
   const actionRef = useRef<ActionType>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     optionType: "add",
@@ -58,125 +59,122 @@ const Page: React.FC = () => {
     taskId,
   } = state;
 
-  // 动态生成 columns，这样可以访问到最新的状态
-  const columns: any = schemasColumns.concat([
-    {
-      title: "操作",
-      valueType: "option",
-      key: "option",
-      width: 200,
-      render: (text: any, record: any, index: any, action: any) => [
-        <Button
-          key="preview"
-          variant="link"
-          color="primary"
-          icon={<PlayCircleOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            setState({
-              isRunModalOpen: true,
-              runData: record,
-            });
-          }}
-        >
-          运行
-        </Button>,
-        <Button
-          key="edit"
-          variant="link"
-          color="primary"
-          icon={<EditOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            setState({
-              updateValue: record,
-              isUpdateModalOpen: true,
-              optionType: "edit",
-            });
-          }}
-        >
-          编辑
-        </Button>,
-        <div onClick={(e) => e.stopPropagation()}>
-          <TableDropdown
-            key={index}
-            onSelect={(key: string) => {
-              switch (key) {
-                case "delete":
-                  console.log("record", record);
+  // // 动态生成 columns，这样可以访问到最新的状态
 
-                  Modal.confirm({
-                    title: (
+  const operationColumn = {
+    title: "操作",
+    valueType: "option",
+    key: "option",
+    width: 200,
+    render: (text: any, record: any, index: any, action: any) => [
+      <Button
+        key="preview"
+        variant="link"
+        color="primary"
+        icon={<PlayCircleOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setState({
+            isRunModalOpen: true,
+            runData: record,
+          });
+        }}
+      >
+        运行
+      </Button>,
+      <Button
+        key="edit"
+        variant="link"
+        color="primary"
+        icon={<EditOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setState({
+            updateValue: record,
+            isUpdateModalOpen: true,
+            optionType: "edit",
+          });
+        }}
+      >
+        编辑
+      </Button>,
+      <div onClick={(e) => e.stopPropagation()}>
+        <TableDropdown
+          key={index}
+          onSelect={(key: string) => {
+            switch (key) {
+              case "delete":
+                console.log("record", record);
+
+                Modal.confirm({
+                  title: (
+                    <div>
                       <div>
-                        <div>
-                          确认删除测试任务{" "}
-                          <span
-                            style={{ color: "#ff4d4f", fontWeight: "bold" }}
-                          >
-                            {record.title}
-                          </span>{" "}
-                          吗？
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            marginTop: "8px",
-                          }}
-                        >
-                          测试任务删除后不可恢复，删除测试任务会一起删除测试任务内的执行用例
-                        </div>
+                        确认删除测试任务{" "}
+                        <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                          {record.title}
+                        </span>{" "}
+                        吗？
                       </div>
-                    ),
-                    // content: (
-                    //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                    //     {record.title}
-                    //   </div>
-                    // ),
-                    onOk: async () => {
-                      await deleteOne(record.id);
-                      if (actionRef.current) {
-                        actionRef.current.reload();
-                      }
-                    },
-                  });
-                  return;
-                case "copy":
-                  setState({
-                    updateValue: record,
-                    isUpdateModalOpen: true,
-                    optionType: "copy",
-                  });
-                  return;
-                case "preview":
-                  setState({
-                    currentSelectId: record.id,
-                    isPreviewModalOpen: true,
-                    detailsData: record,
-                  });
-                  return;
-                case "report":
-                  setState({
-                    isCreateReportModalOpen: true,
-                    currentSelectId: record.id,
-                  });
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#666",
+                          marginTop: "8px",
+                        }}
+                      >
+                        测试任务删除后不可恢复，删除测试任务会一起删除测试任务内的执行用例
+                      </div>
+                    </div>
+                  ),
+                  // content: (
+                  //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                  //     {record.title}
+                  //   </div>
+                  // ),
+                  onOk: async () => {
+                    await deleteOne(record.id);
+                    if (actionRef.current) {
+                      actionRef.current.reload();
+                    }
+                  },
+                });
+                return;
+              case "copy":
+                setState({
+                  updateValue: record,
+                  isUpdateModalOpen: true,
+                  optionType: "copy",
+                });
+                return;
+              case "preview":
+                setState({
+                  currentSelectId: record.id,
+                  isPreviewModalOpen: true,
+                  detailsData: record,
+                });
+                return;
+              case "report":
+                setState({
+                  isCreateReportModalOpen: true,
+                  currentSelectId: record.id,
+                });
 
-                  return;
-                default:
-                  return;
-              }
-            }}
-            menus={[
-              { key: "copy", name: "复制" },
-              { key: "preview", name: "详情" },
-              { key: "delete", name: "删除" },
-              { key: "report", name: "生成测试报告" },
-            ]}
-          />
-        </div>,
-      ],
-    },
-  ]);
+                return;
+              default:
+                return;
+            }
+          }}
+          menus={[
+            { key: "copy", name: "复制" },
+            { key: "preview", name: "详情" },
+            { key: "delete", name: "删除" },
+            { key: "report", name: "生成测试报告" },
+          ]}
+        />
+      </div>,
+    ],
+  };
   const requestData: any = async (...args: any) => {
     let obj = { ...args[0], taskId: state.taskId };
     console.log("args参数", obj);
@@ -249,7 +247,11 @@ const Page: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<any>
-        columns={columns}
+        columns={
+          access["taskManagement-edit"]
+            ? [...schemasColumns, operationColumn]
+            : schemasColumns
+        }
         actionRef={actionRef}
         cardBordered
         request={requestData}
@@ -259,9 +261,11 @@ const Page: React.FC = () => {
           onChange: (page) => requestData,
         }}
         headerTitle={title.label}
-        toolBarRender={() => [
-          <div style={{ display: "flex", alignItems: "center" }}>
-            {/* <div style={{ marginRight: 20 }}>
+        toolBarRender={() =>
+          access["taskManagement-edit"]
+            ? [
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {/* <div style={{ marginRight: 20 }}>
               <Checkbox
                 onChange={(e) => {
                   console.log(e.target.checked);
@@ -271,50 +275,56 @@ const Page: React.FC = () => {
                 显示测试过程
               </Checkbox>
             </div> */}
-            <Button
-              key="button"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setState({
-                  isUpdateModalOpen: true,
-                  optionType: "add",
-                });
-              }}
-              type="primary"
-            >
-              新建
-            </Button>
-          </div>,
-        ]}
-        onRow={(record, index) => ({
-          onClick: (e) => {
-            // 检查点击的元素是否在操作栏内
-            const target = e.target as HTMLElement;
-            const isActionColumn =
-              target.closest(".ant-table-cell:last-child") ||
-              target.closest(".ant-btn") ||
-              target.closest("button") ||
-              target.closest("a") ||
-              target.closest(".ant-dropdown") ||
-              target.closest(".ant-dropdown-menu") ||
-              target.closest(".ant-dropdown-menu-item") ||
-              target.closest(".ant-dropdown-trigger");
+                  <Button
+                    key="button"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setState({
+                        isUpdateModalOpen: true,
+                        optionType: "add",
+                      });
+                    }}
+                    type="primary"
+                  >
+                    新建
+                  </Button>
+                </div>,
+              ]
+            : []
+        }
+        onRow={(record, index) =>
+          access["taskManagement-edit"]
+            ? {
+                onClick: (e) => {
+                  // 检查点击的元素是否在操作栏内
+                  const target = e.target as HTMLElement;
+                  const isActionColumn =
+                    target.closest(".ant-table-cell:last-child") ||
+                    target.closest(".ant-btn") ||
+                    target.closest("button") ||
+                    target.closest("a") ||
+                    target.closest(".ant-dropdown") ||
+                    target.closest(".ant-dropdown-menu") ||
+                    target.closest(".ant-dropdown-menu-item") ||
+                    target.closest(".ant-dropdown-trigger");
 
-            // 如果点击的是操作栏，则不跳转
-            if (isActionColumn) {
-              e.stopPropagation();
-              return;
-            }
+                  // 如果点击的是操作栏，则不跳转
+                  if (isActionColumn) {
+                    e.stopPropagation();
+                    return;
+                  }
 
-            // 否则执行正常的行点击逻辑
-            handleRowClick(record, index || 0);
-          },
-          style: {
-            cursor: "pointer",
-            backgroundColor:
-              selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-          },
-        })}
+                  // 否则执行正常的行点击逻辑
+                  handleRowClick(record, index || 0);
+                },
+                style: {
+                  cursor: "pointer",
+                  backgroundColor:
+                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+                },
+              }
+            : {}
+        }
       />
       <DetailModal
         details={detailsData}

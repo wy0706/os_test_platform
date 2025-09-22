@@ -1,10 +1,13 @@
-import { getList } from "@/services/system-management/operation-log.service";
+import { getList } from "@/services/log-management/operation-log.service";
+import { transformParams } from "@/utils/params";
+
 import {
   ActionType,
   PageContainer,
   ProTable,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
+import { message } from "antd";
 import React, { useRef } from "react";
 import { schemasColumns, schemasTitle } from "./schemas";
 
@@ -16,26 +19,17 @@ const Page: React.FC = () => {
   });
   const { columns, title } = state;
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [
-          {
-            id: 1,
-            title: "001",
-            title1: "测试序列",
-            title2: "001",
-            title3: "增加/删除/更改",
-            title4: "芋道源码",
-            createTime: "2025-08-34 10:23:44",
-          },
-        ],
-        total: 1,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return;
     }
+    return {
+      data: data?.list || [],
+      total: data?.total_cnt,
+      success: true,
+    };
   };
 
   return (

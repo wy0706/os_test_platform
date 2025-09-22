@@ -10,7 +10,7 @@ import {
   PlusOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { history } from "@umijs/max";
+import { history, useAccess } from "@umijs/max";
 
 import type { ActionType } from "@ant-design/pro-components";
 import {
@@ -29,6 +29,8 @@ import { schemasColumns, schemasTitle, TestItem, TreeNode } from "./schemas";
 const { Option } = Select;
 
 const DemoPage: React.FC = () => {
+  const access = useAccess();
+
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string>("1-1");
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
@@ -44,119 +46,110 @@ const DemoPage: React.FC = () => {
     updateValue: {},
     isAddModalOpen: false, //新增modal
     optionType: "edit", //默认是｜edit｜ copy
-    columns: schemasColumns.concat([
-      {
-        title: "操作",
-        valueType: "option",
-        key: "option",
-        width: 200,
-        render: (text: any, record: any, index: any, action: any) => [
-          <Button
-            key="edit"
-            variant="link"
-            color="primary"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setState({
-                updateValue: record,
-                isUpdateModalOpen: true,
-                optionType: "edit",
-              });
-            }}
-          >
-            编辑
-          </Button>,
-          <Button
-            key="copy"
-            variant="link"
-            color="primary"
-            icon={<CopyOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setState({
-                updateValue: record,
-                isUpdateModalOpen: true,
-                optionType: "copy",
-              });
-            }}
-          >
-            复制
-          </Button>,
-
-          <div
-            key={`dropdown-${index}`}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <TableDropdown
-              onSelect={(key: string) => {
-                console.log("key----", key);
-                switch (key) {
-                  case "delete":
-                    Modal.confirm({
-                      title: (
-                        <div>
-                          <div>
-                            确认删除序列{" "}
-                            <span
-                              style={{ color: "#ff4d4f", fontWeight: "bold" }}
-                            >
-                              {record.name}
-                            </span>{" "}
-                            吗？
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "#666",
-                              marginTop: "8px",
-                            }}
-                          >
-                            序列删除后不可恢复
-                          </div>
-                        </div>
-                      ),
-
-                      onOk: async () => {
-                        await deleteOne(record.id);
-                        if (actionRef.current) {
-                          actionRef.current.reload();
-                        }
-                      },
-                    });
-                    return;
-                  case "remove":
-                    setState({
-                      updateValue: record,
-                      isUpdateModalOpen: true,
-                      optionType: "remove",
-                    });
-
-                    return;
-                  default:
-                    return;
-                }
-              }}
-              menus={[
-                { key: "remove", name: "移动" },
-                { key: "delete", name: "删除" },
-              ]}
-            />
-          </div>,
-        ],
-      },
-    ]),
   });
-  const {
-    columns,
-    title,
-    isUpdateModalOpen,
-    updateValue,
-    optionType,
-    isAddModalOpen,
-  } = state;
+  const { title, isUpdateModalOpen, updateValue, optionType, isAddModalOpen } =
+    state;
+
+  const operationColumn = {
+    title: "操作",
+    valueType: "option",
+    key: "option",
+    width: 200,
+    render: (text: any, record: any, index: any, action: any) => [
+      <Button
+        key="edit"
+        variant="link"
+        color="primary"
+        icon={<EditOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setState({
+            updateValue: record,
+            isUpdateModalOpen: true,
+            optionType: "edit",
+          });
+        }}
+      >
+        编辑
+      </Button>,
+      <Button
+        key="copy"
+        variant="link"
+        color="primary"
+        icon={<CopyOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setState({
+            updateValue: record,
+            isUpdateModalOpen: true,
+            optionType: "copy",
+          });
+        }}
+      >
+        复制
+      </Button>,
+
+      <div
+        key={`dropdown-${index}`}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        <TableDropdown
+          onSelect={(key: string) => {
+            console.log("key----", key);
+            switch (key) {
+              case "delete":
+                Modal.confirm({
+                  title: (
+                    <div>
+                      <div>
+                        确认删除序列{" "}
+                        <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                          {record.name}
+                        </span>{" "}
+                        吗？
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#666",
+                          marginTop: "8px",
+                        }}
+                      >
+                        序列删除后不可恢复
+                      </div>
+                    </div>
+                  ),
+
+                  onOk: async () => {
+                    await deleteOne(record.id);
+                    if (actionRef.current) {
+                      actionRef.current.reload();
+                    }
+                  },
+                });
+                return;
+              case "remove":
+                setState({
+                  updateValue: record,
+                  isUpdateModalOpen: true,
+                  optionType: "remove",
+                });
+
+                return;
+              default:
+                return;
+            }
+          }}
+          menus={[
+            { key: "remove", name: "移动" },
+            { key: "delete", name: "删除" },
+          ]}
+        />
+      </div>,
+    ],
+  };
 
   // 递归查找节点
   const findNodeById = (nodes: TreeNode[], id: string): TreeNode | null => {
@@ -357,7 +350,7 @@ const DemoPage: React.FC = () => {
   }, []);
 
   // 渲染树节点
-  const renderTreeNode = (node: TreeNode, level = 0) => {
+  const renderTreeNode2 = (node: TreeNode, level = 0) => {
     const isSelected = selectedNodeId === node.id;
     const isEditing = editingNodeId === node.id;
     const isExpanded = expandedKeys.includes(node.id);
@@ -467,7 +460,120 @@ const DemoPage: React.FC = () => {
       </div>
     );
   };
+  const renderTreeNode = (node: TreeNode, level = 0) => {
+    const isSelected = selectedNodeId === node.id;
+    const isEditing = editingNodeId === node.id;
+    const isExpanded = expandedKeys.includes(node.id);
+    const hasChildren = node.children && node.children.length > 0;
 
+    return (
+      <div key={node.id} className="tree-node">
+        <div
+          className={`node-content ${isSelected ? "selected" : ""}`}
+          onClick={() => handleNodeSelect(node.id)}
+        >
+          {/* 展开图标 */}
+          <div className="expand-icon">
+            {hasChildren ? (
+              <button
+                className="expand-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpanded(node.id);
+                }}
+              >
+                {isExpanded ? <DownOutlined /> : <RightOutlined />}
+              </button>
+            ) : (
+              <span className="expand-placeholder" />
+            )}
+          </div>
+
+          {/* 节点图标 */}
+          <div className="node-icon">
+            {node.type === "folder" ? <FolderOutlined /> : <FileTextOutlined />}
+          </div>
+
+          {/* 节点文本或输入框 */}
+          <div className="node-label">
+            {isEditing ? (
+              <Input
+                className="editable-text"
+                defaultValue={node.name}
+                autoFocus
+                size="small"
+                onBlur={(e) => handleEditNode(node.id, e.target.value)}
+                onPressEnter={(e) =>
+                  handleEditNode(node.id, e.currentTarget.value)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setEditingNodeId(null);
+                    setOriginalNodeName("");
+                  }
+                }}
+              />
+            ) : (
+              <span title={node.name}>{node.name}</span>
+            )}
+          </div>
+
+          {/* 操作按钮区域：根据权限动态渲染 */}
+          {access["testDesign-edit"] && (
+            <div
+              className={`node-actions ${
+                node.type === "folder" ? "folder-actions" : ""
+              }`}
+            >
+              {/* 文件夹：可以新增子节点 */}
+              {node.type === "folder" && (
+                <button
+                  className="action-btn add-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddChild(node.id);
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              )}
+
+              {/* item 或 folder 都有编辑按钮 */}
+              <button
+                className="action-btn edit-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditNode(node.id);
+                }}
+              >
+                <EditOutlined />
+              </button>
+
+              {/* 只有 item 时才有删除按钮 */}
+              {node.type === "item" && (
+                <button
+                  className="action-btn delete-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteNode(node);
+                  }}
+                >
+                  <DeleteOutlined />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 递归渲染子节点 */}
+        {hasChildren && isExpanded && (
+          <div className="children">
+            {node.children!.map((child) => renderTreeNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
   // 节点选中处理
   const handleNodeSelect = (nodeId: string) => {
     setSelectedNodeId(nodeId);
@@ -537,7 +643,11 @@ const DemoPage: React.FC = () => {
           <div className="panel-content">
             <ProTable<TestItem>
               actionRef={actionRef}
-              columns={columns}
+              columns={
+                access["testDesign-edit"]
+                  ? [...schemasColumns, operationColumn]
+                  : schemasColumns
+              }
               cardBordered
               // headerTitle="测试数据"
               // tooltip={getSelectedNodePath()}
@@ -585,55 +695,65 @@ const DemoPage: React.FC = () => {
                 showTotal: (total, range) =>
                   `第 ${range[0]}-${range[1]} 条/共计 ${total} 条`,
               }}
-              toolBarRender={() => [
-                <Button
-                  onClick={() => {
-                    setState({
-                      isAddModalOpen: true,
-                    });
-                  }}
-                  key="add"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                >
-                  新建
-                </Button>,
-              ]}
+              toolBarRender={() =>
+                access["testDesign-edit"]
+                  ? [
+                      <Button
+                        onClick={() => {
+                          setState({
+                            isAddModalOpen: true,
+                          });
+                        }}
+                        key="add"
+                        type="primary"
+                        icon={<PlusOutlined />}
+                      >
+                        新建
+                      </Button>,
+                    ]
+                  : []
+              }
               options={{
                 reload: true,
                 density: true,
                 setting: true,
               }}
               size="small"
-              onRow={(record, index) => ({
-                onClick: (e) => {
-                  // 检查点击的元素是否在操作栏内
-                  const target = e.target as HTMLElement;
-                  const isActionColumn =
-                    target.closest(".ant-table-cell:last-child") ||
-                    target.closest(".ant-btn") ||
-                    target.closest("button") ||
-                    target.closest("a") ||
-                    target.closest(".ant-dropdown") ||
-                    target.closest(".ant-dropdown-menu") ||
-                    target.closest(".ant-dropdown-menu-item") ||
-                    target.closest(".ant-dropdown-trigger");
+              onRow={(record, index) =>
+                access["testDesign-edit"]
+                  ? {
+                      onClick: (e) => {
+                        // 检查点击的元素是否在操作栏内
+                        const target = e.target as HTMLElement;
+                        const isActionColumn =
+                          target.closest(".ant-table-cell:last-child") ||
+                          target.closest(".ant-btn") ||
+                          target.closest("button") ||
+                          target.closest("a") ||
+                          target.closest(".ant-dropdown") ||
+                          target.closest(".ant-dropdown-menu") ||
+                          target.closest(".ant-dropdown-menu-item") ||
+                          target.closest(".ant-dropdown-trigger");
 
-                  // 如果点击的是操作栏，则不跳转
-                  if (isActionColumn) {
-                    e.stopPropagation();
-                    return;
-                  }
+                        // 如果点击的是操作栏，则不跳转
+                        if (isActionColumn) {
+                          e.stopPropagation();
+                          return;
+                        }
 
-                  // 否则执行正常的行点击逻辑
-                  handleRowClick(record, index || 0);
-                },
-                style: {
-                  cursor: "pointer",
-                  backgroundColor:
-                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-                },
-              })}
+                        // 否则执行正常的行点击逻辑
+                        handleRowClick(record, index || 0);
+                      },
+                      style: {
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedRow?.id === record.id
+                            ? "#e6f7ff"
+                            : "transparent",
+                      },
+                    }
+                  : {}
+              }
             />
           </div>
         </div>
