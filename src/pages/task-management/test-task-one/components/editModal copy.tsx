@@ -1,4 +1,5 @@
 import {
+  Button,
   Col,
   Divider,
   Form,
@@ -101,7 +102,7 @@ const editModal: React.FC<ModalProps> = ({
                   <Form.Item
                     name="gender2"
                     label="标题"
-                    // rules={[{ required: true }]}
+                    rules={[{ required: true }]}
                   >
                     <Input placeholder="输入标题" maxLength={32} />
                   </Form.Item>
@@ -145,8 +146,19 @@ const editModal: React.FC<ModalProps> = ({
                 </Col>
                 <Col span={8}>
                   <Form.Item name="testSequence" label="关联测试序列">
-                    <Input placeholder="关联测试序列" disabled />
-                    {/* 测试序列1 */}
+                    <Button
+                      onClick={() => {
+                        console.log("qqq");
+                        onSelect && onSelect();
+                      }}
+                    >
+                      {updateValue.selectTestData &&
+                      updateValue.selectTestData.projectName ? (
+                        <span>{updateValue.selectTestData.projectName}</span>
+                      ) : (
+                        <span>关联测试序列</span>
+                      )}
+                    </Button>
                   </Form.Item>
                 </Col>
               </Row>

@@ -116,11 +116,12 @@ const TestCaseExample: React.FC = () => {
             color="primary"
             icon={<EditOutlined />}
             onClick={() => {
-              setState({
-                updateValue: record,
-                isUpdateModalOpen: true,
-                optionType: "edit",
-              });
+              // setState({
+              //   updateValue: record,
+              //   isUpdateModalOpen: true,
+              //   optionType: "edit",
+              // });
+              setState({ isRowEditModal: true, rowValue: record });
             }}
           >
             编辑
@@ -1100,35 +1101,35 @@ const TestCaseExample: React.FC = () => {
                   新建
                 </Button>,
               ]}
-              onRow={(record, index) => ({
-                onClick: (e) => {
-                  // 检查点击的元素是否在操作栏内
-                  const target = e.target as HTMLElement;
-                  const isActionColumn =
-                    target.closest(".ant-table-cell:last-child") ||
-                    target.closest(".ant-btn") ||
-                    target.closest("button") ||
-                    target.closest("a") ||
-                    target.closest(".ant-dropdown") ||
-                    target.closest(".ant-dropdown-menu") ||
-                    target.closest(".ant-dropdown-menu-item") ||
-                    target.closest(".ant-dropdown-trigger");
+              // onRow={(record, index) => ({
+              //   onClick: (e) => {
+              //     // 检查点击的元素是否在操作栏内
+              //     const target = e.target as HTMLElement;
+              //     const isActionColumn =
+              //       target.closest(".ant-table-cell:last-child") ||
+              //       target.closest(".ant-btn") ||
+              //       target.closest("button") ||
+              //       target.closest("a") ||
+              //       target.closest(".ant-dropdown") ||
+              //       target.closest(".ant-dropdown-menu") ||
+              //       target.closest(".ant-dropdown-menu-item") ||
+              //       target.closest(".ant-dropdown-trigger");
 
-                  // 如果点击的是操作栏，则不跳转
-                  if (isActionColumn) {
-                    e.stopPropagation();
-                    return;
-                  }
+              //     // 如果点击的是操作栏，则不跳转
+              //     if (isActionColumn) {
+              //       e.stopPropagation();
+              //       return;
+              //     }
 
-                  // 否则执行正常的行点击逻辑
-                  handleRowClick(record, index || 0);
-                },
-                style: {
-                  cursor: "pointer",
-                  backgroundColor:
-                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-                },
-              })}
+              //     // 否则执行正常的行点击逻辑
+              //     handleRowClick(record, index || 0);
+              //   },
+              //   style: {
+              //     cursor: "pointer",
+              //     backgroundColor:
+              //       selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+              //   },
+              // })}
             />
           </div>
         </div>

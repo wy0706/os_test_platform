@@ -94,8 +94,12 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
       {" "}
       <Form {...layout} form={form} name="control-hooks">
         {" "}
-        <Form.Item name="name" label="设备名称" rules={[{ required: true }]}>
-          <Input placeholder="输入设备名称" allowClear />
+        <Form.Item
+          name="name"
+          label="设备类型名称"
+          rules={[{ required: true }]}
+        >
+          <Input placeholder="输入设备类型名称" allowClear />
         </Form.Item>{" "}
         <Form.Item name="title" label="设备类型" rules={[{ required: true }]}>
           <Input placeholder="输入设备类型" allowClear />
