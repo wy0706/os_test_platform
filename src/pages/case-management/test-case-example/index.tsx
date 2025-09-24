@@ -1,13 +1,11 @@
 import {
   deleteOne,
+  getCaseList,
   getList,
-} from "@/services/case-management/test-case.service";
-import {
-  createModule,
-  deleteModule as deleteModuleService,
-  getModuleList,
-  updateModule,
-} from "@/services/case-management/test-module.service";
+} from "@/services/case-management/test-case-example.service";
+import { updateModule } from "@/services/case-management/test-module.service";
+import { isArray } from "@/utils";
+import { transformParams } from "@/utils/params";
 import {
   DeleteOutlined,
   EditOutlined,
@@ -21,19 +19,9 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { history } from "@umijs/max";
+import { history, useParams } from "@umijs/max";
 import { useSetState } from "ahooks";
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Menu,
-  message,
-  Modal,
-  Spin,
-  Tree,
-} from "antd";
+import { Button, Empty, Form, Input, Menu, message, Modal, Tree } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import TestSequenceModal from "../../task-management/components/testSequenceModal";
 import NewEditModal from "../../task-management/test-task-one/components/editModal";
@@ -50,17 +38,14 @@ import {
 } from "./schemas";
 const { Search } = Input;
 
-const layout = {
-  labelCol: { span: 24 },
-};
-
 const TestCaseExample: React.FC = () => {
+  const params = useParams();
   const [data, setData] = useState<any>(null);
   // const [selectedRow, setSelectedRow] = useState<string>("DEMO-6");
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
   const [selectedModule, setSelectedModule] = useState<string>(""); // 选中的用例模块
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [modules, setModules] = useState<any[]>([]);
+  const [modules1, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [moduleLoading, setModuleLoading] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
@@ -68,12 +53,15 @@ const TestCaseExample: React.FC = () => {
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
+    id: params.id || "",
     title: schemasTitle,
     isUpdateModalOpen: false,
     updateValue: {},
     selectTestData: {}, //已选择的测试序列
     isTestModal: false, //关联测试序列modal
     isAddModalOpen: false, //新增modal
+    moduleType: "add", //默认是add |edit
+    moduleSearchText: "",
     optionType: "edit", //默认是编辑edit｜ copy
     detailsData: {}, //详情
     isRowEditModal: false, //点击row出现的编辑框
@@ -88,6 +76,7 @@ const TestCaseExample: React.FC = () => {
     isEditModuleModalOpen: false, //编辑模块modal
     editModuleData: {}, //编辑模块数据
     deleteTestCases: false, //删除模块时是否删除测试用例
+    modules: [], //左侧模块列表
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -227,6 +216,10 @@ const TestCaseExample: React.FC = () => {
     isEditModuleModalOpen,
     editModuleData,
     deleteTestCases,
+    modules,
+    moduleType,
+    moduleSearchText,
+    id,
   } = state;
   // 模拟用例数据
   const useCases: any[] = [
@@ -368,167 +361,49 @@ const TestCaseExample: React.FC = () => {
   ];
 
   // 从后端获取模块列表
-  const fetchModules = async () => {
+  const fetchModules = async (params?: any) => {
     setLoading(true);
     try {
-      const response = await getModuleList({});
-      if (response?.success && response?.data) {
-        const moduleData = response.data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          count: item.count || 0,
+      const {
+        code,
+        message: msg,
+        data,
+      } = await getList({
+        lib_id: id,
+        page_index: 1,
+        page_size: 9999,
+        module_name: moduleSearchText,
+        ...params,
+      });
+      if (code === 0 && isArray(data.list)) {
+        if (data.list.length == 0) {
+          setState({ modules: [] });
+          return;
+        }
+        const moduleData = data.list.map((item: any) => ({
+          ...item,
           expanded: true,
           key: item.id,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
         }));
-        setModules(moduleData);
-      } else {
-        console.log("获取模块列表API返回失败，使用默认数据");
-        // 如果后端接口失败，使用默认数据
-        const defaultModules = [
-          {
-            id: "all",
-            name: "全部模块",
-            count: 6,
-            expanded: true,
-            key: "all",
-            coverage: 0,
-          },
-          {
-            id: "login",
-            name: "注册与登录",
-            count: 6,
-            expanded: true,
-            key: "login",
-            coverage: 0,
-          },
-          {
-            id: "shopping",
-            name: "商城下单",
-            count: 7,
-            expanded: true,
-            key: "shopping",
-            coverage: "20%",
-          },
-          {
-            id: "payment",
-            name: "订单支付",
-            count: 2,
-            expanded: true,
-            key: "payment",
-            coverage: "40%",
-          },
-          {
-            id: "no-module",
-            name: "无模块用例",
-            count: 0,
-            expanded: true,
-            key: "no-module",
-            coverage: 0,
-          },
-        ];
-        setModules(defaultModules);
-      }
-    } catch (error) {
-      console.error("获取模块列表失败:", error);
-      // 使用默认数据
-      const defaultModules = [
-        {
+
+        let allItem = {
           id: "all",
           name: "全部模块",
-          count: 15,
+          tc_cnt: data?.list_cnt || 0,
           expanded: true,
           key: "all",
-          coverage: 0,
-        },
-        {
-          id: "login",
-          name: "注册与登录",
-          count: 6,
-          expanded: true,
-          key: "login",
-          coverage: 0,
-        },
-        {
-          id: "shopping",
-          name: "商城下单",
-          count: 7,
-          expanded: true,
-          key: "shopping",
-          coverage: "20%",
-        },
-        {
-          id: "payment",
-          name: "订单支付",
-          count: 2,
-          expanded: true,
-          key: "payment",
-          coverage: "40%",
-        },
-        {
-          id: "no-module",
-          name: "无模块用例",
-          count: 0,
-          expanded: true,
-          key: "no-module",
-          coverage: 0,
-        },
-      ];
-      setModules(defaultModules);
-      message.error("获取模块列表失败，使用默认数据");
+        };
+        const finalModules = [allItem, ...moduleData];
+        setState({ modules: finalModules });
+      } else {
+        console.log("获取模块列表API返回失败，使用默认数据");
+        message.error(msg || "获取模块列表失败");
+        setState({
+          modules: [],
+        });
+      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 创建新模块的函数
-  const createNewModule = async () => {
-    setModuleLoading(true);
-    try {
-      console.log("开始创建模块，参数:", { name: "未命名模块" });
-
-      const response = await createModule({
-        name: "未命名模块",
-      });
-
-      console.log("创建模块API响应:", response);
-
-      if (response?.success) {
-        message.success("模块创建成功");
-        // 重新获取模块列表
-        await fetchModules();
-
-        // 如果返回了新创建的模块ID，选中新模块但不进入编辑模式
-        if (response.data?.id) {
-          setSelectedModule(response.data.id);
-        }
-      } else {
-        console.error("创建模块失败，响应:", response);
-        message.error(response?.message || "创建模块失败");
-      }
-    } catch (error) {
-      console.error("创建模块异常:", error);
-      // 如果是网络错误或API不存在，先尝试本地模拟创建
-      const newModuleId = `temp-${Date.now()}`;
-      const newModule: any = {
-        id: newModuleId,
-        name: "未命名模块",
-        count: 0,
-        expanded: true,
-        key: newModuleId,
-        coverage: 0,
-      };
-
-      // 添加到本地状态
-      setModules([...modules, newModule]);
-
-      // 选中新创建的模块但不进入编辑模式
-      setSelectedModule(newModuleId);
-
-      // message.warning("后端接口暂不可用，已创建临时模块，请联系开发人员");
-    } finally {
-      setModuleLoading(false);
     }
   };
 
@@ -614,6 +489,7 @@ const TestCaseExample: React.FC = () => {
     setState({
       deleteTestCases: false,
     });
+
     Modal.confirm({
       title: (
         <div>
@@ -631,56 +507,39 @@ const TestCaseExample: React.FC = () => {
               marginTop: "8px",
             }}
           >
-            模块删除后不可恢复
+            模块删除后不可恢复,删除模块会删除该用例库模块下的所有信息
           </div>
         </div>
       ),
-      content: (
-        <div style={{ marginTop: "16px" }}>
-          <Checkbox
-            onChange={(e) => {
-              setState({
-                deleteTestCases: e.target.checked,
-              });
-            }}
-          >
-            同时删除模块下的测试用例
-          </Checkbox>
-        </div>
-      ),
+      // content: (
+      //   <div style={{ marginTop: "16px" }}>
+      //     <Checkbox
+      //       onChange={(e) => {
+      //         setState({
+      //           deleteTestCases: e.target.checked,
+      //         });
+      //       }}
+      //     >
+      //       同时删除模块下的测试用例
+      //     </Checkbox>
+      //   </div>
+      // ),
       onOk: async () => {
         setModuleLoading(true);
         try {
           // 调用后端删除接口
-          const response = await deleteModuleService(module.id);
+          const { code, message: msg } = await deleteOne(module.id);
 
-          if (response?.success) {
-            // 从本地状态中移除模块
-            setModules(modules.filter((m) => m.key !== module.key));
-
+          if (code === 0) {
             // 如果删除的是当前选中的模块，清除选中状态
             if (selectedModule === module.key) {
               setSelectedModule("");
             }
-
-            // 刷新表格数据
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-
-            message.success(`模块 "${module.name}" 删除成功`);
-
-            // 如果选择了同时删除测试用例，这里可以添加额外的逻辑
-            if (deleteTestCases) {
-              console.log("用户选择同时删除模块下的测试用例:", module.name);
-              // 后端应该在删除模块时同时处理相关测试用例
-            }
+            message.success(msg);
+            fetchModules();
           } else {
-            message.error(response?.message || "删除模块失败");
+            message.error(msg || "删除模块失败");
           }
-        } catch (error) {
-          console.error("删除模块失败:", error);
-          message.error("删除模块时发生错误，请重试");
         } finally {
           setModuleLoading(false);
         }
@@ -689,7 +548,7 @@ const TestCaseExample: React.FC = () => {
   };
 
   // 将模块数据转换为Tree组件格式
-  const treeData = modules.map((module) => ({
+  const treeData = modules.map((module: any) => ({
     title: (
       <div
         style={{
@@ -711,19 +570,31 @@ const TestCaseExample: React.FC = () => {
             }}
             onClick={() => {
               console.log("选择模块:", module.name, "模块key:", module.key);
-
               // 如果当前有其他模块在编辑状态，则退出编辑模式
               exitEditModeIfNeeded(module.id);
-
               setSelectedModule(module.key);
               // 选中模块后会自动触发表格数据刷新
             }}
           >
             <FolderOutlined style={{ color: "#8c8c8c", fontSize: "14px" }} />
-            <span style={{ fontSize: "12px" }}>{module.name}</span>
+            <span
+              style={{
+                flex: 1,
+                minWidth: 0, // 👈 flex 子元素要省略必须加 minWidth:0
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+                fontSize: 12,
+              }}
+              title={module.name} // 👈 鼠标悬浮显示完整文本
+            >
+              {module.name}
+            </span>
             {module.id != "all" ? (
               <>
-                <span style={{ fontSize: "12px" }}>( {module.count} )</span>
+                <span style={{ fontSize: "12px" }}>
+                  ( {module.tc_cnt || 0} )
+                </span>
                 <span style={{ fontSize: "12px" }}>
                   ( {module.coverage || 0} )
                 </span>
@@ -749,8 +620,8 @@ const TestCaseExample: React.FC = () => {
                       setState({
                         isEditModuleModalOpen: true,
                         editModuleData: module,
+                        moduleType: "edit",
                       });
-                      // startEditModuleName(module);
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor =
@@ -795,7 +666,7 @@ const TestCaseExample: React.FC = () => {
         </>
       </div>
     ),
-    key: module.key,
+    key: String(module.key),
     children: [], // 只有一级，没有子级
   }));
 
@@ -843,12 +714,31 @@ const TestCaseExample: React.FC = () => {
   };
 
   // Tree组件事件处理
-  const onSelect = (selectedKeys: React.Key[], info: any) => {
+  const onTreeSelect = (selectedKeys: React.Key[], info: any) => {
     // 由于我们在自定义title中处理了点击事件，这里可以留空或添加其他逻辑
-    console.log("Tree onSelect:", selectedKeys);
+    console.log("Tree onSelect:", selectedKeys, info);
   };
 
-  const onExpand = (expandedKeys: React.Key[]) => {
+  // 获取测试用例数据
+
+  const requestData: any = async (...args: any) => {
+    let params = transformParams({ params: args[0], sort: args[1] });
+    try {
+      console.log("selectedModule======", selectedModule);
+      const res = await getCaseList({ ...params });
+      return res;
+    } catch {
+      // 如果API请求失败，使用本地数据筛选
+      const filteredData = getFilteredUseCases();
+      console.log("使用本地数据筛选，结果数量:", filteredData.length);
+      return {
+        data: filteredData,
+        total: filteredData.length,
+        success: true,
+      };
+    }
+  };
+  const onTreeExpand = (expandedKeys: React.Key[]) => {
     setExpandedKeys(expandedKeys as string[]);
   };
 
@@ -876,30 +766,6 @@ const TestCaseExample: React.FC = () => {
     );
   };
 
-  const requestData: any = async (...args: any) => {
-    try {
-      // 根据选中的模块添加筛选条件
-      const selectedModuleName = selectedModule
-        ? modules.find((m) => m.key === selectedModule)?.name
-        : undefined;
-      const params = {
-        ...args[0],
-        module: selectedModuleName,
-      };
-      console.log("请求参数:", params, "选中模块:", selectedModuleName);
-      const res = await getList({ params, sort: args[1] });
-      return res;
-    } catch {
-      // 如果API请求失败，使用本地数据筛选
-      const filteredData = getFilteredUseCases();
-      console.log("使用本地数据筛选，结果数量:", filteredData.length);
-      return {
-        data: filteredData,
-        total: filteredData.length,
-        success: true,
-      };
-    }
-  };
   const handleRowClick = (record: any, index: number) => {
     console.log("点击的行数据:", record);
     console.log("行索引:", index);
@@ -907,6 +773,11 @@ const TestCaseExample: React.FC = () => {
 
     // 更新选中的行
     setSelectedRow(record);
+  };
+
+  const handleSearch = (value: string) => {
+    setState({ moduleSearchText: value });
+    fetchModules({ module_name: value });
   };
   return (
     <PageContainer
@@ -978,12 +849,19 @@ const TestCaseExample: React.FC = () => {
             <Search
               placeholder="用例模块"
               style={{ flex: 1 }}
-              onFocus={() => exitEditModeIfNeeded()}
+              enterButton // 显示按钮
+              onSearch={handleSearch}
             />
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={createNewModule}
+              onClick={() => {
+                setState({
+                  isEditModuleModalOpen: true,
+                  editModuleData: {},
+                  moduleType: "add",
+                });
+              }}
               loading={moduleLoading}
               title="创建新模块"
             />
@@ -996,13 +874,13 @@ const TestCaseExample: React.FC = () => {
               overflowX: "hidden",
             }}
           >
-            <Spin spinning={loading} tip="加载模块中...">
+            {treeData.length > 0 ? (
               <Tree
                 treeData={treeData}
                 selectedKeys={selectedModule ? [selectedModule] : []}
                 expandedKeys={expandedKeys}
-                onSelect={onSelect}
-                onExpand={onExpand}
+                onSelect={onTreeSelect}
+                onExpand={onTreeExpand}
                 showLine={false}
                 showIcon={false}
                 blockNode
@@ -1012,7 +890,12 @@ const TestCaseExample: React.FC = () => {
                 }}
                 className="custom-tree"
               />
-            </Spin>
+            ) : (
+              <Empty
+                description="暂无数据"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )}
           </div>
         </div>
 
@@ -1047,16 +930,6 @@ const TestCaseExample: React.FC = () => {
                     }·${getFilteredUseCases().length}`
                   : `全部用例·${useCases.length}`}
               </h2>
-              {/* {selectedModule && (
-                <Button
-                  size="small"
-                  type="link"
-                  onClick={() => setSelectedModule("")}
-                  style={{ padding: 0, fontSize: "12px" }}
-                >
-                  清除筛选
-                </Button>
-              )} */}
             </div>
           </div>
 
@@ -1214,14 +1087,19 @@ const TestCaseExample: React.FC = () => {
         }}
         open={isTestModal}
       />
-
+      {/* 编辑创建模块 */}
       <EditModuleModal
+        licId={id}
+        type={moduleType}
         open={isEditModuleModalOpen}
         onCancel={() => {
           setState({ isEditModuleModalOpen: false });
         }}
         data={editModuleData}
-        onOk={() => {}}
+        onOk={() => {
+          setState({ isEditModuleModalOpen: false });
+          fetchModules();
+        }}
       />
     </PageContainer>
   );

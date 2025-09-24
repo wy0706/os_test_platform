@@ -11,7 +11,7 @@ export const schemasColumns: any = [
   },
   {
     title: "标题",
-    dataIndex: "title",
+    dataIndex: "tc_title",
     ellipsis: true,
   },
   {

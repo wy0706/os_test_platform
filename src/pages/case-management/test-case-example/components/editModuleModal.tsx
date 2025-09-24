@@ -1,11 +1,16 @@
-import { Form, Input, InputNumber, Modal, Select } from "antd";
+import {
+  createOne,
+  updateOne,
+} from "@/services/case-management/test-case-example.service";
+import { Form, Input, InputNumber, message, Modal, Select } from "antd";
 import { useEffect } from "react";
-
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
   data: any;
+  type: string;
+  licId: string | number;
 }
 const { Option } = Select;
 
@@ -18,42 +23,60 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
   onOk,
   onCancel,
   data,
+  type,
+  licId,
 }) => {
+  const [form] = Form.useForm();
   useEffect(() => {
     if (open) {
-      console.log("data", data);
-      if (data) {
+      if (type == "edit") {
         form?.setFieldsValue({
-          coverage: parseFloat("40%") || undefined, // => 40
-          name: data.name,
+          ...data,
+          module_name: data.name || "",
         });
       }
     } else {
       form?.resetFields();
     }
-  }, [open]);
+  }, [open, type, data, form]);
 
-  const [form] = Form.useForm();
-
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        values.coverage =
-          values.coverage != null ? `${values.coverage}%` : undefined;
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    console.log("Form values:", values);
+    if (type == "add") {
+      if (!licId) {
+        message.error("缺少必要的用例库ID");
+        return;
+      }
+      const { code, message: msg } = await createOne({
+        ...values,
+        lib_id: licId,
       });
+
+      if (code === 0) {
+        message.success("创建成功");
+      } else {
+        message.error(msg || "创建失败");
+        return;
+      }
+    } else {
+      const { code, message: msg } = await updateOne({
+        ...values,
+        module_id: data.id,
+      });
+      if (code === 0) {
+        message.success("更新成功");
+      } else {
+        message.error(msg || "更新失败");
+        return;
+      }
+    }
+    onOk && onOk(values);
   };
 
   return (
     <Modal
-      title="创建用例"
+      title={type == "add" ? "创建模块" : "编辑模块"}
       maskClosable={false}
       open={open}
       onCancel={() => {
@@ -64,10 +87,14 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="name" label="模块名" rules={[{ required: true }]}>
+        <Form.Item
+          name="module_name"
+          label="模块名"
+          rules={[{ required: true }]}
+        >
           <Input placeholder="输入模块名" maxLength={32} />
         </Form.Item>
-        <Form.Item name="coverage" label="覆盖率">
+        <Form.Item name="coverage" label="覆盖率" rules={[{ required: true }]}>
           <InputNumber
             min={0}
             max={100}

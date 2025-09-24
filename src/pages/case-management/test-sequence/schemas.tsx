@@ -70,7 +70,7 @@ export const schemasColumns: any = [
     },
   },
   {
-    title: "关联测试序列",
+    title: "关联测试用例",
     dataIndex: "name2",
     // sorter: true,
     ellipsis: true,

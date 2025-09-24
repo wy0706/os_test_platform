@@ -6,21 +6,31 @@ export const schemasTitle: any = {
 export const schemasColumns: any = [
   {
     title: "名称",
-    dataIndex: "title",
+    dataIndex: "name",
+    key: "lib_name",
     ellipsis: true,
-    sorter: true,
   },
+
   {
     title: "标识",
-    dataIndex: "title1",
+    dataIndex: "label",
     ellipsis: true,
+    key: "lib_label",
   },
   {
     title: "更新时间",
-    dataIndex: "createTime",
+    dataIndex: "update_time",
     ellipsis: true,
     sorter: true,
     hideInSearch: true,
+  },
+
+  {
+    title: "更新时间",
+    dataIndex: "update_time",
+    key: "update_time",
+    hideInTable: true,
+    valueType: "date",
   },
 ];
 

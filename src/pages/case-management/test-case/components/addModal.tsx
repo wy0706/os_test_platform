@@ -1,8 +1,13 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
 import { TableOutlined } from "@ant-design/icons";
-import { Form, Input, Modal, Select } from "antd";
+import { useModel } from "@umijs/max";
+import { Form, Input, message, Modal, Select } from "antd";
 import { useEffect, useState } from "react";
 
+import {
+  createOne,
+  updateOne,
+} from "@/services/case-management/test-case.service";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -27,66 +32,86 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
+  const { initialState } = useModel("@@initialState");
+  const { currentUser } = initialState || {};
   const [title, setTitle] = useState("新建");
   const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
   // 获取所有用户列表
   const fetchAllUsers = async () => {
-    setLoading(true);
     try {
       const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
+        page_index: 1,
+        page_size: 9999,
       };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
+      const { code, data, message: msg } = await getUserList(params);
+      if (code === 0) {
+        setUserList(data?.list || []);
+      } else {
+        setUserList([]);
+        message.error(msg);
       }
     } catch (error) {
       console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
-    setTitle(name);
-    if (open) {
-      form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      fetchAllUsers();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        form?.setFieldsValue(updateValue);
+    const initData = async () => {
+      console.log(type, updateValue);
+
+      const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
+      setTitle(name);
+      if (open) {
+        form?.resetFields();
+        // 打开弹窗时获取所有用户列表
+        await fetchAllUsers();
+        if (type == "add") {
+          form?.setFieldsValue({ user_id: currentUser?.id });
+        }
+
+        if ((type == "edit" || type == "copy") && updateValue) {
+          form?.setFieldsValue({
+            lib_name: updateValue?.name || undefined,
+            lib_label: updateValue?.label || undefined,
+            user_id: updateValue?.owner?.id || undefined,
+            description: updateValue?.description || undefined,
+          });
+        }
       }
-    }
+    };
+    initData();
   }, [open, type, updateValue]);
 
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
+  const handleOk = async () => {
+    const values = await form.validateFields();
     console.log(values);
-  };
-
-  const handleOk = () => {
-    console.log("111");
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+    if (type == "add" || type == "copy") {
+      const { code, message: msg } = await createOne(values);
+      if (code !== 0) {
+        message.error(msg);
+        return;
+      }
+      message.success(msg);
+      onOk?.(values);
+    } else {
+      if (!updateValue.id) {
+        message.error("缺少id");
+        return;
+      }
+      const { code, message: msg } = await updateOne({
+        lib_id: updateValue.id,
+        ...values,
       });
+      if (code !== 0) {
+        message.error(msg);
+        return;
+      }
+      message.success(msg);
+      onOk?.(values);
+    }
   };
 
   return (
@@ -101,13 +126,12 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="gender2" label="负责人" rules={[{ required: true }]}>
+      <Form {...layout} form={form} name="control-hooks">
+        <Form.Item name="user_id" label="负责人" rules={[{ required: true }]}>
           <Select
             placeholder="负责人"
             allowClear
             showSearch
-            loading={loading}
             filterOption={(input, option) =>
               (option?.children as unknown as string)
                 ?.toLowerCase()
@@ -116,15 +140,16 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           >
             {userList.map((user) => (
               <Option key={user.id} value={user.id}>
-                {user.name ||
-                  user.username ||
-                  user.realName ||
-                  user.displayName}
+                {user.name || user.username || "-"}
               </Option>
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="note" label="测试库名称" rules={[{ required: true }]}>
+        <Form.Item
+          name="lib_name"
+          label="测试库名称"
+          rules={[{ required: true }]}
+        >
           <Input
             placeholder="输入测试库名称"
             maxLength={32}
@@ -132,7 +157,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           />
         </Form.Item>
         <Form.Item
-          name="note2"
+          name="lib_label"
           label="测试库标识"
           rules={[
             { required: true },
@@ -144,7 +169,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         >
           <Input placeholder="大写字母或数字，15个字符以内" />
         </Form.Item>
-        <Form.Item name="gender1" label="描述">
+        <Form.Item name="description" label="描述">
           <Input.TextArea
             rows={4}
             placeholder="输入任务描述"

@@ -1,19 +1,20 @@
+import { currentUser } from "@/services/ant-design-pro/api";
 import {
   deleteOne,
   getList,
 } from "@/services/case-management/test-case.service";
+import { transformParams } from "@/utils/params";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
-import { history, useAccess } from "@umijs/max";
-
 import {
   ActionType,
   PageContainer,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
+import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal } from "antd";
-import React, { useRef, useState } from "react";
+import { Button, Form, message, Modal } from "antd";
+import React, { useEffect, useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import {
@@ -22,10 +23,8 @@ import {
   schemasForm,
   schemasTitle,
 } from "./schemas";
-
 const Page: React.FC = () => {
   const access = useAccess();
-
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
@@ -80,7 +79,7 @@ const Page: React.FC = () => {
         icon={<EditOutlined />}
         onClick={(e) => {
           e.stopPropagation();
-          form.setFieldsValue(record);
+
           setState({
             updateValue: record,
             isUpdateModalOpen: true,
@@ -123,15 +122,13 @@ const Page: React.FC = () => {
                       </div>
                     </div>
                   ),
-                  // content: (
-                  //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                  //     {record.title}
-                  //   </div>
-                  // ),
                   onOk: async () => {
-                    await deleteOne(record.id);
-                    if (actionRef.current) {
-                      actionRef.current.reload();
+                    const { code, message: msg } = await deleteOne(record.id);
+                    if (code === 0) {
+                      actionRef.current?.reload();
+                      message.success(msg);
+                    } else {
+                      message.error(msg);
                     }
                   },
                 });
@@ -160,25 +157,27 @@ const Page: React.FC = () => {
       </div>,
     ],
   };
+
+  useEffect(() => {
+    currentUser().then((res) => {
+      console.log("res====获取当前用户", res);
+    });
+  }, []);
+
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [
-          {
-            id: 1,
-            title: "测试数据",
-            title1: "DEMO",
-            createTime: "2025-07-30",
-          },
-        ],
-        total: 1,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return;
     }
+    return {
+      data: data?.list || [],
+      total: data?.total_cnt,
+      success: true,
+    };
   };
+
   //   处理行点击事件
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
@@ -268,9 +267,13 @@ const Page: React.FC = () => {
             isUpdateModalOpen: false,
           });
         }}
+        updateValue={updateValue}
         type={optionType}
         onOk={(values: any) => {
-          console.log("values---", values);
+          setState({
+            isUpdateModalOpen: false,
+          });
+          actionRef.current?.reload();
         }}
       />
       <DetailModal

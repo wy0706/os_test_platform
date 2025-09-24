@@ -10,13 +10,11 @@ interface SetMemberModalProps {
 }
 
 interface DetailData {
-  title3: string;
-  title?: string;
-  status?: string;
-  title2?: string;
-  title43?: string;
-  title4?: string;
-  createTime?: string;
+  name: string;
+  label?: string;
+  update_time?: string;
+  owner?: string;
+  description?: string;
 }
 
 const DetailModal: React.FC<SetMemberModalProps> = ({
@@ -42,23 +40,24 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       <div className={s.container}>
         <div className={s.items}>
           <div className={s.name}>名称:</div>
-          <div>{data?.title || "-"}</div>
+          <div>{data?.name || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>标识:</div>
+          <div>{data?.label || "-"}</div>
         </div>
 
         <div className={s.items}>
           <div className={s.name}>负责人:</div>
-          <div>{data?.title3 || "-"}</div>
+          <div>{data?.owner?.name || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>描述: </div>
-          <div>{data?.title4 || "-"}</div>
+          <div>{data?.description || "-"}</div>
         </div>
         <div className={s.items}>
           <div className={s.name}>更新时间:</div>
-          <div>{data?.createTime || "-"}</div>
+          <div>{data?.update_time || "-"}</div>
         </div>
       </div>
     </Modal>

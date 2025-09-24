@@ -17,6 +17,8 @@ export const enum NETWORK_ERROR_CODE {
   UNKNOWNERROR = 500,
   /** 服务不可用 */
   UNAVAILABLE = 503,
+
+  REQUESTTIMEOUT = 504,
 }
 
 export const NETWORK_ERROR_TEXT = {
@@ -29,4 +31,5 @@ export const NETWORK_ERROR_TEXT = {
   NOTEXIST: "接口不存在",
   UNKNOWNERROR: "服务器未知错误",
   UNAVAILABLE: "服务不可用",
+  REQUESTTIMEOUT: "请求超时",
 };

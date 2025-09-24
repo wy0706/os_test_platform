@@ -88,7 +88,6 @@ export const errorConfig: RequestConfig = {
           case NETWORK_ERROR_CODE.BADREQUEST:
             message.error(`${NETWORK_ERROR_TEXT.BADREQUEST}`);
             return;
-
           case NETWORK_ERROR_CODE.CONFLICT:
             message.error(`${NETWORK_ERROR_TEXT.CONFLICT}`);
             return;
@@ -111,6 +110,9 @@ export const errorConfig: RequestConfig = {
             return;
           case NETWORK_ERROR_CODE.UNKNOWNERROR:
             message.error(`${NETWORK_ERROR_TEXT.UNKNOWNERROR}`);
+            return;
+          case NETWORK_ERROR_CODE.REQUESTTIMEOUT:
+            message.error(`${NETWORK_ERROR_TEXT.REQUESTTIMEOUT}`);
             return;
           default:
             message.error(`${error.response.data?.message}`);

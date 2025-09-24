@@ -21,7 +21,6 @@ import {
 import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Select, Spin } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import AddLeftModal from "./components/addLeftModal";
 import AddModal from "./components/addModal";
 import EditModal from "./components/editModal";
 import "./index.less";
@@ -44,23 +43,12 @@ const DemoPage: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
-    isLeftTreeModalOpen: false,
-    leftOptionType: "add",
     updateValue: {},
-    leftNodeValue: {},
     isAddModalOpen: false, //新增modal
     optionType: "edit", //默认是｜edit｜ copy
   });
-  const {
-    title,
-    isUpdateModalOpen,
-    updateValue,
-    optionType,
-    isAddModalOpen,
-    leftOptionType,
-    isLeftTreeModalOpen,
-    leftNodeValue,
-  } = state;
+  const { title, isUpdateModalOpen, updateValue, optionType, isAddModalOpen } =
+    state;
 
   const operationColumn = {
     title: "操作",
@@ -545,12 +533,7 @@ const DemoPage: React.FC = () => {
                   className="action-btn add-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    // handleAddChild(node.id);
-                    setState({
-                      isLeftTreeModalOpen: true,
-                      leftOptionType: "add",
-                      leftNodeValue: {},
-                    });
+                    handleAddChild(node.id);
                   }}
                 >
                   <PlusOutlined />
@@ -564,13 +547,7 @@ const DemoPage: React.FC = () => {
                     className="action-btn edit-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // startEditNode(node.id);
-
-                      setState({
-                        isLeftTreeModalOpen: true,
-                        leftOptionType: "edit",
-                        leftNodeValue: node,
-                      });
+                      startEditNode(node.id);
                     }}
                   >
                     <EditOutlined />
@@ -783,19 +760,6 @@ const DemoPage: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* 左侧树结构编辑新增 */}
-      <AddLeftModal
-        updateValue={leftNodeValue}
-        type={leftOptionType}
-        open={isLeftTreeModalOpen}
-        onCancel={() => {
-          setState({ isLeftTreeModalOpen: false });
-        }}
-        onOk={() => {
-          setState;
-        }}
-      />
-
       {/* 编辑复制移动 */}
       <EditModal
         currentNode={selectedNodeId} //当前选中的树节点

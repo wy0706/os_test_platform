@@ -17,14 +17,14 @@ export async function createOne(data: any) {
   });
   return result;
 }
-
-// export async function getOne(id: any) {
-//   const result: any = await request<{}>(`${baseUrl}/getOneById`, {
-//     method: "GET",
-//     params: { id },
-//   });
-//   return result;
-// }
+// 获取用户信息
+export async function getOne(user_id: any) {
+  const result: any = await request<{}>(`${baseUrl}/getOneById`, {
+    method: "GET",
+    params: { user_id },
+  });
+  return result;
+}
 // 编辑用户
 export async function updateOne(data: any) {
   const result: any = await request<{}>(`${baseUrl}/edit`, {
