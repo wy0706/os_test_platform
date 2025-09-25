@@ -3,7 +3,7 @@ import {
   updateOne,
 } from "@/services/case-management/test-case-example.service";
 import { Form, Input, InputNumber, message, Modal, Select } from "antd";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -27,6 +27,8 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
   licId,
 }) => {
   const [form] = Form.useForm();
+  const [submitLoading, setSubmitLoading] = useState(false);
+
   useEffect(() => {
     if (open) {
       if (type == "edit") {
@@ -41,37 +43,42 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
   }, [open, type, data, form]);
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    console.log("Form values:", values);
-    if (type == "add") {
-      if (!licId) {
-        message.error("缺少必要的用例库ID");
-        return;
-      }
-      const { code, message: msg } = await createOne({
-        ...values,
-        lib_id: licId,
-      });
+    try {
+      const values = await form.validateFields();
+      setSubmitLoading(true);
+      if (type == "add") {
+        if (!licId) {
+          message.error("缺少必要的用例库ID");
+          return;
+        }
+        const { code, message: msg } = await createOne({
+          ...values,
+          lib_id: licId,
+        });
 
-      if (code === 0) {
-        message.success("创建成功");
+        if (code !== 0) {
+          message.error(msg || "创建失败");
+          return;
+        }
+        message.success(msg || "创建成功");
       } else {
-        message.error(msg || "创建失败");
-        return;
+        const { code, message: msg } = await updateOne({
+          ...values,
+          module_id: data.id,
+        });
+        if (code !== 0) {
+          message.error(msg || "创建失败");
+          return;
+        }
+        message.success(msg || "创建成功");
       }
-    } else {
-      const { code, message: msg } = await updateOne({
-        ...values,
-        module_id: data.id,
-      });
-      if (code === 0) {
-        message.success("更新成功");
-      } else {
-        message.error(msg || "更新失败");
-        return;
-      }
+      onOk && onOk(values);
+    } catch (error) {
+      console.log("Validation Failed:", error);
+      return;
+    } finally {
+      setSubmitLoading(false);
     }
-    onOk && onOk(values);
   };
 
   return (
@@ -79,7 +86,10 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
       title={type == "add" ? "创建模块" : "编辑模块"}
       maskClosable={false}
       open={open}
+      destroyOnHidden
+      confirmLoading={submitLoading}
       onCancel={() => {
+        form?.resetFields();
         onCancel && onCancel();
       }}
       styles={{ body: { padding: 20 } }}

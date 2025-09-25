@@ -11,7 +11,8 @@ export const schemasColumns: any = [
   },
   {
     title: "标题",
-    dataIndex: "tc_title",
+    dataIndex: "title",
+    key: "tc_title",
     ellipsis: true,
   },
   {
@@ -26,223 +27,75 @@ export const schemasColumns: any = [
     hideInSearch: true,
   },
 ];
-
-export const schemasForm: any = {
-  layoutType: "Form",
-  rowProps: {
-    gutter: [16, 16],
-  },
-  colProps: {
-    span: 12,
-  },
-  grid: true,
-  columns: [
-    {
-      title: "名称",
-      dataIndex: "title",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-    {
-      title: "图片",
-      dataIndex: "image",
-      valueType: "upload",
-      fieldProps: {
-        name: "file",
-        listType: "picture-card",
-        maxCount: 1,
-        accept: "image/*",
-      },
-    },
-    {
-      title: "创建时间",
-      dataIndex: "createTime",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-  ],
-};
-
-export const schemasDescriptions: any = [
+export const reportDetail: any = [
   {
-    title: "名称",
+    title: "标题",
     key: "title",
     dataIndex: "title",
-    copyable: true,
     ellipsis: true,
   },
   {
-    title: "图片",
-    key: "image",
-    dataIndex: "image",
+    title: "维护人",
+    key: "user_id",
+    dataIndex: ["owner", "name"],
+    // copyable: true,
+    ellipsis: true,
   },
   {
-    title: "创建时间",
-    key: "createTime",
-    dataIndex: "createTime",
-    copyable: true,
+    title: "版本号",
+    key: "version",
+    dataIndex: "version",
     ellipsis: true,
+  },
+  {
+    title: "重要程度",
+    key: "importance",
+    dataIndex: "importance",
+    ellipsis: true,
+  },
+  {
+    title: "所属测试库",
+    dataIndex: ["tc_info", "name"],
+    ellipsis: true,
+  },
+  {
+    title: "所属模块",
+    dataIndex: ["module_info", "name"],
+    ellipsis: true,
+  },
+  {
+    title: "关联测试序列",
+    key: "tc_seq_name",
+    dataIndex: "tc_seq_name",
+    ellipsis: true,
+    span: 3,
+  },
+  {
+    title: "前置条件",
+    key: "precondition",
+    dataIndex: "precondition",
+    ellipsis: true,
+    span: 3,
+  },
+  {
+    title: "步骤描述",
+    key: "step_desc",
+    dataIndex: "step_desc",
+    ellipsis: true,
+    span: 3,
+  },
+  {
+    title: "预期结果",
+    key: "except_result",
+    dataIndex: "except_result",
+    ellipsis: true,
+    span: 3,
+  },
+  {
+    title: "备注",
+    key: "comment",
+    dataIndex: "comment",
+    ellipsis: true,
+    span: 3,
   },
 ];
-
-// const columns1 = [
-//   {
-//     title: "编号",
-//     dataIndex: "id",
-//     // key: "id",
-//     width: 120,
-//     render: (text: string, record: UseCase) => (
-//       <div
-//         style={{
-//           display: "flex",
-//           alignItems: "center",
-//           backgroundColor: selectedRow === text ? "#e6f7ff" : "transparent",
-//           padding: "4px 8px",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         <div
-//           style={{
-//             width: 16,
-//             height: 16,
-//             borderRadius: 4,
-//             backgroundColor: record.icon === "user" ? "#52c41a" : "#1890ff",
-//             display: "flex",
-//             alignItems: "center",
-//             justifyContent: "center",
-//             marginRight: 8,
-//             color: "white",
-//             fontSize: 10,
-//           }}
-//         >
-//           {record.icon === "user" ? (
-//             <UserOutlined />
-//           ) : (
-//             <ThunderboltOutlined />
-//           )}
-//         </div>
-//         {text}
-//       </div>
-//     ),
-//   },
-//   {
-//     title: "标题",
-//     // dataIndex: "title",
-//     key: "title",
-//     render: (text: string, record: UseCase) => (
-//       <div
-//         style={{
-//           display: "flex",
-//           alignItems: "center",
-//           backgroundColor:
-//             selectedRow === record.id ? "#e6f7ff" : "transparent",
-//           padding: "4px 8px",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         <div
-//           style={{
-//             width: 16,
-//             height: 16,
-//             borderRadius: 4,
-//             backgroundColor: record.icon === "user" ? "#52c41a" : "#1890ff",
-//             display: "flex",
-//             alignItems: "center",
-//             justifyContent: "center",
-//             marginRight: 8,
-//             color: "white",
-//             fontSize: 10,
-//           }}
-//         >
-//           {record.icon === "user" ? (
-//             <UserOutlined />
-//           ) : (
-//             <ThunderboltOutlined />
-//           )}
-//         </div>
-//         {text}
-//       </div>
-//     ),
-//   },
-//   {
-//     title: "版本",
-//     dataIndex: "version",
-//     // key: "version",
-//     width: 80,
-//     render: (text: string, record: UseCase) => (
-//       <div
-//         style={{
-//           backgroundColor:
-//             selectedRow === record.id ? "#e6f7ff" : "transparent",
-//           padding: "4px 8px",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         {text}
-//       </div>
-//     ),
-//   },
-//   {
-//     title: "重要程度",
-//     dataIndex: "importance",
-//     // key: "importance",
-//     width: 100,
-//     render: (text: string, record: UseCase) => (
-//       <div
-//         style={{
-//           backgroundColor:
-//             selectedRow === record.id ? "#e6f7ff" : "transparent",
-//           padding: "4px 8px",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         <Tag
-//           color={text === "P0" ? "red" : text === "P1" ? "orange" : "blue"}
-//         >
-//           {text}
-//         </Tag>
-//       </div>
-//     ),
-//   },
-//   {
-//     title: "操作",
-//     key: "action",
-//     width: 80,
-//     render: (text: string, record: UseCase) => (
-//       <div
-//         style={{
-//           backgroundColor:
-//             selectedRow === record.id ? "#e6f7ff" : "transparent",
-//           padding: "4px 8px",
-//           borderRadius: "4px",
-//         }}
-//       >
-//         {record.id <= "DEMO-9" && (
-//           <Dropdown
-//             overlay={
-//               <Menu>
-//                 <Menu.Item key="edit">编辑</Menu.Item>
-//                 <Menu.Item key="delete">删除</Menu.Item>
-//               </Menu>
-//             }
-//             trigger={["click"]}
-//           >
-//             <Button type="text" icon={<MoreOutlined />} />
-//           </Dropdown>
-//         )}
-//       </div>
-//     ),
-//   },
-// ];

@@ -1,9 +1,9 @@
 import {
+  deleteCase,
   deleteOne,
   getCaseList,
   getList,
 } from "@/services/case-management/test-case-example.service";
-import { updateModule } from "@/services/case-management/test-module.service";
 import { isArray } from "@/utils";
 import { transformParams } from "@/utils/params";
 import {
@@ -21,55 +21,38 @@ import {
 } from "@ant-design/pro-components";
 import { history, useParams } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Empty, Form, Input, Menu, message, Modal, Tree } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import { Button, Empty, Input, message, Modal, Spin, Tree } from "antd";
+import React, { useEffect, useRef } from "react";
 import TestSequenceModal from "../../task-management/components/testSequenceModal";
-import NewEditModal from "../../task-management/test-task-one/components/editModal";
+import NewEditModal from "./components/NewEditModal";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import EditModal from "./components/editModal";
 import EditModuleModal from "./components/editModuleModal";
 import s from "./index.less";
-import {
-  schemasColumns,
-  schemasDescriptions,
-  schemasForm,
-  schemasTitle,
-} from "./schemas";
+import { schemasColumns, schemasTitle } from "./schemas";
 const { Search } = Input;
 
 const TestCaseExample: React.FC = () => {
   const params = useParams();
-  const [data, setData] = useState<any>(null);
-  // const [selectedRow, setSelectedRow] = useState<string>("DEMO-6");
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const [selectedModule, setSelectedModule] = useState<string>(""); // 选中的用例模块
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [modules1, setModules] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [moduleLoading, setModuleLoading] = useState(false);
-  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState<string>("");
-  const [form] = Form.useForm();
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
     id: params.id || "",
     title: schemasTitle,
     isUpdateModalOpen: false,
     updateValue: {},
+    selectedModule: "all", //左侧选中的模块
+    loading: false, //模块加载loading
     selectTestData: {}, //已选择的测试序列
     isTestModal: false, //关联测试序列modal
     isAddModalOpen: false, //新增modal
     moduleType: "add", //默认是add |edit
     moduleSearchText: "",
-    optionType: "edit", //默认是编辑edit｜ copy
-    detailsData: {}, //详情
+    optionType: "copy", //默认是编辑 copy|remove
     isRowEditModal: false, //点击row出现的编辑框
-    rowValue: {}, //
-    formSchema: schemasForm,
+    newEditModalID: null,
     isPreviewModalOpen: false,
     detailsId: null,
-    descriptionsColumns: schemasDescriptions,
     open: false, //编辑用例模块
     modulevalue: {}, //单个模块数据
     isEditMode: false, //是否为编辑模式，false为新增
@@ -93,7 +76,6 @@ const TestCaseExample: React.FC = () => {
               setState({
                 detailsId: record.id,
                 isPreviewModalOpen: true,
-                detailsData: record,
               });
             }}
           >
@@ -110,7 +92,10 @@ const TestCaseExample: React.FC = () => {
               //   isUpdateModalOpen: true,
               //   optionType: "edit",
               // });
-              setState({ isRowEditModal: true, rowValue: record });
+              setState({
+                isRowEditModal: true,
+                newEditModalID: record.id,
+              });
             }}
           >
             编辑
@@ -152,15 +137,18 @@ const TestCaseExample: React.FC = () => {
                           </div>
                         </div>
                       ),
-                      // content: (
-                      //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                      //     {record.title}
-                      //   </div>
-                      // ),
                       onOk: async () => {
-                        await deleteOne(record.id);
-                        if (actionRef.current) {
-                          actionRef.current.reload();
+                        const { code, message: msg } = await deleteCase(
+                          record.id
+                        );
+                        if (code === 0) {
+                          message.success(msg);
+                          if (actionRef.current) {
+                            actionRef.current.reload();
+                          }
+                        } else {
+                          message.error(msg || "操作失败");
+                          return;
                         }
                       },
                     });
@@ -199,18 +187,15 @@ const TestCaseExample: React.FC = () => {
     title,
     isUpdateModalOpen,
     updateValue,
-    formSchema,
     isPreviewModalOpen,
     detailsId,
-    descriptionsColumns,
     optionType,
-    detailsData,
     isAddModalOpen,
     open,
     isTestModal,
     selectTestData,
     isRowEditModal,
-    rowValue,
+
     modulevalue,
     isEditMode,
     isEditModuleModalOpen,
@@ -220,6 +205,9 @@ const TestCaseExample: React.FC = () => {
     moduleType,
     moduleSearchText,
     id,
+    selectedModule,
+    loading,
+    newEditModalID,
   } = state;
   // 模拟用例数据
   const useCases: any[] = [
@@ -362,7 +350,7 @@ const TestCaseExample: React.FC = () => {
 
   // 从后端获取模块列表
   const fetchModules = async (params?: any) => {
-    setLoading(true);
+    setState({ loading: true });
     try {
       const {
         code,
@@ -403,84 +391,8 @@ const TestCaseExample: React.FC = () => {
         });
       }
     } finally {
-      setLoading(false);
+      setState({ loading: false });
     }
-  };
-
-  // 开始编辑模块名称（行内编辑）
-  const startEditModuleName = (module: any) => {
-    setEditingModuleId(module.id);
-    setEditingValue(module.name);
-  };
-
-  // 保存编辑的模块名称
-  const saveEditModuleName = async () => {
-    if (!editingModuleId || !editingValue.trim()) {
-      message.error("模块名称不能为空");
-      return;
-    }
-
-    if (editingValue.length > 50) {
-      message.error("模块名称不能超过50个字符");
-      return;
-    }
-
-    // 防止重复提交
-    if (moduleLoading) {
-      return;
-    }
-
-    setModuleLoading(true);
-    try {
-      const response = await updateModule({
-        id: editingModuleId,
-        name: editingValue.trim(),
-      });
-
-      if (response?.success) {
-        message.success("模块名称修改成功");
-        // 更新本地状态
-        setModules(
-          modules.map((m) =>
-            m.id === editingModuleId ? { ...m, name: editingValue.trim() } : m
-          )
-        );
-        // 退出编辑状态
-        setEditingModuleId(null);
-        setEditingValue("");
-      } else {
-        message.error(response?.message || "修改模块名称失败");
-      }
-    } catch (error) {
-      console.error("修改模块名称失败:", error);
-      message.error("修改模块名称时发生错误，请重试");
-    } finally {
-      setModuleLoading(false);
-    }
-  };
-
-  // 取消编辑
-  const cancelEditModuleName = () => {
-    setEditingModuleId(null);
-    setEditingValue("");
-  };
-
-  // 检查并退出编辑模式（如果有的话）
-  const exitEditModeIfNeeded = (excludeModuleId?: string) => {
-    if (editingModuleId && editingModuleId !== excludeModuleId) {
-      setEditingModuleId(null);
-      setEditingValue("");
-    }
-  };
-
-  // 编辑模块名称的函数（弹窗模式）
-  const editModuleName = (module: any) => {
-    setState({
-      open: true,
-      isEditMode: true,
-      modulevalue: module,
-    });
-    form?.setFieldsValue({ name: module.name });
   };
 
   // 删除模块的函数
@@ -525,23 +437,18 @@ const TestCaseExample: React.FC = () => {
       //   </div>
       // ),
       onOk: async () => {
-        setModuleLoading(true);
-        try {
-          // 调用后端删除接口
-          const { code, message: msg } = await deleteOne(module.id);
+        // 调用后端删除接口
+        const { code, message: msg } = await deleteOne(module.id);
 
-          if (code === 0) {
-            // 如果删除的是当前选中的模块，清除选中状态
-            if (selectedModule === module.key) {
-              setSelectedModule("");
-            }
-            message.success(msg);
-            fetchModules();
-          } else {
-            message.error(msg || "删除模块失败");
+        if (code === 0) {
+          // 如果删除的是当前选中的模块，清除选中状态
+          if (selectedModule === module.key) {
+            setState({ selectedModule: "" });
           }
-        } finally {
-          setModuleLoading(false);
+          message.success(msg);
+          fetchModules();
+        } else {
+          message.error(msg || "删除模块失败");
         }
       },
     });
@@ -568,25 +475,18 @@ const TestCaseExample: React.FC = () => {
               flex: 1,
               cursor: "pointer",
             }}
-            onClick={() => {
-              console.log("选择模块:", module.name, "模块key:", module.key);
-              // 如果当前有其他模块在编辑状态，则退出编辑模式
-              exitEditModeIfNeeded(module.id);
-              setSelectedModule(module.key);
-              // 选中模块后会自动触发表格数据刷新
-            }}
           >
             <FolderOutlined style={{ color: "#8c8c8c", fontSize: "14px" }} />
             <span
               style={{
                 flex: 1,
-                minWidth: 0, // 👈 flex 子元素要省略必须加 minWidth:0
+                minWidth: 0, //  flex 子元素要省略必须加 minWidth:0
                 overflow: "hidden",
                 whiteSpace: "nowrap",
                 textOverflow: "ellipsis",
                 fontSize: 12,
               }}
-              title={module.name} // 👈 鼠标悬浮显示完整文本
+              title={module.name} //  鼠标悬浮显示完整文本
             >
               {module.name}
             </span>
@@ -671,108 +571,28 @@ const TestCaseExample: React.FC = () => {
   }));
 
   useEffect(() => {
-    setData(useCases);
     // 初始化加载模块数据
     fetchModules();
   }, []);
 
   // 当选中模块改变时，刷新表格数据
   useEffect(() => {
-    if (actionRef.current) {
-      actionRef.current.reload();
-    }
+    actionRef.current?.reload();
   }, [selectedModule]);
 
-  // 新建按钮菜单
-  const newMenu = (
-    <Menu>
-      <Menu.Item key="new-case">新建用例</Menu.Item>
-      <Menu.Item key="new-module">新建模块</Menu.Item>
-    </Menu>
-  );
-
-  // 模块菜单
-  const moduleMenu = {
-    items: [
-      {
-        key: "edit",
-        label: "编辑",
-        onClick: () => {
-          console.log("编辑模块");
-          // 这里可以添加编辑模块的逻辑
-        },
-      },
-      {
-        key: "delete",
-        label: "删除",
-        onClick: () => {
-          console.log("删除模块");
-          // 这里可以添加删除模块的逻辑
-        },
-      },
-    ],
-  };
-
-  // Tree组件事件处理
-  const onTreeSelect = (selectedKeys: React.Key[], info: any) => {
-    // 由于我们在自定义title中处理了点击事件，这里可以留空或添加其他逻辑
-    console.log("Tree onSelect:", selectedKeys, info);
-  };
-
   // 获取测试用例数据
-
   const requestData: any = async (...args: any) => {
     let params = transformParams({ params: args[0], sort: args[1] });
-    try {
-      console.log("selectedModule======", selectedModule);
-      const res = await getCaseList({ ...params });
-      return res;
-    } catch {
-      // 如果API请求失败，使用本地数据筛选
-      const filteredData = getFilteredUseCases();
-      console.log("使用本地数据筛选，结果数量:", filteredData.length);
-      return {
-        data: filteredData,
-        total: filteredData.length,
-        success: true,
-      };
+    const { code, data, message: msg } = await getCaseList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return;
     }
-  };
-  const onTreeExpand = (expandedKeys: React.Key[]) => {
-    setExpandedKeys(expandedKeys as string[]);
-  };
-
-  // 根据选中的模块筛选用例数据
-  const getFilteredUseCases = () => {
-    if (!selectedModule) {
-      return useCases; // 如果没有选中模块，显示所有用例
-    }
-
-    const selectedModuleData = modules.find((m) => m.key === selectedModule);
-    if (!selectedModuleData) {
-      return useCases;
-    }
-
-    // 特殊处理"无模块用例"
-    if (selectedModuleData.name === "无模块用例") {
-      return useCases.filter(
-        (useCase) => !useCase.module || useCase.module === ""
-      );
-    }
-
-    // 根据模块名称筛选用例
-    return useCases.filter(
-      (useCase) => useCase.module === selectedModuleData.name
-    );
-  };
-
-  const handleRowClick = (record: any, index: number) => {
-    console.log("点击的行数据:", record);
-    console.log("行索引:", index);
-    setState({ isRowEditModal: true, rowValue: record });
-
-    // 更新选中的行
-    setSelectedRow(record);
+    return {
+      data: data?.list || [],
+      total: data?.total_cnt,
+      success: code === 0,
+    };
   };
 
   const handleSearch = (value: string) => {
@@ -862,7 +682,6 @@ const TestCaseExample: React.FC = () => {
                   moduleType: "add",
                 });
               }}
-              loading={moduleLoading}
               title="创建新模块"
             />
           </div>
@@ -874,28 +693,30 @@ const TestCaseExample: React.FC = () => {
               overflowX: "hidden",
             }}
           >
-            {treeData.length > 0 ? (
-              <Tree
-                treeData={treeData}
-                selectedKeys={selectedModule ? [selectedModule] : []}
-                expandedKeys={expandedKeys}
-                onSelect={onTreeSelect}
-                onExpand={onTreeExpand}
-                showLine={false}
-                showIcon={false}
-                blockNode
-                style={{
-                  backgroundColor: "transparent",
-                  padding: "8px 0",
-                }}
-                className="custom-tree"
-              />
-            ) : (
-              <Empty
-                description="暂无数据"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
-            )}
+            <Spin spinning={loading} tip="加载模块中...">
+              {treeData.length > 0 ? (
+                <Tree
+                  treeData={treeData}
+                  selectedKeys={[selectedModule]}
+                  onSelect={(selectedKeys) => {
+                    setState({ selectedModule: selectedKeys[0] || "" });
+                  }}
+                  showLine={false}
+                  showIcon={false}
+                  blockNode
+                  style={{
+                    backgroundColor: "transparent",
+                    padding: "8px 0",
+                  }}
+                  className="custom-tree"
+                />
+              ) : (
+                <Empty
+                  description="暂无数据"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )}
+            </Spin>
           </div>
         </div>
 
@@ -922,14 +743,14 @@ const TestCaseExample: React.FC = () => {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
+              {/* <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
                 {selectedModule
                   ? `${
                       modules.find((m) => m.key === selectedModule)?.name ||
                       "未知模块"
                     }·${getFilteredUseCases().length}`
                   : `全部用例·${useCases.length}`}
-              </h2>
+              </h2> */}
             </div>
           </div>
 
@@ -942,38 +763,33 @@ const TestCaseExample: React.FC = () => {
             }}
           >
             <ProTable<any>
-              params={{ id: selectedModule }}
+              params={{
+                module_id: selectedModule !== "all" ? selectedModule : null,
+                lib_id: id,
+              }}
               columns={columns}
               actionRef={actionRef}
               cardBordered
               options={false}
-              request={async (params, sorter, filter) => {
-                // 首次渲染还没选左侧时，不请求或返回空
-                if (!params.id) {
-                  return { data: [], success: true, total: 0 };
-                }
-                return requestData({ ...params, sorter, filter });
-              }}
+              request={requestData}
               rowKey="id"
               pagination={{
                 pageSize: 10,
                 onChange: (page) => requestData,
               }}
-              // headerTitle={title.label}
               toolBarRender={() => [
                 <Button
                   key="button"
                   icon={<PlusOutlined />}
                   type="primary"
                   onClick={() => {
-                    setState({
-                      isAddModalOpen: true,
-                    });
+                    setState({ isAddModalOpen: true });
                   }}
                 >
                   新建
                 </Button>,
               ]}
+
               // onRow={(record, index) => ({
               //   onClick: (e) => {
               //     // 检查点击的元素是否在操作栏内
@@ -1010,6 +826,8 @@ const TestCaseExample: React.FC = () => {
 
       {/* 新建测试用例 */}
       <AddModal
+        mouduleId={selectedModule === "all" ? null : selectedModule}
+        libId={id}
         open={isAddModalOpen}
         onCancel={() => {
           setState({
@@ -1022,15 +840,16 @@ const TestCaseExample: React.FC = () => {
             isTestModal: true,
           });
         }}
-        onOk={(values) => {
-          console.log("values", values);
+        onOk={() => {
           setState({
             isAddModalOpen: false,
           });
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         }}
-        updateValue={selectTestData}
       />
-      {/* 编辑移动复制用例 */}
+      {/* 移动复制用例 */}
       <EditModal
         type={optionType}
         open={isUpdateModalOpen}
@@ -1046,6 +865,9 @@ const TestCaseExample: React.FC = () => {
             isUpdateModalOpen: false,
             updateValue: {},
           });
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         }}
       />
       {/* 点击row编辑 */}
@@ -1056,21 +878,24 @@ const TestCaseExample: React.FC = () => {
         }}
         onOk={() => {
           setState({ isRowEditModal: false });
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         }}
         onSelect={() => {
           setState({ isTestModal: true });
         }}
         open={isRowEditModal}
-        updateValue={rowValue}
+        id={newEditModalID}
         selectData={selectTestData}
       />
       <DetailModal
         open={isPreviewModalOpen}
-        details={detailsData}
+        id={detailsId}
         onCancel={() => {
           setState({
             isPreviewModalOpen: false,
-            detailsData: {},
+            detailsId: null,
           });
         }}
       />

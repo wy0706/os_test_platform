@@ -27,6 +27,7 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
   const [continueAdd, setContinueAdd] = useState(false);
   const [form] = Form.useForm();
   const [roleList, setRoleList] = useState<any>([]);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,37 +65,42 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
     }
   };
   const handleOk = async () => {
-    const values = await form.validateFields();
-    if (isUpdate) {
-      const { code, message: msg } = await updateOne({
-        ...values,
-        user_id: updateValue.id,
-      });
-      if (code === 0) {
+    try {
+      const values = await form.validateFields();
+      setSubmitLoading(true);
+      if (isUpdate) {
+        const { code, message: msg } = await updateOne({
+          ...values,
+          user_id: updateValue.id,
+        });
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
         message.success(msg);
-        onOk?.(values);
       } else {
-        message.error(msg);
-      }
-    } else {
-      const { code, message: msg } = await createOne({ ...values });
-      if (code === 0) {
+        const { code, message: msg } = await createOne({ ...values });
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
         message.success(msg);
         if (continueAdd) {
           form?.resetFields();
           return;
         }
-        onOk?.(values);
-      } else {
-        message.error(msg);
       }
+      onOk?.(values);
+      setContinueAdd(false);
+    } catch (error) {
+    } finally {
+      setSubmitLoading(false);
     }
-    setContinueAdd(false);
   };
   const handleCancel = () => {
-    onCancel && onCancel(continueAdd);
     form?.resetFields();
     setContinueAdd(false);
+    onCancel && onCancel(continueAdd);
   };
   return (
     <Modal
@@ -102,6 +108,8 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
       open={open}
       width={"50%"}
       onCancel={handleCancel}
+      confirmLoading={submitLoading}
+      destroyOnHidden
       footer={[
         <div
           key="checkbox"

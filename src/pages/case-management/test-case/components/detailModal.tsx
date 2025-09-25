@@ -33,6 +33,7 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
+      destroyOnHidden
       styles={{ body: { minHeight: 200, padding: 20 } }}
       footer={null}
       width={"50%"}

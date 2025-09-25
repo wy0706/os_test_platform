@@ -8,7 +8,7 @@ import {
   type ProFormInstance,
 } from "@ant-design/pro-components";
 import { Form, message, Modal } from "antd";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { schemasForm } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
@@ -32,6 +32,7 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const formRef = useRef<ProFormInstance | null>(null);
   const [form] = Form.useForm();
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -48,7 +49,7 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
   const handleOk = async () => {
     try {
       const values = await formRef.current?.validateFields();
-
+      setSubmitLoading(true);
       if (isUpdate) {
         let codeData = {};
         if (
@@ -62,22 +63,25 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
           role_id: updateValue.id,
           ...codeData,
         });
-        if (code === 0) {
-          message.success(msg);
-          onOk?.(values);
-        } else {
+
+        if (code !== 0) {
           message.error(msg);
+          return;
         }
+        message.success(msg);
       } else {
         const { code, message: msg } = await createOne(values);
-        if (code === 0) {
-          message.success(msg);
-          onOk?.(values);
-        } else {
+        if (code !== 0) {
           message.error(msg);
+          return;
         }
+        message.success(msg);
       }
-    } catch (error) {}
+      onOk?.(values);
+    } catch (error) {
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -88,10 +92,12 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
   return (
     <Modal
       title={isUpdate ? "编辑角色" : "新增角色"}
+      confirmLoading={submitLoading}
       open={open}
       onCancel={handleCancel}
       width={"50%"}
       onOk={handleOk}
+      destroyOnHidden
     >
       <BetaSchemaForm<any>
         submitter={false}

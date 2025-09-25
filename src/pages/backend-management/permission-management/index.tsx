@@ -52,19 +52,19 @@ const mockPermissions = [
     group: "日志管理",
     desc: "查看系统日志，分析系统运行情况",
     key: "logManagement",
-    allowed: ["preview"], // 只支持访问
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
   {
     group: "系统管理",
     desc: "设备添加、命令添加、系统设置等基本功能操作",
     key: "systemManagement",
-    allowed: ["preview", "edit"],
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
   {
     group: "管理后台",
     desc: "用户管理、权限配置等核心权限",
     key: "backendManagement",
-    allowed: ["preview", "edit"],
+    allowed: ["preview", "edit"], // 支持访问+操作
   },
 ];
 

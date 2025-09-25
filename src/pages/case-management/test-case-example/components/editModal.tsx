@@ -1,7 +1,13 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Input, Modal, Select } from "antd";
-import { useEffect, useState } from "react";
-
+import {
+  copyCase,
+  getList as getModule,
+  updateCase,
+} from "@/services/case-management/test-case-example.service";
+import { getList as getLib } from "@/services/case-management/test-case.service";
+import { isArray } from "@/utils";
+import { useSetState } from "ahooks";
+import { Form, Input, message, Modal, Select } from "antd";
+import { useEffect } from "react";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -26,114 +32,183 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
-  const [title, setTitle] = useState("新建");
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useSetState<any>({
+    libList: [], //用例库列表
+    moduleList: [], //模块列表
+    submitLoading: false,
+  });
+  const { submitLoading, libList, moduleList } = state;
 
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
+  useEffect(() => {
+    fetchData();
+  }, [open, type, updateValue]);
+
+  const fetchData = async () => {
+    if (open && updateValue) {
+      await getLibList();
+      if (updateValue?.lib_info?.id) {
+        await getModuleList(updateValue?.lib_info?.id);
       }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
+      form?.setFieldsValue({
+        tc_module_id: updateValue?.module_info?.id,
+        tc_lib_id: updateValue?.lib_info?.id,
+      });
     }
   };
 
-  useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "移动";
-    setTitle(name);
-    if (open) {
-      form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      fetchAllUsers();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        form?.setFieldsValue(updateValue);
+  const getLibList = async () => {
+    try {
+      const {
+        code,
+        data,
+        message: msg,
+      } = await getLib({ page_index: 1, page_size: 9999 });
+      if (code === 0) {
+        if (isArray(data?.list)) {
+          setState({ libList: data?.list || [] });
+        }
+      } else {
+        message.error(msg);
+        setState({ libList: [] });
       }
+    } catch (error) {
+      console.error("获取用例库列表失败:", error);
+      setState({ libList: [] });
     }
-  }, [open, type, updateValue]);
+  };
+  // 获取模块列表
+
+  const getModuleList = async (libId: any) => {
+    try {
+      const params = {
+        lib_id: libId,
+        page_index: 1,
+        page_size: 9999,
+      };
+      const { code, data, message: msg } = await getModule(params);
+      if (code === 0) {
+        if (isArray(data?.list)) {
+          setState({ moduleList: data?.list || [] });
+        }
+      } else {
+        message.error(msg);
+        setState({ moduleList: [] });
+      }
+    } catch (error) {
+      console.error("获取模块列表失败:", error);
+      setState({ moduleList: [] });
+    }
+  };
 
   const [form] = Form.useForm();
 
   const onFinish = (values: any) => {
     console.log(values);
   };
-
-  const handleOk = () => {
-    console.log("111");
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const handleLibChange = (value: any) => {
+    form?.setFieldsValue({
+      tc_module_id: undefined,
+    });
+    try {
+      if (value) {
+        getModuleList(value);
+      } else {
+        setState({
+          moduleList: [],
+        });
+      }
+    } catch (error) {
+      setState({
+        moduleList: [],
       });
+    }
+  };
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      setState({ submitLoading: true });
+      if (type === "copy") {
+        const { code, message: msg } = await copyCase({
+          ...values,
+          tc_id: updateValue?.id,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      } else {
+        const { code, messsage: msg } = await updateCase({
+          ...values,
+          tc_id: updateValue?.id,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      }
+      if (onOk) {
+        onOk(values);
+      }
+    } catch (error) {
+    } finally {
+      setState({ submitLoading: false });
+    }
   };
 
   return (
     <Modal
-      title={`${title}测试库`}
+      title={type == "copy" ? "复制测试库" : "移动测试库"}
       maskClosable={false}
       open={open}
+      destroyOnHidden
       onCancel={() => {
+        form?.resetFields();
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      confirmLoading={submitLoading}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        {type && type !== "remove" && (
-          <Form.Item name="gender1" label="标题" rules={[{ required: true }]}>
+        {type == "copy" && (
+          <Form.Item name="tc_title" label="标题" rules={[{ required: true }]}>
             <Input placeholder="输入标题" maxLength={32} />
           </Form.Item>
         )}
 
-        {type && type === "edit" && (
-          <Form.Item name="gender2" label="重要程度">
-            <Select placeholder="选择重要程度">
-              <Option value="1">P0</Option>
-              <Option value="2">P1</Option>
-              <Option value="2">P2</Option>
-              <Option value="3">P3</Option>
-              <Option value="3">P4</Option>
-            </Select>
-          </Form.Item>
-        )}
-
-        {(type && type === "copy") ||
-          (type === "remove" && (
-            <>
-              <Form.Item name="gender5" label="所属测试库">
-                <Select placeholder="选择测试库">
-                  <Option value="1">测试库1</Option>
-                </Select>
-              </Form.Item>
-              <Form.Item name="gender" label="模块">
-                <Select placeholder="选择模块">
-                  <Option value="1">测试库1</Option>
-                </Select>
-              </Form.Item>
-            </>
-          ))}
+        <Form.Item
+          name="tc_lib_id"
+          label="所属测试库"
+          rules={[{ required: true }]}
+        >
+          <Select
+            placeholder="选择所属测试库"
+            allowClear
+            onChange={handleLibChange}
+          >
+            {libList.map((lib: any) => (
+              <Option key={lib.id} value={lib.id}>
+                {lib.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item
+          name="tc_module_id"
+          label="模块"
+          rules={[{ required: true }]}
+        >
+          <Select placeholder="选择模块" allowClear>
+            {moduleList.map((lib: any) => (
+              <Option key={lib.id} value={lib.id}>
+                {lib.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
       </Form>
     </Modal>
   );

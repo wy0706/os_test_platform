@@ -36,6 +36,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   const { currentUser } = initialState || {};
   const [title, setTitle] = useState("新建");
   const [userList, setUserList] = useState<any[]>([]);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   // 获取所有用户列表
   const fetchAllUsers = async () => {
@@ -59,7 +60,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   useEffect(() => {
     const initData = async () => {
       console.log(type, updateValue);
-
       const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
       setTitle(name);
       if (open) {
@@ -72,7 +72,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
         if ((type == "edit" || type == "copy") && updateValue) {
           form?.setFieldsValue({
-            lib_name: updateValue?.name || undefined,
+            lib_name:
+              type == "edit" ? updateValue?.name || undefined : undefined,
             lib_label: updateValue?.label || undefined,
             user_id: updateValue?.owner?.id || undefined,
             description: updateValue?.description || undefined,
@@ -87,30 +88,35 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    console.log(values);
-    if (type == "add" || type == "copy") {
-      const { code, message: msg } = await createOne(values);
-      if (code !== 0) {
-        message.error(msg);
-        return;
+    setSubmitLoading(true);
+    try {
+      if (type == "add" || type == "copy") {
+        const { code, message: msg } = await createOne(values);
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
+        message.success(msg);
+        onOk?.(values);
+      } else {
+        if (!updateValue.id) {
+          message.error("缺少id");
+          return;
+        }
+        const { code, message: msg } = await updateOne({
+          lib_id: updateValue.id,
+          ...values,
+        });
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
+        message.success(msg);
+        onOk?.(values);
       }
-      message.success(msg);
-      onOk?.(values);
-    } else {
-      if (!updateValue.id) {
-        message.error("缺少id");
-        return;
-      }
-      const { code, message: msg } = await updateOne({
-        lib_id: updateValue.id,
-        ...values,
-      });
-      if (code !== 0) {
-        message.error(msg);
-        return;
-      }
-      message.success(msg);
-      onOk?.(values);
+    } catch (error) {
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -120,8 +126,11 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       open={open}
       onCancel={() => {
+        form?.resetFields();
         onCancel && onCancel();
       }}
+      destroyOnHidden
+      confirmLoading={submitLoading}
       styles={{ body: { minHeight: 200, padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
