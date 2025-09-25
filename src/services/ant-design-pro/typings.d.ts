@@ -24,6 +24,9 @@ declare namespace API {
     address?: string;
     phone_num?: string;
     resourceList?: any;
+    code?: any;
+    data?: any;
+    resource_code?: any;
   };
 
   type LoginResult = {

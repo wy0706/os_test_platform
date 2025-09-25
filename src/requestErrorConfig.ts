@@ -1,9 +1,9 @@
 ﻿import { NETWORK_ERROR_CODE, NETWORK_ERROR_TEXT } from "@/utils/error";
-import type { RequestOptions } from "@@/plugin-request/request";
 import type { RequestConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import { message, notification } from "antd";
 const loginPath = "/user/login";
+
 // 错误处理方案： 错误类型
 enum ErrorShowType {
   SILENT = 0,
@@ -122,32 +122,24 @@ export const errorConfig: RequestConfig = {
         // 请求已经成功发起，但没有收到响应
         // \`error.request\` 在浏览器中是 XMLHttpRequest 的实例，
         // 而在node.js中是 http.ClientRequest 的实例
-        message.error("None response! Please retry.");
+        message.error("服务器无响应，请重试。");
       } else {
         // 发送请求时出了点问题
-        message.error("Request error, please retry.");
+        message.error("请求错误，请重试。");
       }
     },
   },
 
   // 请求拦截器
   requestInterceptors: [
-    (config: RequestOptions) => {
+    (config: any) => {
       const accessToken = localStorage.getItem("ACCESS-TOKEN");
       const refreshToken = localStorage.getItem("REFRESH-TOKEN");
-      // config["headers"] = {
-      //   ...config.headers,
-      //   "ACCESS-TOKEN": `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU4NjgzMjk4LCJpYXQiOjE3NTgwNzg0OTgsImp0aSI6Ijc5NGI3ZDliMjc4ODRlMWJhNDY0ZDg5NGQzODkxOWY2IiwidXNlcl9pZCI6IjEifQ.Nq7faCz-JGA4tacPc1uERZOT6-88Twee8Hcjpe8jJ8k`,
-      //   "REFRESH-TOKEN": `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1ODY4MzI5OCwiaWF0IjoxNzU4MDc4NDk4LCJqdGkiOiJlNmYzOTBhNzVjOWQ0ZmUyODkzZjI2M2EyNWU1NmRkZiIsInVzZXJfaWQiOiIxIn0.K8XmRdsf5mJzf02Y8iek7Q6BCfT_FWD-91W_R2Y6wzM`,
-      // };
       config.headers = {
         ...config.headers,
         ...(accessToken ? { "ACCESS-TOKEN": accessToken } : {}),
         ...(refreshToken ? { "REFRESH-TOKEN": refreshToken } : {}),
       };
-      // 拦截请求配置，进行个性化处理。
-      // const url = config?.url?.concat('?token=123');
-      // return { ...config, url };
       return config;
     },
   ],
@@ -155,14 +147,15 @@ export const errorConfig: RequestConfig = {
   // 响应拦截器
   responseInterceptors: [
     (response) => {
-      // 拦截响应数据，进行个性化处理
+      // 拦截响应数据
       const { data } = response as unknown as ResponseStructure;
-
-      // 如果后端返回了新的 token，就更新本地存储
       const newAccessToken = data.access_token;
       const newRefreshToken = data.refresh_token;
-      if (newAccessToken && newRefreshToken) {
+
+      if (newAccessToken) {
         localStorage.setItem("ACCESS-TOKEN", newAccessToken);
+      }
+      if (newRefreshToken) {
         localStorage.setItem("REFRESH-TOKEN", newRefreshToken);
       }
       if (data?.success === false) {

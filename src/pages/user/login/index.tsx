@@ -115,23 +115,26 @@ const LoginMessage: React.FC<{
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
   const [type, setType] = useState<string>("account");
-  const { setInitialState } = useModel("@@initialState");
+  const { initialState, setInitialState } = useModel("@@initialState");
   const { styles } = useStyles();
   const { message } = App.useApp();
 
   const intl = useIntl();
 
-  // const fetchUserInfo = async () => {
-  //   const userInfo = await initialState?.fetchUserInfo?.();
-  //   if (userInfo) {
-  //     flushSync(() => {
-  //       setInitialState((s) => ({
-  //         ...s,
-  //         currentUser: userInfo,
-  //       }));
-  //     });
-  //   }
-  // };
+  const fetchUserInfo = async () => {
+    const userInfo = await initialState?.fetchUserInfo?.();
+
+    console.log("userInfo====", userInfo);
+
+    if (userInfo) {
+      flushSync(() => {
+        setInitialState((s) => ({
+          ...s,
+          currentUser: userInfo,
+        }));
+      });
+    }
+  };
   const [form] = ProForm.useForm();
   const [errorMsg, setErrorMsg] = useState("");
   const captchaRef = useRef<CaptFieldRef | null | undefined>();
@@ -146,7 +149,6 @@ const Login: React.FC = () => {
     if (username && password) {
       try {
         // 登录
-
         const {
           code,
           data,
@@ -156,36 +158,11 @@ const Login: React.FC = () => {
         } = await login({ ...values });
 
         if (code === 0) {
-          let result: any = [];
-          if (data?.resource_code && Array.isArray(data?.resource_code)) {
-            const resourceSet = new Set(
-              data.resource_code.map((item: any) => item.split("-")[0])
-            );
-            result = [
-              // 先加模块名对象
-              ...Array.from(resourceSet).map((res) => ({
-                resourceCode: res,
-              })),
-              // 再加原始字符串对象
-              ...data.resource_code.map((item: any) => ({
-                resourceCode: item,
-              })),
-            ];
-          } else {
-            result = [];
-          }
-          const currentUser = { ...data, resourceList: result };
-
-          flushSync(() => {
-            setInitialState((s) => ({
-              ...s,
-              currentUser,
-            }));
-          });
+          await fetchUserInfo();
           // 存储到 localStorage，刷新保留登录状态
           localStorage.setItem("ACCESS-TOKEN", access_token);
           localStorage.setItem("REFRESH-TOKEN", refresh_token);
-          localStorage.setItem("currentUser", JSON.stringify(currentUser));
+          // localStorage.setItem("currentUser", JSON.stringify(currentUser));
           const defaultLoginSuccessMessage = intl.formatMessage({
             id: "pages.login.success",
             defaultMessage: "登录成功！",

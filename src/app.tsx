@@ -6,6 +6,7 @@ import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import defaultSettings from "../config/defaultSettings";
 import { errorConfig } from "./requestErrorConfig";
+import { currentUser as getUserInfo } from "./services/ant-design-pro/api";
 
 const isDev = process.env.NODE_ENV === "development";
 const loginPath = "/user/login";
@@ -17,12 +18,56 @@ export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: API.CurrentUser;
   loading?: boolean;
+  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
-  const storedUser = localStorage.getItem("currentUser");
-
+  const fetchUserInfo = async () => {
+    try {
+      const { code, data } = await getUserInfo();
+      if (code !== 0) {
+        history.push(loginPath);
+        return;
+      }
+      let result: any = [];
+      if (data?.resource_code && Array.isArray(data?.resource_code)) {
+        const resourceSet = new Set(
+          data.resource_code.map((item: any) => item.split("-")[0])
+        );
+        result = [
+          // 先加模块名对象
+          ...Array.from(resourceSet).map((res) => ({
+            resourceCode: res,
+          })),
+          // 再加原始字符串对象
+          ...data.resource_code.map((item: any) => ({
+            resourceCode: item,
+          })),
+        ];
+      } else {
+        result = [];
+      }
+      const currentUser = { ...data, resourceList: result };
+      return currentUser;
+    } catch (_error) {
+      history.push(loginPath);
+    }
+    return undefined;
+  };
+  // 如果不是登录页面，执行
+  const { location } = history;
+  if (
+    ![loginPath, "/user/register", "/user/register-result"].includes(
+      location.pathname
+    )
+  ) {
+    const currentUser = await fetchUserInfo();
+    return {
+      fetchUserInfo,
+      currentUser,
+      settings: defaultSettings as Partial<LayoutSettings>,
+    };
+  }
   return {
-    // fetchUserInfo,
-    currentUser: storedUser ? JSON.parse(storedUser) : undefined,
+    fetchUserInfo,
     settings: defaultSettings as Partial<LayoutSettings>,
   };
 }
