@@ -1,22 +1,36 @@
-
 export const schemasTitle: any = {
-  label: '测试日志',
-  value: 'testLog',
+  label: "测试日志",
+  value: "testLog",
 };
 
 export const schemasColumns: any = [
-  
   {
-    title: "名称",
+    title: "日志名称",
     dataIndex: "title",
     ellipsis: true,
-    sorter: true,
+
+    render: (value: any, record: any) => {
+      return (
+        <span>
+          {record?.title}
+          {record?.code}
+        </span>
+      );
+    },
   },
   {
-    title: "创建时间",
+    title: "生成日期",
     dataIndex: "createTime",
     ellipsis: true,
     sorter: true,
+    hideInSearch: true,
+  },
+  {
+    title: "生成日期",
+    dataIndex: "createTime",
+    key: "createTime",
+    valueType: "date",
+    hideInTable: true,
   },
 ];
 
@@ -30,7 +44,6 @@ export const schemasForm: any = {
   },
   grid: true,
   columns: [
-    
     {
       title: "名称",
       dataIndex: "title",
@@ -43,7 +56,7 @@ export const schemasForm: any = {
         ],
       },
     },
-  
+
     {
       title: "创建时间",
       dataIndex: "createTime",
@@ -56,12 +69,10 @@ export const schemasForm: any = {
         ],
       },
     },
-  
   ],
 };
 
 export const schemasDescriptions: any = [
-  
   {
     title: "名称",
     key: "title",
@@ -77,4 +88,3 @@ export const schemasDescriptions: any = [
     ellipsis: true,
   },
 ];
-

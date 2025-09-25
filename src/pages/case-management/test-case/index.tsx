@@ -1,4 +1,3 @@
-import { currentUser } from "@/services/ant-design-pro/api";
 import {
   deleteOne,
   getList,
@@ -14,7 +13,7 @@ import {
 import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Form, message, Modal } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
 import {
@@ -157,12 +156,6 @@ const Page: React.FC = () => {
       </div>,
     ],
   };
-
-  useEffect(() => {
-    currentUser().then((res) => {
-      console.log("res====获取当前用户", res);
-    });
-  }, []);
 
   const requestData: any = async (...args: any) => {
     let params = transformParams({ params: args[0], sort: args[1] });
