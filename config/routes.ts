@@ -213,6 +213,10 @@ export default [
     access: "logManagement",
     routes: [
       {
+        path: "/log-management",
+        redirect: "/log-management/login-log",
+      },
+      {
         path: "/log-management/login-log",
         name: "登录日志",
         // access: ["loginLog-preview", "loginLog-edit"],
@@ -225,18 +229,18 @@ export default [
         component: "./log-management/operation-log",
       },
 
-      {
-        path: "/log-management/test-log",
-        name: "测试日志",
-        // access: ["testLog-preview", "testLog-edit"],
-        component: "./log-management/test-log",
-      },
       // {
-      //   path: "/log-management/test-log-detail/:id",
-      //   name: "测试日志详情",
-      //   component: "./log-management/test-log-detail",
-      //   hideInMenu: true,
+      //   path: "/log-management/test-log",
+      //   name: "测试日志",
+      //   // access: ["testLog-preview", "testLog-edit"],
+      //   component: "./log-management/test-log",
       // },
+      {
+        path: "/log-management/test-log-detail/:id",
+        name: "测试日志详情",
+        component: "./log-management/test-log-detail",
+        hideInMenu: true,
+      },
     ],
   },
   {
@@ -245,6 +249,11 @@ export default [
     icon: "fileText",
     access: "systemManagement",
     routes: [
+      {
+        path: "/system-management",
+        redirect: "/system-management/equip-management",
+      },
+
       {
         path: "/system-management/equip-management",
         name: "添加设备",
