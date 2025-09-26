@@ -14,7 +14,7 @@ import {
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Modal, message } from "antd";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { useAccess } from "umi";
 import SetMemberModal from "./components/setMemberModal";
 import "./index.less";
@@ -23,7 +23,6 @@ import { userSchemasColumns, userSchemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();
-  const [continueAdd, setContinueAdd] = useState(false); // checkbox 状态
   const [state, setState] = useSetState<any>({
     title: userSchemasTitle,
     isUpdate: false,
@@ -32,16 +31,84 @@ const Page: React.FC = () => {
   });
 
   const { title, isUpdate, isUpdateModalOpen, updateValue } = state;
+
+  /** 统一关闭 Modal 并根据需要刷新表格 */
+  const closeModal = (reload = false) => {
+    setState({ isUpdateModalOpen: false });
+    if (reload) actionRef.current?.reload();
+  };
+
+  /** 重置密码 */
+  const handleResetPwd = (id: string) => {
+    Modal.confirm({
+      title: "是否确认重置密码？",
+      onOk: async () => {
+        const { code, message: msg } = await resetPassWord(id);
+        code === 0 ? message.success(msg) : message.error(msg);
+      },
+    });
+  };
+
+  /** 激活账号 */
+  const handleUnblock = async (record: any) => {
+    if (record.is_active) {
+      message.info("账户状态正常，无需解封");
+      return;
+    }
+    const { code, message: msg } = await activeOne(record.id);
+    if (code !== 0) {
+      message.error(msg);
+      return;
+    }
+    message.success(msg);
+    actionRef.current?.reload();
+  };
+
+  /** 删除用户 */
+  const handleDelete = (record: any) => {
+    Modal.confirm({
+      title: (
+        <div>
+          <div>
+            确认删除用户{" "}
+            <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+              {record.username}
+            </span>{" "}
+            吗？
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "8px",
+            }}
+          >
+            删除用户会使该用户的登录和操作信息一同删除
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        const { code, message: msg } = await deleteOne(record.id);
+        if (code !== 0) {
+          message.error(msg);
+          return;
+        }
+        message.success(msg);
+        actionRef.current?.reload();
+      },
+    });
+  };
+
+  /** 操作列 */
   const operationColumn = {
     title: "操作",
     valueType: "option",
     key: "option",
     width: 250,
-    render: (text: any, record: any, index: any, action: any) => [
+    render: (_: any, record: any) => [
       <Button
         key="edit"
-        color="primary"
-        variant="link"
+        type="link"
         icon={<EditOutlined />}
         onClick={() => {
           setState({
@@ -57,86 +124,18 @@ const Page: React.FC = () => {
         设置成员信息
       </Button>,
       <Button
-        variant="link"
-        color="primary"
-        icon={<LockOutlined />}
         key="resetPwd"
-        onClick={() => {
-          Modal.confirm({
-            title: "是否确认重置密码？",
-            onOk: async () => {
-              const { code, message: msg } = await resetPassWord(record.id);
-              message.success(msg);
-              // 是否需要判断如果是当前登录用户，是否需要返回到登录页
-            },
-          });
-        }}
+        type="link"
+        icon={<LockOutlined />}
+        onClick={() => handleResetPwd(record.id)}
       >
         重置密码
       </Button>,
       <TableDropdown
-        key={index}
-        onSelect={async (key: string) => {
-          switch (key) {
-            case "unblock": {
-              if (record.is_active) {
-                message.info("账户状态正常，无需解封");
-                return;
-              }
-
-              const { code, message: msg } = await activeOne(record.id);
-              if (code !== 0) {
-                message.error(msg);
-                return;
-              }
-              message.success(msg);
-              // 刷新表格
-              if (actionRef.current) {
-                actionRef.current.reload();
-              }
-              break;
-            }
-            case "delete": {
-              Modal.confirm({
-                title: (
-                  <div>
-                    <div>
-                      确认删除用户{" "}
-                      <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                        {record.username}
-                      </span>{" "}
-                      吗？
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "#666",
-                        marginTop: "8px",
-                      }}
-                    >
-                      删除用户会使该用户的登录和操作信息一同删除
-                    </div>
-                  </div>
-                ),
-                onOk: async () => {
-                  await deleteOne(record.id);
-                  const { code, message: msg } = await deleteOne(record.id);
-                  if (code !== 0) {
-                    message.error(msg);
-                    return;
-                  }
-                  message.success(msg);
-                  if (actionRef.current) {
-                    actionRef.current.reload();
-                  }
-                },
-              });
-
-              break;
-            }
-            default:
-              break;
-          }
+        key="more"
+        onSelect={(key: string) => {
+          if (key === "unblock") handleUnblock(record);
+          if (key === "delete") handleDelete(record);
         }}
         menus={[
           { key: "unblock", name: "账户解封" },
@@ -146,19 +145,13 @@ const Page: React.FC = () => {
     ],
   };
 
-  const requestData: any = async (...args: any) => {
-    let params = transformParams({ params: args[0], sort: args[1] });
-    const {
-      code,
-      data,
-      message: msg,
-    } = await getList({
-      ...params,
-    });
-
+  /** 请求数据 */
+  const requestData = async (params: any, sort: any) => {
+    const apiParams = transformParams({ params, sort });
+    const { code, data, message: msg } = await getList(apiParams);
     if (code !== 0) {
       message.error(msg);
-      return;
+      return { data: [], total: 0, success: false };
     }
     return {
       data: data?.list || [],
@@ -167,10 +160,6 @@ const Page: React.FC = () => {
     };
   };
 
-  const handleOk = () => {
-    setState({ isUpdateModalOpen: false });
-    actionRef.current?.reload();
-  };
   return (
     <PageContainer>
       <ProTable
@@ -183,10 +172,7 @@ const Page: React.FC = () => {
         request={requestData}
         rowKey="id"
         cardBordered
-        pagination={{
-          pageSize: 10,
-          onChange: (page) => requestData,
-        }}
+        pagination={{ pageSize: 10 }}
         headerTitle={title.label}
         toolBarRender={() =>
           access["backendManagement-edit"]
@@ -194,12 +180,12 @@ const Page: React.FC = () => {
                 <Button
                   key="button"
                   icon={<PlusOutlined />}
-                  onClick={() => {
+                  onClick={() =>
                     setState({
                       isUpdate: false,
                       isUpdateModalOpen: true,
-                    });
-                  }}
+                    })
+                  }
                   type="primary"
                 >
                   新建
@@ -210,16 +196,11 @@ const Page: React.FC = () => {
       />
 
       <SetMemberModal
-        onOk={handleOk}
+        onOk={() => closeModal(true)}
         open={isUpdateModalOpen}
         isUpdate={isUpdate}
         updateValue={updateValue}
-        onCancel={(value: any) => {
-          setState({ isUpdateModalOpen: false });
-          if (value) {
-            actionRef.current?.reload();
-          }
-        }}
+        onCancel={(reload?: boolean) => closeModal(reload)}
       />
     </PageContainer>
   );
