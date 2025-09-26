@@ -1,4 +1,6 @@
 import {
+  activeOne,
+  deleteOne,
   getList,
   resetPassWord,
 } from "@/services/backend-management/user-management.service";
@@ -65,6 +67,7 @@ const Page: React.FC = () => {
             onOk: async () => {
               const { code, message: msg } = await resetPassWord(record.id);
               message.success(msg);
+              // 是否需要判断如果是当前登录用户，是否需要返回到登录页
             },
           });
         }}
@@ -74,7 +77,66 @@ const Page: React.FC = () => {
       <TableDropdown
         key={index}
         onSelect={async (key: string) => {
-          // …你的下拉逻辑
+          switch (key) {
+            case "unblock": {
+              if (record.is_active) {
+                message.info("账户状态正常，无需解封");
+                return;
+              }
+
+              const { code, message: msg } = await activeOne(record.id);
+              if (code !== 0) {
+                message.error(msg);
+                return;
+              }
+              message.success(msg);
+              // 刷新表格
+              if (actionRef.current) {
+                actionRef.current.reload();
+              }
+              break;
+            }
+            case "delete": {
+              Modal.confirm({
+                title: (
+                  <div>
+                    <div>
+                      确认删除用户{" "}
+                      <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                        {record.username}
+                      </span>{" "}
+                      吗？
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        marginTop: "8px",
+                      }}
+                    >
+                      删除用户会使该用户的登录和操作信息一同删除
+                    </div>
+                  </div>
+                ),
+                onOk: async () => {
+                  await deleteOne(record.id);
+                  const { code, message: msg } = await deleteOne(record.id);
+                  if (code !== 0) {
+                    message.error(msg);
+                    return;
+                  }
+                  message.success(msg);
+                  if (actionRef.current) {
+                    actionRef.current.reload();
+                  }
+                },
+              });
+
+              break;
+            }
+            default:
+              break;
+          }
         }}
         menus={[
           { key: "unblock", name: "账户解封" },

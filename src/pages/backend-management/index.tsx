@@ -54,7 +54,6 @@ const BackendManagement: React.FC = () => {
   const activeKey =
     tabList.find((tab) => location.pathname.startsWith(tab.key))?.key ||
     tabList[0].key;
-  console.log("cart", activeKey);
 
   return (
     <div>
