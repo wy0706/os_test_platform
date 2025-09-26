@@ -228,7 +228,7 @@ const TestCaseExample: React.FC = () => {
         let allItem = {
           id: "all",
           name: "全部模块",
-          tc_cnt: data?.list_cnt || 0,
+          tc_cnt: 0,
           expanded: true,
           key: "all",
         };
@@ -674,6 +674,7 @@ const TestCaseExample: React.FC = () => {
           setState({
             isAddModalOpen: false,
           });
+          fetchModules(); // 更新后刷新左侧模块数
           if (actionRef.current) {
             actionRef.current.reload();
           }
@@ -695,6 +696,7 @@ const TestCaseExample: React.FC = () => {
             isUpdateModalOpen: false,
             updateValue: {},
           });
+          fetchModules(); // 更新后刷新左侧模块数
           if (actionRef.current) {
             actionRef.current.reload();
           }

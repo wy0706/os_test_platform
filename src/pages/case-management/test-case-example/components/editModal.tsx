@@ -38,7 +38,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     submitLoading: false,
   });
   const { submitLoading, libList, moduleList } = state;
-
+  const [form] = Form.useForm();
   useEffect(() => {
     fetchData();
   }, [open, type, updateValue]);
@@ -99,8 +99,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       setState({ moduleList: [] });
     }
   };
-
-  const [form] = Form.useForm();
 
   const onFinish = (values: any) => {
     console.log(values);

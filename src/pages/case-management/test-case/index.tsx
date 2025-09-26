@@ -12,7 +12,7 @@ import {
 } from "@ant-design/pro-components";
 import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
+import { Button, message, Modal } from "antd";
 import React, { useRef, useState } from "react";
 import AddModal from "./components/addModal";
 import DetailModal from "./components/detailModal";
@@ -25,7 +25,7 @@ import {
 const Page: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
+
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
@@ -132,7 +132,6 @@ const Page: React.FC = () => {
                 });
                 return;
               case "copy":
-                form.setFieldsValue(record);
                 setState({
                   updateValue: record,
                   isUpdateModalOpen: true,

@@ -33,7 +33,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const [treeData, setTreeData] = useState<any>([]);
   const [title, setTitle] = useState("add");
-
+  const [form] = Form.useForm();
   const [userList, setUserList] = useState<any>([]);
   // 加载树数据
   const loadTreeData = async () => {
@@ -65,8 +65,6 @@ const RunModal: React.FC<SetMemberModalProps> = ({
         form?.setFieldsValue({ ...updateValue, gender: currentNode });
     }
   }, [open, updateValue]);
-
-  const [form] = Form.useForm();
 
   const onFinish = (values: any) => {
     console.log(values);

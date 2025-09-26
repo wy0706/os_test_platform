@@ -47,6 +47,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     submitLoading: false,
   });
   const { userList, libList, moduleList, loading, submitLoading } = state;
+  const [form] = Form.useForm();
   // 获取测试用例库
 
   const getLibList = async () => {
@@ -148,7 +149,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     fetchData();
   }, [open, libId, mouduleId]);
 
-  const [form] = Form.useForm();
   const fetchData = async () => {
     if (open) {
       try {

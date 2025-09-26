@@ -59,7 +59,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     const initData = async () => {
-      console.log(type, updateValue);
       const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
       setTitle(name);
       if (open) {
