@@ -27,6 +27,7 @@ import {
 } from "antd";
 import React, { useEffect } from "react";
 import AddRoleModal from "./components/addRoleModal";
+import "./index.less";
 
 // 模拟权限分组数据
 const mockPermissions = [
@@ -131,28 +132,59 @@ const PermissionManagement: React.FC = () => {
         message.error(msg);
         return;
       }
-      setState({
-        roles: isArray(data?.list) ? data.list : [],
-        selectedRoleId:
-          isArray(data?.list) && data.list.length > 0 ? data.list[0].id : null,
-        currentRole:
-          isArray(data?.list) && data?.list.length > 0 ? data.list[0] : null,
+
+      const list = isArray(data?.list) ? data.list : [];
+      // 根据旧的选中id判断是否还存在
+      setState((prev) => {
+        let newSelectedId = prev.selectedRoleId;
+        let newRole = prev.currentRole;
+        // 如果之前选中的角色不存在于新列表
+        if (!list.find((r) => r.id === prev.selectedRoleId)) {
+          newSelectedId = list.length > 0 ? list[0].id : null;
+          newRole = list.length > 0 ? list[0] : null;
+        } else {
+          // 还在列表里就保持原来的选中
+          newSelectedId = prev.selectedRoleId;
+          newRole = list.find((r: any) => r.id === prev.selectedRoleId) || null;
+        }
+
+        return {
+          ...prev,
+          roles: list,
+          selectedRoleId: newSelectedId,
+          currentRole: newRole,
+        };
       });
-      if (isArray(data?.list) && data.list.length > 0) {
+
+      // 如果有选中的角色就加载权限
+      const selectedId =
+        list.find((r: any) => r.id === state.selectedRoleId)?.id ||
+        (list.length > 0 ? list[0].id : null);
+
+      if (selectedId) {
         const {
           code,
           data: pressions,
           message: msg,
-        } = await getOne(data.list[0].id);
+        } = await getOne(selectedId);
+
         if (code !== 0) {
           message.error(msg);
           return;
         }
-        let obj = arrayToObject(pressions.resource_code);
-        setState({
+        const obj = arrayToObject(pressions.resource_code || []);
+        setState((prev) => ({
+          ...prev,
           currentPermissions: obj,
-          originalPermissions: obj, // 备份一份原始,取消的时候用
-        });
+          originalPermissions: obj,
+        }));
+      } else {
+        // 没有角色
+        setState((prev) => ({
+          ...prev,
+          currentPermissions: {},
+          originalPermissions: {},
+        }));
       }
     } finally {
       setState({
@@ -272,76 +304,41 @@ const PermissionManagement: React.FC = () => {
   };
   return (
     <PageContainer>
-      <div
-        style={{
-          display: "flex",
-          backgroundColor: "#f5f5f5",
-          gap: "16px",
-        }}
-      >
+      <div className="permission-management">
         {/* 左侧角色列表 */}
-        <div
-          style={{
-            width: 500,
-            backgroundColor: "white",
-            borderRadius: "8px",
-            padding: "20px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "calc(100vh - 200px)",
-            // height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "20px",
-            }}
-          >
+        <div className="role-list">
+          <div className="header">
             <h3>角色列表</h3>
             {access["backendManagement-edit"] && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 size="small"
-                onClick={() => {
-                  setState({
-                    isUpdate: false,
-                    isUpdateModalOpen: true,
-                  });
-                }}
+                onClick={() =>
+                  setState({ isUpdate: false, isUpdateModalOpen: true })
+                }
               >
                 添加角色
               </Button>
             )}
           </div>
-          <div style={{ padding: 12, display: "flex", gap: 8 }}>
+          <div className="search-bar">
             <Input
               placeholder="搜索角色名称"
               allowClear
               value={roleSearchInput}
-              onChange={(e) => {
-                setState({
-                  roleSearchInput: e.target.value,
-                });
-              }}
-              // size="small"
+              onChange={(e) => setState({ roleSearchInput: e.target.value })}
               onPressEnter={() => {
                 setState({
                   roles: [],
                   selectedRoleId: null,
                   currentRole: null,
                 });
-
                 getRoleList({ roleSearchInput });
               }}
             />
             <Button
               icon={<SearchOutlined />}
-              // size="small"
               type="primary"
               onClick={() => {
                 setState({
@@ -355,14 +352,7 @@ const PermissionManagement: React.FC = () => {
               搜索
             </Button>
           </div>
-          <div
-            style={{
-              maxHeight: "58vh",
-              overflow: "auto",
-              minHeight: 0,
-              paddingRight: 20,
-            }}
-          >
+          <div className="list-container">
             <Access
               accessible={
                 !!(
@@ -378,12 +368,11 @@ const PermissionManagement: React.FC = () => {
                 renderItem={(role: any) => (
                   <List.Item
                     key={role.id}
-                    style={{
-                      background:
-                        selectedRoleId === role.id ? "#e6f7ff" : undefined,
-                      cursor: "pointer",
-                      paddingLeft: 16,
-                    }}
+                    className={
+                      selectedRoleId === role.id
+                        ? "list-item list-item-selected"
+                        : "list-item"
+                    }
                     onClick={() => handleRoleSelect(role)}
                     actions={
                       access["backendManagement-edit"]
@@ -392,17 +381,6 @@ const PermissionManagement: React.FC = () => {
                               icon={<EditOutlined />}
                               size="small"
                               type="link"
-                              // onClick={(e) => {
-                              //   e.stopPropagation();
-                              //   console.log(role);
-                              //   setState({
-                              //     isUpdate: true,
-                              //     isUpdateModalOpen: true,
-                              //     updateValue: {
-                              //       ...role,
-                              //     },
-                              //   });
-                              // }}
                               onClick={(e) => handleEditRole(role, e)}
                               key="edit"
                             />,
@@ -433,60 +411,22 @@ const PermissionManagement: React.FC = () => {
         </div>
 
         {/* 右侧权限配置 */}
-
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: "white",
-            borderRadius: "8px",
-            padding: "16px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "calc(100vh - 200px)",
-            // height: "calc(100vh - 200px)", // 设置固定高度，与左侧保持一致
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              // flexDirection: "column",
-              paddingTop: 5,
-              paddingBottom: 10,
-              boxSizing: "border-box",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {" "}
+        <div className="permissions-panel">
+          <div className="panel-header">
+            <div className="header-left">
               <span>
                 权限配置 -{" "}
                 <b style={{ color: "#1890FF" }}>{currentRole?.name || ""}</b>
               </span>
-              <span style={{ color: "#888", fontSize: 10 }}>
-                为选中的角色分配功能权限
-              </span>
+              <span className="header-subtitle">为选中的角色分配功能权限</span>
             </div>
-            <span style={{ color: "#888" }}>{currentRole?.desc || ""}</span>
+            <span className="header-desc">{currentRole?.desc || ""}</span>
           </div>
 
-          {/* 滚动内容区 */}
-          <div
-            style={{
-              flex: 1,
-              overflow: "auto",
-              padding: 24,
-              paddingTop: 12,
-              minHeight: 0,
-            }}
-          >
+          <div className="scroll-content">
             {currentRole ? (
               loadError ? (
-                <div
-                  style={{ color: "#888", textAlign: "center", marginTop: 60 }}
-                >
-                  权限加载失败，请重试
-                </div>
+                <div className="load-error">权限加载失败，请重试</div>
               ) : (
                 <Form layout="vertical">
                   {mockPermissions.map((perm) => {
@@ -510,9 +450,8 @@ const PermissionManagement: React.FC = () => {
                               checked={
                                 currentPermissions?.[perm.key] === opt.value
                               }
-                              disabled={!access["backendManagement-edit"]} // 👈 没有edit权限则禁用
+                              disabled={!access["backendManagement-edit"]}
                               onChange={() => {
-                                // 只有在edit时才执行setState
                                 if (!access["backendManagement-edit"]) return;
                                 setState((prev) => {
                                   const curr =
@@ -540,33 +479,13 @@ const PermissionManagement: React.FC = () => {
                 </Form>
               )
             ) : (
-              <div
-                style={{ color: "#888", textAlign: "center", marginTop: 60 }}
-              >
-                暂无角色，请先添加角色
-              </div>
+              <div className="no-role">暂无角色，请先添加角色</div>
             )}
           </div>
-          {/* 固定底部按钮区 */}
+
           {access["backendManagement-edit"] && (
-            <div
-              style={{
-                borderTop: "1px solid #f0f0f0",
-                background: "#fff",
-                padding: "16px 24px",
-                textAlign: "right",
-                position: "sticky",
-                bottom: 0,
-                zIndex: 10,
-                borderRadius: 10,
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-              }}
-            >
+            <div className="bottom-bar">
               <Space>
-                {/* <Button onClick={handleCancel} disabled={!currentRole}>
-                取消
-              </Button> */}
                 <Button
                   type="primary"
                   onClick={handleSave}
@@ -578,11 +497,9 @@ const PermissionManagement: React.FC = () => {
               </Space>
             </div>
           )}
-          {/* </Card> */}
         </div>
       </div>
 
-      {/* 添加角色弹窗 */}
       <AddRoleModal
         onOk={handleOk}
         open={isUpdateModalOpen}

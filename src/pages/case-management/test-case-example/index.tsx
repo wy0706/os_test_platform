@@ -1,5 +1,4 @@
 import {
-  deleteCase,
   deleteOne,
   getCaseList,
   getList,
@@ -37,29 +36,30 @@ const TestCaseExample: React.FC = () => {
   const params = useParams();
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
+    // isEditModuleModalOpen: false, //编辑模块modal
+    // deleteTestCases: false, //删除模块时是否删除测试用例
     id: params.id || "",
     title: schemasTitle,
+    // modal状态
     isUpdateModalOpen: false,
-    updateValue: {},
-    selectedModule: "all", //左侧选中的模块
-    loading: false, //模块加载loading
-    selectTestData: {}, //已选择的测试序列
-    isTestModal: false, //关联测试序列modal
-    isAddModalOpen: false, //新增modal
-    moduleType: "add", //默认是add |edit
-    moduleSearchText: "",
-    optionType: "copy", //默认是编辑 copy|remove
-    isRowEditModal: false, //点击row出现的编辑框
-    newEditModalID: null,
+    isAddModalOpen: false,
     isPreviewModalOpen: false,
-    detailsId: null,
-    open: false, //编辑用例模块
-    modulevalue: {}, //单个模块数据
-    isEditMode: false, //是否为编辑模式，false为新增
-    isEditModuleModalOpen: false, //编辑模块modal
-    editModuleData: {}, //编辑模块数据
-    deleteTestCases: false, //删除模块时是否删除测试用例
+    isRowEditModal: false,
+    isTestModal: false,
+    isEditModuleModalOpen: false,
+    // 数据状态
     modules: [], //左侧模块列表
+    loading: false, //模块加载loading
+    selectedModule: "all", //左侧选中的模块
+    moduleSearchText: "",
+    updateValue: {},
+    optionType: "copy", //默认是编辑 copy|remove
+    detailsId: null,
+    newEditModalID: null,
+    selectTestData: {}, //已选择的测试序列
+    // 模块编辑
+    moduleType: "add", //默认是add |edit
+    editModuleData: {}, //编辑模块数据
     columns: schemasColumns.concat([
       {
         title: "操作",
@@ -76,6 +76,7 @@ const TestCaseExample: React.FC = () => {
               setState({
                 detailsId: record.id,
                 isPreviewModalOpen: true,
+                detailsData: record,
               });
             }}
           >
@@ -87,14 +88,10 @@ const TestCaseExample: React.FC = () => {
             color="primary"
             icon={<EditOutlined />}
             onClick={() => {
-              // setState({
-              //   updateValue: record,
-              //   isUpdateModalOpen: true,
-              //   optionType: "edit",
-              // });
               setState({
-                isRowEditModal: true,
-                newEditModalID: record.id,
+                updateValue: record,
+                isUpdateModalOpen: true,
+                optionType: "edit",
               });
             }}
           >
@@ -137,18 +134,15 @@ const TestCaseExample: React.FC = () => {
                           </div>
                         </div>
                       ),
+                      // content: (
+                      //   <div style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+                      //     {record.title}
+                      //   </div>
+                      // ),
                       onOk: async () => {
-                        const { code, message: msg } = await deleteCase(
-                          record.id
-                        );
-                        if (code === 0) {
-                          message.success(msg);
-                          if (actionRef.current) {
-                            actionRef.current.reload();
-                          }
-                        } else {
-                          message.error(msg || "操作失败");
-                          return;
+                        await deleteOne(record.id);
+                        if (actionRef.current) {
+                          actionRef.current.reload();
                         }
                       },
                     });
@@ -191,16 +185,11 @@ const TestCaseExample: React.FC = () => {
     detailsId,
     optionType,
     isAddModalOpen,
-    open,
     isTestModal,
     selectTestData,
     isRowEditModal,
-
-    modulevalue,
-    isEditMode,
     isEditModuleModalOpen,
     editModuleData,
-    deleteTestCases,
     modules,
     moduleType,
     moduleSearchText,
@@ -209,144 +198,6 @@ const TestCaseExample: React.FC = () => {
     loading,
     newEditModalID,
   } = state;
-  // 模拟用例数据
-  const useCases: any[] = [
-    {
-      id: "DEMO-1",
-      title: "订单成功提交",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "user",
-      key: "1",
-    },
-    {
-      id: "DEMO-2",
-      title: "购物车支持修改商品数量",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "user",
-      key: "2",
-    },
-    {
-      id: "DEMO-3",
-      title: "购物车支持删除商品",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "user",
-      key: "3",
-    },
-    {
-      id: "DEMO-4",
-      title: "购物车支持清空",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "user",
-      key: "4",
-    },
-    {
-      id: "DEMO-5",
-      title: "购物车支持批量操作",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "user",
-      key: "5",
-    },
-    {
-      id: "DEMO-6",
-      title: "切换商品分类",
-      version: "v1",
-      importance: "P2",
-      module: "商城下单",
-      icon: "thunder",
-      key: "4",
-    },
-    {
-      id: "DEMO-7",
-      title: "商品搜索功能",
-      version: "v1",
-      importance: "P2",
-      module: "商城下单",
-      icon: "thunder",
-      key: "7",
-    },
-    {
-      id: "DEMO-8",
-      title: "商品详情展示",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "thunder",
-      key: "8",
-    },
-    {
-      id: "DEMO-9",
-      title: "商品列表展示",
-      version: "v1",
-      importance: "P1",
-      module: "商城下单",
-      icon: "thunder",
-      key: "9",
-    },
-    {
-      id: "DEMO-10",
-      title: "登录时记住用户名",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "10",
-    },
-    {
-      id: "DEMO-11",
-      title: "登录时验证密码",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "11",
-    },
-    {
-      id: "DEMO-12",
-      title: "注册时验证邮箱",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "12",
-    },
-    {
-      id: "DEMO-13",
-      title: "注册时验证手机号",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "13",
-    },
-    {
-      id: "DEMO-14",
-      title: "注册时检验用户名是否重复",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "14",
-    },
-    {
-      id: "DEMO-15",
-      title: "注册时验证密码强度",
-      version: "v1",
-      importance: "P0",
-      module: "注册与登录",
-      icon: "user",
-      key: "15",
-    },
-  ];
 
   // 从后端获取模块列表
   const fetchModules = async (params?: any) => {
@@ -364,10 +215,10 @@ const TestCaseExample: React.FC = () => {
         ...params,
       });
       if (code === 0 && isArray(data.list)) {
-        if (data.list.length == 0) {
-          setState({ modules: [] });
-          return;
-        }
+        // if (data.list.length == 0) {
+        //   setState({ modules: [] });
+        //   return;
+        // }
         const moduleData = data.list.map((item: any) => ({
           ...item,
           expanded: true,
@@ -398,9 +249,9 @@ const TestCaseExample: React.FC = () => {
   // 删除模块的函数
   const handleDeleteModule = (module: any) => {
     // 重置复选框状态
-    setState({
-      deleteTestCases: false,
-    });
+    // setState({
+    //   deleteTestCases: false,
+    // });
 
     Modal.confirm({
       title: (
@@ -437,16 +288,23 @@ const TestCaseExample: React.FC = () => {
       //   </div>
       // ),
       onOk: async () => {
+        console.log("module", module);
+        console.log(selectedModule);
+
         // 调用后端删除接口
         const { code, message: msg } = await deleteOne(module.id);
 
         if (code === 0) {
-          // 如果删除的是当前选中的模块，清除选中状态
-          if (selectedModule === module.key) {
-            setState({ selectedModule: "" });
+          // 如果删除的是当前选中的模块，则自动切换到“全部模块”
+          if (selectedModule == module.key) {
+            setState({ selectedModule: "all" });
           }
           message.success(msg);
-          fetchModules();
+          fetchModules(); // 刷新左侧模块树
+          // 刷新右侧表格
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         } else {
           message.error(msg || "删除模块失败");
         }
@@ -496,7 +354,7 @@ const TestCaseExample: React.FC = () => {
                   ( {module.tc_cnt || 0} )
                 </span>
                 <span style={{ fontSize: "12px" }}>
-                  ( {module.coverage || 0} )
+                  ( {module.coverage || 0} %)
                 </span>
                 <div
                   style={{
@@ -545,6 +403,8 @@ const TestCaseExample: React.FC = () => {
                     className="tree-icon-btn"
                     onClick={(e) => {
                       e.stopPropagation();
+                      console.log("modudddd", module);
+
                       handleDeleteModule(module);
                     }}
                     onMouseEnter={(e) => {
@@ -586,7 +446,7 @@ const TestCaseExample: React.FC = () => {
     const { code, data, message: msg } = await getCaseList({ ...params });
     if (code !== 0) {
       message.error(msg);
-      return;
+      return { data: [], total: 0, success: false };
     }
     return {
       data: data?.list || [],
@@ -699,7 +559,12 @@ const TestCaseExample: React.FC = () => {
                   treeData={treeData}
                   selectedKeys={[selectedModule]}
                   onSelect={(selectedKeys) => {
-                    setState({ selectedModule: selectedKeys[0] || "" });
+                    // 如果点击已选中的节点，selectedKeys会变成空数组
+                    if (selectedKeys.length > 0) {
+                      setState({ selectedModule: selectedKeys[0] });
+                    } else {
+                      // 不做任何处理，保持原来的 selectedModule
+                    }
                   }}
                   showLine={false}
                   showIcon={false}
@@ -743,14 +608,10 @@ const TestCaseExample: React.FC = () => {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              {/* <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
-                {selectedModule
-                  ? `${
-                      modules.find((m) => m.key === selectedModule)?.name ||
-                      "未知模块"
-                    }·${getFilteredUseCases().length}`
-                  : `全部用例·${useCases.length}`}
-              </h2> */}
+              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
+                {modules.find((m) => m.id == selectedModule)?.name ||
+                  "请选择模块"}
+              </h2>
             </div>
           </div>
 
@@ -775,7 +636,6 @@ const TestCaseExample: React.FC = () => {
               rowKey="id"
               pagination={{
                 pageSize: 10,
-                onChange: (page) => requestData,
               }}
               toolBarRender={() => [
                 <Button
@@ -789,36 +649,6 @@ const TestCaseExample: React.FC = () => {
                   新建
                 </Button>,
               ]}
-
-              // onRow={(record, index) => ({
-              //   onClick: (e) => {
-              //     // 检查点击的元素是否在操作栏内
-              //     const target = e.target as HTMLElement;
-              //     const isActionColumn =
-              //       target.closest(".ant-table-cell:last-child") ||
-              //       target.closest(".ant-btn") ||
-              //       target.closest("button") ||
-              //       target.closest("a") ||
-              //       target.closest(".ant-dropdown") ||
-              //       target.closest(".ant-dropdown-menu") ||
-              //       target.closest(".ant-dropdown-menu-item") ||
-              //       target.closest(".ant-dropdown-trigger");
-
-              //     // 如果点击的是操作栏，则不跳转
-              //     if (isActionColumn) {
-              //       e.stopPropagation();
-              //       return;
-              //     }
-
-              //     // 否则执行正常的行点击逻辑
-              //     handleRowClick(record, index || 0);
-              //   },
-              //   style: {
-              //     cursor: "pointer",
-              //     backgroundColor:
-              //       selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
-              //   },
-              // })}
             />
           </div>
         </div>

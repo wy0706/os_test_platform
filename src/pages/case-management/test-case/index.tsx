@@ -78,7 +78,6 @@ const Page: React.FC = () => {
         icon={<EditOutlined />}
         onClick={(e) => {
           e.stopPropagation();
-
           setState({
             updateValue: record,
             isUpdateModalOpen: true,
@@ -89,7 +88,7 @@ const Page: React.FC = () => {
         编辑
       </Button>,
       <div
-        key={`dropdown-${index}`}
+        key="more"
         onClick={(e) => {
           e.stopPropagation();
         }}
@@ -162,7 +161,7 @@ const Page: React.FC = () => {
     const { code, data, message: msg } = await getList({ ...params });
     if (code !== 0) {
       message.error(msg);
-      return;
+      return { data: [], total: 0, success: false };
     }
     return {
       data: data?.list || [],
@@ -196,7 +195,6 @@ const Page: React.FC = () => {
         rowKey="id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
         headerTitle={title.label}
         toolBarRender={() =>
