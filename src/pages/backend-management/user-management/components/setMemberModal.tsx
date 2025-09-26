@@ -32,10 +32,9 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       if (!open) return;
-
+      form?.resetFields();
       try {
         await getRoleList();
-        form?.resetFields();
         if (isUpdate && updateValue) {
           form.setFieldsValue(updateValue);
         }
@@ -45,7 +44,7 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
       }
     };
     fetchData();
-  }, [open, isUpdate, updateValue, form]);
+  }, [open, isUpdate, updateValue]);
   const getRoleList = async () => {
     try {
       const {

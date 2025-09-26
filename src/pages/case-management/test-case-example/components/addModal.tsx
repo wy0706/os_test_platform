@@ -145,12 +145,12 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    form?.resetFields();
     fetchData();
   }, [open, libId, mouduleId]);
 
   const fetchData = async () => {
     if (open) {
+      form?.resetFields();
       try {
         setState({ loading: true });
         await getLibList();

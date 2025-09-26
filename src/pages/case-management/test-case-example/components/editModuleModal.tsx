@@ -31,16 +31,15 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     if (open) {
+      form?.resetFields();
       if (type == "edit") {
         form?.setFieldsValue({
           ...data,
           module_name: data.name || "",
         });
       }
-    } else {
-      form?.resetFields();
     }
-  }, [open, type, data, form]);
+  }, [open, type, data]);
 
   const handleOk = async () => {
     try {

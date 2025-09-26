@@ -45,6 +45,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   const fetchData = async () => {
     if (open && updateValue) {
+      form?.resetFields();
       await getLibList();
       if (updateValue?.lib_info?.id) {
         await getModuleList(updateValue?.lib_info?.id);

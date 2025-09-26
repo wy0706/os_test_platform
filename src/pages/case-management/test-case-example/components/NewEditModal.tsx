@@ -55,15 +55,16 @@ const NewEditModal: React.FC<ModalProps> = ({
   const { userList, submitLoading } = state;
 
   useEffect(() => {
-    form?.resetFields();
     fetchData();
-  }, [open, id, form]);
+  }, [open, id]);
   const fetchData = async () => {
+    console.log("id", id);
+
     if (open && id) {
+      form?.resetFields();
       await fetchAllUsers();
       const { code, data, message: msg } = await getCaseDetail(id);
       if (code === 0) {
-        console.log("data", data);
         form?.setFieldsValue({
           ...data,
           user_id: data?.owner?.id || null,

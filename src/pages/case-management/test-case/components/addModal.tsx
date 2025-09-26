@@ -58,30 +58,29 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    const initData = async () => {
-      const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
-      setTitle(name);
-      if (open) {
-        form?.resetFields();
-        // 打开弹窗时获取所有用户列表
-        await fetchAllUsers();
-        if (type == "add") {
-          form?.setFieldsValue({ user_id: currentUser?.id });
-        }
-
-        if ((type == "edit" || type == "copy") && updateValue) {
-          form?.setFieldsValue({
-            lib_name:
-              type == "edit" ? updateValue?.name || undefined : undefined,
-            lib_label: updateValue?.label || undefined,
-            user_id: updateValue?.owner?.id || undefined,
-            description: updateValue?.description || undefined,
-          });
-        }
-      }
-    };
     initData();
   }, [open, type, updateValue]);
+  const initData = async () => {
+    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
+    setTitle(name);
+    if (open) {
+      form?.resetFields();
+      // 打开弹窗时获取所有用户列表
+      await fetchAllUsers();
+      if (type == "add") {
+        form?.setFieldsValue({ user_id: currentUser?.id });
+      }
+
+      if ((type == "edit" || type == "copy") && updateValue) {
+        form?.setFieldsValue({
+          lib_name: type == "edit" ? updateValue?.name || undefined : undefined,
+          lib_label: updateValue?.label || undefined,
+          user_id: updateValue?.owner?.id || undefined,
+          description: updateValue?.description || undefined,
+        });
+      }
+    }
+  };
 
   const [form] = Form.useForm();
 

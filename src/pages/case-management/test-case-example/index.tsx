@@ -1,4 +1,5 @@
 import {
+  deleteCase,
   deleteOne,
   getCaseList,
   getList,
@@ -89,9 +90,8 @@ const TestCaseExample: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => {
               setState({
-                updateValue: record,
-                isUpdateModalOpen: true,
-                optionType: "edit",
+                isRowEditModal: true,
+                newEditModalID: record.id,
               });
             }}
           >
@@ -140,7 +140,15 @@ const TestCaseExample: React.FC = () => {
                       //   </div>
                       // ),
                       onOk: async () => {
-                        await deleteOne(record.id);
+                        const { code, message: msg } = await deleteCase(
+                          record.id
+                        );
+                        if (code !== 0) {
+                          message.error(msg || "操作失败");
+                          return;
+                        }
+                        message.success(msg || "操作成功");
+                        fetchModules();
                         if (actionRef.current) {
                           actionRef.current.reload();
                         }

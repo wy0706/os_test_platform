@@ -18,11 +18,6 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
 }
 
-// const formItemLayout = {
-//   labelCol: { span: 4 },
-//   wrapperCol: { span: 20 },
-// };
-
 const AddRoleModal: React.FC<SetMemberModalProps> = ({
   open,
   isUpdate,
@@ -36,7 +31,7 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     if (open) {
-      form.resetFields();
+      form?.resetFields();
       if (isUpdate && updateValue) {
         form.setFieldsValue({
           role_name: updateValue?.name,
@@ -44,11 +39,11 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
         });
       }
     }
-  }, [open, isUpdate, updateValue, form]);
+  }, [open, isUpdate, updateValue]);
 
   const handleOk = async () => {
     try {
-      const values = await formRef.current?.validateFields();
+      const values = await form?.validateFields();
       setSubmitLoading(true);
       if (isUpdate) {
         let codeData = {};
@@ -86,7 +81,7 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
 
   const handleCancel = () => {
     onCancel?.();
-    formRef.current?.resetFields();
+    form?.resetFields();
   };
 
   return (
