@@ -444,9 +444,9 @@ const Conditions: React.FC<ConditionsProps> = ({
               size="small"
               style={{
                 textAlign: "center",
-                backgroundColor: isDisabled ? "#f5f5f5" : "white",
+                // backgroundColor: isDisabled ? "#f5f5f5" : "white",
               }}
-              disabled={isDisabled}
+              // disabled={isDisabled}
             />
           );
         },

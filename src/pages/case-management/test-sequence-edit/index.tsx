@@ -50,7 +50,7 @@ const Page: React.FC = () => {
       },
       {
         key: "3",
-        label: "测试结束", //测试结果
+        label: "测试结果", //测试结果
         icon: <BookOutlined />,
       },
       {

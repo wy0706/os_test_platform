@@ -30,11 +30,11 @@ export const dataTypeOptions = [
     label: "bytearray",
   },
   { value: "str", label: "str" },
-  { value: "LineInVector", label: "LineInVector" },
-  {
-    value: "LoadVector",
-    label: "LoadVector",
-  },
+  // { value: "LineInVector", label: "LineInVector" },
+  // {
+  //   value: "LoadVector",
+  //   label: "LoadVector",
+  // },
 ];
 // 精度
 export const precisionOptions = [

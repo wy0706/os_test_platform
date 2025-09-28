@@ -54,28 +54,31 @@ const ParamForm: React.FC<ParamFormProps> = ({
   ];
 
   useEffect(() => {
-    const name = type === "INPUT" ? "输入" : "输出";
-    setTitle(`${name}参数`);
-    // 输入参数支持的类型
-    let op1 = [
-      { value: 1, label: "测试条件" }, //输入参数
-      { value: 2, label: "测试结果" }, //输入参数 输出参数
-      { value: 3, label: "临时变量" }, //输入参数  输出参数
-      { value: 4, label: "运算符", disabled: true }, //判断是否是运算符 如果是 可以选择 ，否则不可选
-      { value: 5, label: "标签", disabled: true }, //测试流程中包含这个标签才可以选择
-      { value: 6, label: "常量" }, //  输入参数,
-      // 当选择常量时，单元格中参数类型与常量类型进行关联，一对一关联，常量展开类型:整形、双精度、字符型、十六进制字符、字符型。
-    ];
-    //  输出参数支持的类型
-    let op2 = [
-      { value: 2, label: "测试结果" },
-      { value: 3, label: "临时变量" },
-    ];
+    if (open) {
+      const name = type === "INPUT" ? "输入" : "输出";
+      setTitle(`${name}参数`);
+      // 输入参数支持的类型
+      let op1 = [
+        { value: 1, label: "测试条件" }, //输入参数
+        { value: 2, label: "测试结果" }, //输入参数 输出参数
+        { value: 3, label: "临时变量" }, //输入参数  输出参数
+        { value: 4, label: "运算符", disabled: true }, //判断是否是运算符 如果是 可以选择 ，否则不可选
+        { value: 5, label: "标签", disabled: true }, //测试流程中包含这个标签才可以选择
+        { value: 6, label: "常量" }, //  输入参数,
+        // 当选择常量时，单元格中参数类型与常量类型进行关联，一对一关联，常量展开类型:整形、双精度、字符型、十六进制字符、字符型。
+      ];
+      //  输出参数支持的类型
+      let op2 = [
+        { value: 2, label: "测试结果" },
+        { value: 3, label: "临时变量" },
+      ];
 
-    setTestConditionOptions(type === "INPUT" ? op1 : op2);
+      setTestConditionOptions(type === "INPUT" ? op1 : op2);
+    }
   }, [open]);
   // 初始数据源
   const [dataSource, setDataSource] = useState<ParamItem[]>(initialData || []);
+  console.log("dataSource", dataSource);
 
   // 获取下拉选项（模拟数据）
   const getSelectOptions = (conditionType: number) => {
@@ -300,12 +303,19 @@ const ParamForm: React.FC<ParamFormProps> = ({
       if (i === index) {
         return {
           ...item,
+          title: `param${index + 1}`,
           constantType: value,
           value: undefined, // 清空当前行的值，因为常量类型变了
         };
       }
-      return item; // 其他行保持原样
+      return {
+        ...item,
+        title: `param${index + 1}`,
+      }; // 其他行保持原样
     });
+
+    console.log("newDataSource", newDataSource);
+
     setDataSource(newDataSource);
 
     // 只更新表单中当前行的数据，其他行不受影响
@@ -354,6 +364,9 @@ const ParamForm: React.FC<ParamFormProps> = ({
         title: "参数名",
         dataIndex: "name",
         width: 120,
+        render: (value: any, record: any, index: number) => {
+          return <span>param{index + 1}</span>;
+        },
       },
 
       {

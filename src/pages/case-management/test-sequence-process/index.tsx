@@ -25,7 +25,6 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     leftTabActiveKey: "2",
-    editType: "", //pre 、uut 、post
     editValue: {},
     tabLeftItems: [
       {
@@ -56,7 +55,7 @@ const Page: React.FC = () => {
       },
     ],
     rightTabActiveKey: 1,
-    isEditAll: false, //是否编辑所有测试条件
+    isEditAll: false, //是否编辑所有测试条件，用于请求右侧测试条件测试结果数据
     tabData: {
       tab1: [],
       tab2: [],
@@ -120,10 +119,10 @@ const Page: React.FC = () => {
   };
   const [searchParams] = useSearchParams();
   const params = useParams();
-  // 初始化：只加载 tab1
+  // 初始化：只加载 tab2
   useEffect(() => {
     if (params.id !== "add") {
-      handleTabChange("1");
+      handleTabChange("2");
     }
     let release =
       params.id === "add"

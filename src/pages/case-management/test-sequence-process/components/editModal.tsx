@@ -25,15 +25,6 @@ const EditModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     if (open) {
-      const name =
-        type == "pre"
-          ? "Pre"
-          : type == "uut"
-          ? "UUT"
-          : type == "post"
-          ? "Post"
-          : null;
-      setTitle(name);
       form?.setFieldsValue(updateValue);
     }
   }, [open, updateValue]);
@@ -55,7 +46,7 @@ const EditModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title={`${title}编辑`}
+      title={`${type}编辑`}
       maskClosable={false}
       open={open}
       onCancel={() => {

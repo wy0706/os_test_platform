@@ -44,7 +44,6 @@ const Page: React.FC = () => {
         rowKey="id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
         headerTitle={title.label}
       />

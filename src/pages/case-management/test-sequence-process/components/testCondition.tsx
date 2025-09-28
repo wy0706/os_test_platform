@@ -101,8 +101,8 @@ const TestCondition: React.FC = () => {
         }}
       >
         <Form {...layout} form={form}>
-          <Form.Item name="variable" label="变量名">
-            <Input placeholder="输入变量名" allowClear />
+          <Form.Item name="variable" label="值">
+            <Input placeholder="输入值" allowClear />
           </Form.Item>
         </Form>
       </Modal>

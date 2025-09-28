@@ -46,17 +46,30 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
     return ["Float[]", "int[]", "bytearray"].includes(dataType);
   };
 
-  // 判断是否可以编辑最大值最小值
+  // 判断是否可以编辑最大值最小值和默认值
   const canEditMinMaxValue = (dataType: string) => {
     // 数组类型和特定类型不可以编辑最小值和最大值
     return ![
       "Float[]",
       "int[]",
       "bytearray",
-      "bytes",
+      // "bytes",
       "str",
-      "LineInVector",
-      "LoadVector",
+      // "LineInVector",
+      // "LoadVector",
+    ].includes(dataType);
+  };
+  // str可以支持输入最大值默认值，所以在最大值默认值判断上改成canEditMinMaxValue2
+  const canEditMinMaxValue2 = (dataType: string) => {
+    // 数组类型和特定类型不可以编辑最小值和最大值
+    return ![
+      "Float[]",
+      "int[]",
+      "bytearray",
+      // "bytes",
+      // "str",
+      // "LineInVector",
+      // "LoadVector",
     ].includes(dataType);
   };
 
@@ -139,9 +152,7 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
               <Input placeholder="输入变量名" maxLength={32} />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="dataType"
@@ -164,130 +175,120 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="minOffValue" label="最小值下限">
-              <Input
-                placeholder="输入最小值"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="maxOffValue" label="最大值下限">
-              <Input
-                placeholder="输入最大值下限"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item name="minHighValue" label="最小值上限">
-              <Input
-                placeholder="输入最小值上限"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item name="maxHighValue" label="最大值上限">
-              <Input
-                placeholder="输入最大值上限"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="minDefaultValue"
-              label="最小值默认值"
-              rules={[
-                { required: true, message: "请输入最小值默认值" },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    const minOff = Number(getFieldValue("minOffValue"));
-                    const minHigh = Number(getFieldValue("minHighValue"));
-                    const defaultValue = Number(value);
-                    if (!minOff && !minHigh) return;
-                    // 校验是否为有效数字
-                    if (isNaN(defaultValue)) {
-                      return Promise.reject(new Error("请输入有效数字"));
-                    }
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="minOffValue" label="最小值下限">
+                <Input placeholder="输入最小值" />
+              </Form.Item>
+            </Col>
+          )}
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="maxOffValue" label="最大值下限">
+                <Input placeholder="输入最大值下限" />
+              </Form.Item>
+            </Col>
+          )}
 
-                    // 校验是否在上下限范围内
-                    if (
-                      !isNaN(minOff) &&
-                      !isNaN(minHigh) &&
-                      defaultValue >= minOff &&
-                      defaultValue <= minHigh
-                    ) {
-                      return Promise.resolve();
-                    }
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="minHighValue" label="最小值上限">
+                <Input placeholder="输入最小值上限" />
+              </Form.Item>
+            </Col>
+          )}
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="maxHighValue" label="最大值上限">
+                <Input placeholder="输入最大值上限" />
+              </Form.Item>
+            </Col>
+          )}
 
-                    return Promise.reject(
-                      new Error(
-                        "默认值设置超出最小值下限和最小值上限范围，请重新设置"
-                      )
-                    );
-                  },
-                }),
-              ]}
-            >
-              <Input
-                placeholder="输入最小值默认值"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="maxDefaultValue"
-              label="最大值默认值"
-              rules={[
-                { required: true, message: "请输入最大值默认值" },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    const maxOff = Number(getFieldValue("maxOffValue"));
-                    const maxHigh = Number(getFieldValue("maxHighValue"));
-                    if (!maxOff && !maxHigh) return;
-                    const defaultValue = Number(value);
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item
+                name="minDefaultValue"
+                label="最小值默认值"
+                rules={[
+                  { required: true, message: "请输入最小值默认值" },
+                  // ({ getFieldValue }) => ({
+                  //   validator(_, value) {
+                  //     const minOff = Number(getFieldValue("minOffValue"));
+                  //     const minHigh = Number(getFieldValue("minHighValue"));
+                  //     const defaultValue = Number(value);
+                  //     if (!minOff && !minHigh) return;
+                  //     // 校验是否为有效数字
+                  //     if (isNaN(defaultValue)) {
+                  //       return Promise.reject(new Error("请输入有效数字"));
+                  //     }
 
-                    if (isNaN(defaultValue)) {
-                      return Promise.reject(new Error("请输入有效数字"));
-                    }
+                  //     // 校验是否在上下限范围内
+                  //     if (
+                  //       !isNaN(minOff) &&
+                  //       !isNaN(minHigh) &&
+                  //       defaultValue >= minOff &&
+                  //       defaultValue <= minHigh
+                  //     ) {
+                  //       return Promise.resolve();
+                  //     }
 
-                    if (
-                      !isNaN(maxOff) &&
-                      !isNaN(maxHigh) &&
-                      defaultValue >= maxOff &&
-                      defaultValue <= maxHigh
-                    ) {
-                      return Promise.resolve();
-                    }
+                  //     return Promise.reject(
+                  //       new Error(
+                  //         "默认值设置超出最小值下限和最小值上限范围，请重新设置"
+                  //       )
+                  //     );
+                  //   },
+                  // }),
+                ]}
+              >
+                <Input placeholder="输入最小值默认值" />
+              </Form.Item>
+            </Col>
+          )}
 
-                    return Promise.reject(
-                      new Error(
-                        "默认值设置超出最大值下限和最大值上限范围，请重新设置"
-                      )
-                    );
-                  },
-                }),
-              ]}
-            >
-              <Input
-                placeholder="输入最大值默认值"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
+          {canEditMinMaxValue2(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item
+                name="maxDefaultValue"
+                label="最大值默认值"
+                rules={[
+                  { required: true, message: "请输入最大值默认值" },
+                  // ({ getFieldValue }) => ({
+                  //   validator(_, value) {
+                  //     const maxOff = Number(getFieldValue("maxOffValue"));
+                  //     const maxHigh = Number(getFieldValue("maxHighValue"));
+                  //     if (!maxOff && !maxHigh) return;
+                  //     const defaultValue = Number(value);
+
+                  //     if (isNaN(defaultValue)) {
+                  //       return Promise.reject(new Error("请输入有效数字"));
+                  //     }
+
+                  //     if (
+                  //       !isNaN(maxOff) &&
+                  //       !isNaN(maxHigh) &&
+                  //       defaultValue >= maxOff &&
+                  //       defaultValue <= maxHigh
+                  //     ) {
+                  //       return Promise.resolve();
+                  //     }
+
+                  //     return Promise.reject(
+                  //       new Error(
+                  //         "默认值设置超出最大值下限和最大值上限范围，请重新设置"
+                  //       )
+                  //     );
+                  //   },
+                  // }),
+                ]}
+              >
+                <Input placeholder="输入最大值默认值" />
+              </Form.Item>
+            </Col>
+          )}
+
           <Col span={12}>
             <Form.Item name="arraySize" label="数组大小">
               <InputNumber
@@ -301,9 +302,6 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
               <Select placeholder="选择单位" options={unitOptions} />
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="visible" label="是否可见">
               <Select placeholder="选择是否可见">

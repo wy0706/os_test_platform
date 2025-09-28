@@ -26,6 +26,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     if (open) {
+      console.log("updateValue", updateValue);
       form?.resetFields();
       if (updateValue) {
         form?.setFieldsValue({ ...updateValue });
@@ -55,10 +56,10 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
       "Float[]",
       "int[]",
       "bytearray",
-      "bytes",
-      "str",
-      "LineInVector",
-      "LoadVector",
+      // "bytes",
+      // "str",
+      // "LineInVector",
+      // "LoadVector",
     ].includes(dataType);
   };
   // 是否可以选择编辑类型
@@ -139,9 +140,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               <Input placeholder="输入变量名" maxLength={32} />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="dataType"
@@ -170,9 +169,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               </Select>
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="precision" label="精度">
               <Select
@@ -183,17 +180,14 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
 
-          <Col span={12}>
-            <Form.Item name="minValue" label="最小值">
-              <Input
-                placeholder="输入最小值"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="minValue" label="最小值">
+                <Input placeholder="输入最小值" />
+              </Form.Item>
+            </Col>
+          )}
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="unit" label="单位">
               <Select placeholder="选择单位" options={unitOptions} />
@@ -202,65 +196,65 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
           {/* 如果是int editbox默认值为输入框
               如果int combolist 默认值为选择框，选择框的内容为枚举项目
           */}
-          <Col span={12}>
-            <Form.Item
-              name="defaultValue"
-              label="默认值"
-              rules={[
-                { required: true },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    const min = getFieldValue("minValue");
-                    const max = getFieldValue("maxValue");
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item
+                name="defaultValue"
+                label="默认值"
+                rules={[
+                  { required: true },
+                  // ({ getFieldValue }) => ({
+                  //   validator(_, value) {
+                  //     const min = getFieldValue("minValue");
+                  //     const max = getFieldValue("maxValue");
 
-                    // 只在数值类型时校验
-                    if (value !== undefined && value !== "" && !isNaN(value)) {
-                      const num = Number(value);
-                      if (
-                        min !== undefined &&
-                        min !== "" &&
-                        num < Number(min)
-                      ) {
-                        return Promise.reject(
-                          new Error(
-                            "当前default参数设置超出min和max范围，请重新设置"
-                          )
-                        );
-                      }
-                      if (
-                        max !== undefined &&
-                        max !== "" &&
-                        num > Number(max)
-                      ) {
-                        return Promise.reject(
-                          new Error(
-                            "当前default参数设置超出min和max范围，请重新设置"
-                          )
-                        );
-                      }
-                    }
-                    return Promise.resolve();
-                  },
-                }),
-              ]}
-            >
-              {selectedDataType !== "int" ||
-              (selectedDataType == "int" && selectEdittype == "EditBox") ? (
-                <Input
-                  placeholder="默认值"
-                  disabled={!canEditDefaultValue(selectedDataType)}
-                />
-              ) : (
-                <Select>
-                  <Option value="1">aa</Option>
-                  <Option value="2">bb</Option>
-                </Select>
-              )}
-            </Form.Item>
-          </Col>
-        </Row>
+                  //     // 只在数值类型时校验
+                  //     if (value !== undefined && value !== "" && !isNaN(value)) {
+                  //       const num = Number(value);
+                  //       if (
+                  //         min !== undefined &&
+                  //         min !== "" &&
+                  //         num < Number(min)
+                  //       ) {
+                  //         return Promise.reject(
+                  //           new Error(
+                  //             "当前default参数设置超出min和max范围，请重新设置"
+                  //           )
+                  //         );
+                  //       }
+                  //       if (
+                  //         max !== undefined &&
+                  //         max !== "" &&
+                  //         num > Number(max)
+                  //       ) {
+                  //         return Promise.reject(
+                  //           new Error(
+                  //             "当前default参数设置超出min和max范围，请重新设置"
+                  //           )
+                  //         );
+                  //       }
+                  //     }
+                  //     return Promise.resolve();
+                  //   },
+                  // }),
+                ]}
+              >
+                {selectedDataType !== "int" ||
+                (selectedDataType == "int" && selectEdittype == "EditBox") ? (
+                  <Input
+                    placeholder="默认值"
+                    disabled={!canEditDefaultValue(selectedDataType)}
+                  />
+                ) : (
+                  <Select>
+                    <Option value="1">aa</Option>
+                    <Option value="2">bb</Option>
+                  </Select>
+                )}
+              </Form.Item>
+            </Col>
+          )}
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="arraySize" label="数组大小">
               <InputNumber
@@ -269,17 +263,14 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               />
             </Form.Item>
           </Col>
+          {canEditMinMaxValue(selectedDataType) && (
+            <Col span={12}>
+              <Form.Item name="maxValue" label="最大值">
+                <Input placeholder="输入最大值" />
+              </Form.Item>
+            </Col>
+          )}
 
-          <Col span={12}>
-            <Form.Item name="maxValue" label="最大值">
-              <Input
-                placeholder="输入最大值"
-                disabled={!canEditMinMaxValue(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="visible" label="是否可见">
               <Select placeholder="选择是否可见">

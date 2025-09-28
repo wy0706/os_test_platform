@@ -330,7 +330,7 @@ const PostPage: React.FC<PreProps> = ({
       <EditModal
         open={isEditModalOpen}
         updateValue={updateValue}
-        type="post"
+        type="Post"
         onCancel={() => {
           setState({ isEditModalOpen: false });
         }}

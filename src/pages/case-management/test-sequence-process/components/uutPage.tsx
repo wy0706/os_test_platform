@@ -331,7 +331,7 @@ const UutPage: React.FC<PreProps> = ({
       <EditModal
         open={isEditModalOpen}
         updateValue={updateValue}
-        type="uut"
+        type="UUT"
         onCancel={() => {
           setState({ isEditModalOpen: false });
         }}

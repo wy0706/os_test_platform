@@ -335,11 +335,13 @@ const PrePage: React.FC<PreProps> = ({
       <EditModal
         open={isEditModalOpen}
         updateValue={updateValue}
-        type="pre"
+        type="Pre"
         onCancel={() => {
           setState({ isEditModalOpen: false });
         }}
         onOk={(values, type) => {
+          console.log("type", type);
+
           setState({ isEditModalOpen: false });
           const newData = [...data];
           let list = newData.map((item) =>
