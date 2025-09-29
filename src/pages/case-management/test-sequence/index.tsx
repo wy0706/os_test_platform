@@ -49,7 +49,9 @@ const DemoPage: React.FC = () => {
     updateValue: {},
     leftNodeValue: {},
     isAddModalOpen: false, //新增modal
-    optionType: "edit", //默认是｜edit｜ copy
+    addModalValue: {},
+    addModalType: "add", //默认是add add|edit|save
+    optionType: "copy", //默认是｜ copy|'remove'
   });
   const {
     title,
@@ -60,6 +62,8 @@ const DemoPage: React.FC = () => {
     leftOptionType,
     isLeftTreeModalOpen,
     leftNodeValue,
+    addModalType,
+    addModalValue,
   } = state;
 
   const operationColumn = {
@@ -76,9 +80,9 @@ const DemoPage: React.FC = () => {
         onClick={(e) => {
           e.stopPropagation();
           setState({
-            updateValue: record,
-            isUpdateModalOpen: true,
-            optionType: "edit",
+            isAddModalOpen: true,
+            addModalType: "edit",
+            addModalValue: record,
           });
         }}
       >
@@ -727,6 +731,8 @@ const DemoPage: React.FC = () => {
                         onClick={() => {
                           setState({
                             isAddModalOpen: true,
+                            addModalType: "add",
+                            addModalValue: {},
                           });
                         }}
                         key="add"
@@ -796,7 +802,7 @@ const DemoPage: React.FC = () => {
         }}
       />
 
-      {/* 编辑复制移动 */}
+      {/* 复制移动 */}
       <EditModal
         currentNode={selectedNodeId} //当前选中的树节点
         type={optionType}
@@ -814,13 +820,14 @@ const DemoPage: React.FC = () => {
           });
         }}
       />
-      {/* 新建测试序列 */}
+      {/* 新建编辑另存为测试序列 */}
       <AddModal
         open={isAddModalOpen}
         onCancel={() => {
           setState({ isAddModalOpen: false });
         }}
-        type="add"
+        type={addModalType}
+        updateValue={addModalValue}
         onOk={(values) => {
           console.log(values);
 

@@ -50,8 +50,7 @@ const EditModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    const name =
-      type === "edit" ? "编辑" : type === "copy" ? "复制序列" : "移动";
+    const name = type == "copy" ? "复制" : "移动";
     setTitle(name);
     if (open) {
       loadTreeData();

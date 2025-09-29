@@ -733,7 +733,7 @@ const Process: React.FC<ProcessProps> = ({
       {/* 左侧表格区域 */}
       <div className="process-left">
         <ProTable
-          scroll={{ x: 1020 }}
+          // scroll={{ x: 1020 }}
           columns={columns}
           dataSource={data}
           rowKey="id"

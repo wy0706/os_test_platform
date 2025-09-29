@@ -10,7 +10,7 @@ interface SetMemberModalProps {
   onCancel?: () => void;
   updateValue?: any;
   currentNode?: string;
-  type: "add" | "save";
+  type: "add" | "edit" | "save";
   onSelect?: () => void;
 }
 const { Option } = Select;
@@ -37,13 +37,13 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       {
         title: "名称",
         dataIndex: "title",
-        render: (text: any, record: any) => {
-          return (
-            <div>
-              {record?.text} {record?.description}
-            </div>
-          );
-        },
+        // render: (text: any, record: any) => {
+        //   return (
+        //     <div>
+        //       {record?.text} {record?.description}
+        //     </div>
+        //   );
+        // },
       },
       {
         title: "重要程度",
@@ -78,11 +78,13 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   useEffect(() => {
-    const name = type === "add" ? "新建" : "另存为";
+    const name = type === "add" ? "新建" : type == "edit" ? "编辑" : "另存为";
     setState({ title: name });
     if (open) {
       loadTreeData();
       form?.resetFields();
+      console.log("updateValue", updateValue);
+
       updateValue &&
         form?.setFieldsValue({ ...updateValue, gender: currentNode });
     }
@@ -129,22 +131,33 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Input placeholder="输入序列名称" maxLength={32} />
           </Form.Item>
 
-          <Form.Item name="gender" label="序列类型">
-            <TreeSelect
-              fieldNames={{ label: "name", value: "id" }}
-              showSearch
-              style={{ width: "100%" }}
-              styles={{
-                popup: { root: { maxHeight: 400, overflow: "auto" } },
-              }}
-              placeholder="选择序列类型"
-              allowClear
-              treeDefaultExpandAll
-              treeData={treeData}
-            />
-          </Form.Item>
+          {type == "edit" && (
+            <Form.Item name="status" label="是否发布">
+              <Select placeholder="选择是否发布">
+                <Option value="success">✓</Option>
+                <Option value="error">✗</Option>
+              </Select>
+            </Form.Item>
+          )}
 
-          <Form.Item name="status" label="测试流程">
+          {type != "edit" && (
+            <Form.Item name="gender" label="序列类型">
+              <TreeSelect
+                fieldNames={{ label: "name", value: "id" }}
+                showSearch
+                style={{ width: "100%" }}
+                styles={{
+                  popup: { root: { maxHeight: 400, overflow: "auto" } },
+                }}
+                placeholder="选择序列类型"
+                allowClear
+                treeDefaultExpandAll
+                treeData={treeData}
+              />
+            </Form.Item>
+          )}
+
+          <Form.Item name="type" label="测试流程">
             <Select placeholder="选择测试流程">
               <Option value="Pre测试">Pre测试</Option>
               <Option value="UUT测试">UUT测试</Option>
@@ -202,6 +215,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }}
         selectData={selectTestData}
         onOk={(values) => {
+          console.log("values", values);
+
           setState({
             selectTestData: values,
           });

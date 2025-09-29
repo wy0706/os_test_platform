@@ -111,7 +111,7 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
 
   return (
     <Modal
-      title="测试结束"
+      title="测试结果"
       maskClosable={false}
       open={open}
       onCancel={() => {
