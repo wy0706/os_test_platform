@@ -405,7 +405,7 @@ const Process: React.FC<ProcessProps> = ({
     {
       title: "激活",
       dataIndex: "status",
-      width: 100,
+      // width: 100,
       key: "status",
       valueType: "select",
       valueEnum: {
@@ -425,7 +425,7 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "tag",
       ellipsis: true,
       editable: () => true,
-      width: 100,
+      // width: 100,
     },
     {
       title: "测试命令",
@@ -433,7 +433,7 @@ const Process: React.FC<ProcessProps> = ({
       key: "command",
       editable: false,
       ellipsis: true,
-      width: 150,
+      // width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -454,7 +454,7 @@ const Process: React.FC<ProcessProps> = ({
       key: "inputParams",
       editable: false,
       ellipsis: true,
-      width: 150,
+      // width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -478,7 +478,7 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "outputParams",
       ellipsis: true,
       editable: false,
-      width: 150,
+      // width: 150,
       render: (text: any, record: any, index: number) => {
         return (
           <div
@@ -501,7 +501,7 @@ const Process: React.FC<ProcessProps> = ({
       dataIndex: "description",
       editable: () => true,
       ellipsis: true,
-      width: 150,
+      // width: 150,
     },
     {
       title: "操作",

@@ -3,6 +3,7 @@ import { getAll as getUserList } from "@/services/system-management/user-managem
 import { useSetState } from "ahooks";
 import { Col, Divider, Form, Input, Modal, Row, Select } from "antd";
 import { useEffect, useState } from "react";
+import { outAndInParams, paramUnits } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -160,23 +161,38 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               label="输入参数类型"
               rules={[{ required: true }]}
             >
-              <Select placeholder="选择输入参数类型" allowClear>
-                <Option value="1">类型一</Option>
-                <Option value="0">类型二</Option>
-              </Select>
+              <Select
+                placeholder="选择输入参数类型"
+                allowClear
+                options={outAndInParams}
+                onChange={(val) => {
+                  if (!val) {
+                    form.setFieldsValue({ name5: undefined }); // 清空单位
+                  }
+                }}
+              ></Select>
             </Form.Item>
           </Col>{" "}
           <Col span={12}>
             {" "}
             <Form.Item
-              name="name5"
-              label="输入参数单位"
-              rules={[{ required: true }]}
+              noStyle
+              shouldUpdate={(prev, cur) => prev.name4 !== cur.name4}
             >
-              <Select placeholder="选择输入参数单位" allowClear>
-                <Option value="1">KV</Option>
-                <Option value="0">mV</Option>
-              </Select>
+              {({ getFieldValue }) => (
+                <Form.Item
+                  name="name5"
+                  label="输入参数单位"
+                  rules={[{ required: !!getFieldValue("name4") }]} // 有类型才必填
+                >
+                  <Select
+                    placeholder="选择输入参数单位"
+                    allowClear
+                    options={paramUnits}
+                    disabled={!getFieldValue("name4")} // 没有类型 → disabled
+                  />
+                </Form.Item>
+              )}
             </Form.Item>
           </Col>
         </Row>
@@ -199,23 +215,38 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               label="输出参数类型"
               rules={[{ required: true }]}
             >
-              <Select placeholder="选择输出参数类型" allowClear>
-                <Option value="1">类型一</Option>
-                <Option value="0">类型二</Option>
-              </Select>
+              <Select
+                placeholder="选择输出参数类型"
+                allowClear
+                options={outAndInParams}
+                onChange={(val) => {
+                  if (!val) {
+                    form.setFieldsValue({ name50: undefined });
+                  }
+                }}
+              ></Select>
             </Form.Item>
           </Col>{" "}
           <Col span={12}>
             {" "}
             <Form.Item
-              name="name50"
-              label="输出参数单位"
-              rules={[{ required: true }]}
+              noStyle
+              shouldUpdate={(prev, cur) => prev.name40 !== cur.name40}
             >
-              <Select placeholder="选择输出参数单位" allowClear>
-                <Option value="1">KV</Option>
-                <Option value="0">mV</Option>
-              </Select>
+              {({ getFieldValue }) => (
+                <Form.Item
+                  name="name50"
+                  label="输出参数单位"
+                  rules={[{ required: !!getFieldValue("name40") }]}
+                >
+                  <Select
+                    placeholder="选择输出参数单位"
+                    allowClear
+                    options={paramUnits}
+                    disabled={!getFieldValue("name40")}
+                  />
+                </Form.Item>
+              )}
             </Form.Item>
           </Col>
         </Row>

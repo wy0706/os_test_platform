@@ -123,6 +123,12 @@ const Page: React.FC = () => {
       sorter: true,
       hideInSearch: true,
     },
+    {
+      title: "添加时间",
+      dataIndex: "createTime",
+      hideInTable: true,
+      valueType: "date",
+    },
   ];
 
   const columns = access["systemManagement-edit"]
