@@ -182,7 +182,6 @@ export const channelFormSchema = [
   },
 ];
 
-// 端口
 // 波特率
 export const rateOption = [
   { value: "9600", label: "9600" },
@@ -214,11 +213,11 @@ export const stopBitsOption = [
 
 // 奇偶校验
 export const parityOption = [
-  { value: "None", label: "None" },
-  { value: "Odd", label: "Odd" },
-  { value: "Even", label: "Even" },
-  { value: "Mark", label: "Mark" },
-  { value: "Space", label: "Space" },
+  { value: "0", label: "None" },
+  { value: "1", label: "Odd" },
+  { value: "2", label: "Even" },
+  { value: "3", label: "Mark" },
+  { value: "4", label: "Space" },
 ];
 
 //CAN  仲裁波特率

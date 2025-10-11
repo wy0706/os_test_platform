@@ -8,7 +8,7 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   onSelect?: () => void;
-  type?: string;
+
   data?: any;
 }
 const { Option } = Select;
@@ -17,12 +17,11 @@ const layout = {
   labelCol: { span: 24 },
 };
 
-const LinModal: React.FC<SetMemberModalProps> = ({
+const VXIModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
   onSelect,
-  type,
   data,
 }) => {
   const [form] = Form.useForm();
@@ -58,7 +57,7 @@ const LinModal: React.FC<SetMemberModalProps> = ({
     }
   }, [port]);
   useEffect(() => {
-    console.log("type====", type);
+    console.log("type====");
 
     if (open) {
       form?.resetFields();
@@ -72,7 +71,7 @@ const LinModal: React.FC<SetMemberModalProps> = ({
       console.log("uodateCalue====", data);
       form?.setFieldsValue(data);
     }
-  }, [open, type, data]);
+  }, [open, data]);
 
   const handleOk = () => {
     form
@@ -146,4 +145,4 @@ const LinModal: React.FC<SetMemberModalProps> = ({
   );
 };
 
-export default LinModal;
+export default VXIModal;

@@ -3,9 +3,7 @@ import {
   deleteModalOne,
   deleteTypeOne,
   getAllTypeAndModal,
-  updateTypeAndModal,
 } from "@/services/equipment-management/equipment-library-edit.service";
-import { isArray } from "@/utils";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -35,9 +33,25 @@ import React, { useEffect, useState } from "react";
 import AddModelModal from "./components/addModelModal";
 import AddTypeModal from "./components/addTypeModal";
 import CanModal from "./components/canModal";
+import LinModal from "./components/linModal";
 import ParamModal from "./components/paramModal";
 import SaveModal from "./components/saveModal";
 import "./index.less";
+interface DeviceConfig {
+  deviceType: string;
+  deviceModel: string;
+  interface: string;
+  parameterConfig: string;
+  isValid: boolean | string | number;
+  id: number;
+}
+
+interface ChannelConfig {
+  deviceModel: string;
+  channelNumber: string;
+  assignedSequenceNumber: string;
+  id: number;
+}
 
 interface TreeNode {
   title: string;
@@ -57,21 +71,34 @@ interface SelfCheckMessage {
 
 const PeripheralImport: React.FC = () => {
   const [selectedDevice, setSelectedDevice] = useState<string>("");
-  const [deviceConfigData, setDeviceConfigData] = useState<any[]>([]);
-  const [channelConfigData, setChannelConfigData] = useState<any[]>([]);
-  // 树结构数据
-  const [treeData, setTreeData] = useState<TreeNode[]>([]);
-  // 展开的节点keys
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [deviceConfigData, setDeviceConfigData] = useState<DeviceConfig[]>([]);
+  const [channelConfigData, setChannelConfigData] = useState<ChannelConfig[]>(
+    []
+  );
 
-  const [state, setState] = useSetState<any>({
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | number | null>(null);
+
+  const [state, setState] = useSetState<{
+    isTypeModalOpen: boolean;
+    isModelModalOpen: boolean;
+    oneModelNode: any;
+    isParamModalOpen: boolean;
+    isLinModalOpen: boolean;
+    isCanModalOpen: boolean;
+    paramType: string;
+    currentParamRecord: any;
+    isSelfCheck: boolean;
+    selfCheckMessages: SelfCheckMessage[];
+    isSelfChecking: boolean;
+    isSaveModalOpen: boolean;
+  }>({
     isTypeModalOpen: false,
     isModelModalOpen: false,
     oneModelNode: null, //右键种类添加型号的当前种类节点
-    isParamModalOpen: false, // RS232 TCPIP PXI LIN
-    isVxiModalOpen: false, //VXI
-    isCanModalOpen: false, //CAN
-    isOtherModalOPen: false, //其他类型 OTHER 预留
+    isParamModalOpen: false,
+    isLinModalOpen: false,
+    isCanModalOpen: false,
     paramType: "", //参数配置类型
     currentParamRecord: {}, //当前编辑表格行数据
     isSelfCheck: false, //是否点击自检
@@ -87,13 +114,12 @@ const PeripheralImport: React.FC = () => {
     isParamModalOpen,
     paramType,
     currentParamRecord,
-    isVxiModalOpen,
+    isLinModalOpen,
     isCanModalOpen,
     isSelfCheck,
     selfCheckMessages,
     isSelfChecking,
     isSaveModalOpen,
-    isOtherModalOPen,
   } = state;
   const params = useParams();
   useEffect(() => {
@@ -141,63 +167,64 @@ const PeripheralImport: React.FC = () => {
     }
   }, []);
 
+  // 树结构数据
+  const [treeData, setTreeData] = useState<TreeNode[]>([]);
+  // 展开的节点keys
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+
   // 设备配置表格列定义 1
-  const deviceConfigColumns: ProColumns<any>[] = [
+  const deviceConfigColumns: ProColumns<DeviceConfig>[] = [
     {
       title: "设备种类",
-      dataIndex: "group_name",
+      dataIndex: "deviceType",
+      key: "deviceType",
       width: 120,
       editable: false,
     },
     {
       title: "设备型号",
-      dataIndex: "instr_name",
+      dataIndex: "deviceModel",
+      key: "deviceModel",
       editable: false,
       width: 150,
     },
     {
       title: "接口",
       dataIndex: "interface",
+      key: "interface",
       editable: false,
       width: 100,
     },
     {
       title: "参数配置",
-      dataIndex: "paras",
+      dataIndex: "parameterConfig",
       editable: false,
-      // key: "parameterConfig",
+      key: "parameterConfig",
       width: 120,
       render: (text, record) => {
         return (
           <div
             onClick={() => {
-              let type = record.interface.toUpperCase();
               setState({
-                paramType: type,
+                paramType: record.deviceType,
                 currentParamRecord: record,
               });
-              if (type == "CAN") {
-                setState({
-                  isCanModalOpen: true,
-                });
-              } else if (
-                type == "LIN" ||
-                type == "RS232" ||
-                type == "TCPIP" ||
-                type == "PXI"
-              ) {
-                setState({
-                  isParamModalOpen: true,
-                });
-              } else if (type == "VXI") {
-                setState({
-                  isVxiModalOpen: true,
-                });
-              } else {
-                setState({
-                  isOtherModalOPen: true,
-                  paramType: "OTHER",
-                });
+              switch (record.deviceType) {
+                case "LIN":
+                  setState({
+                    isLinModalOpen: true,
+                  });
+                  return;
+                case "CAN":
+                  setState({
+                    isCanModalOpen: true,
+                  });
+                  return;
+                default:
+                  setState({
+                    isParamModalOpen: true,
+                  });
+                  return;
               }
             }}
             style={{ cursor: "pointer", color: "#1677ff" }}
@@ -209,9 +236,11 @@ const PeripheralImport: React.FC = () => {
     },
     {
       title: "是否有效",
-      dataIndex: "is_active",
+      dataIndex: "isValid",
+      key: "isValid",
       width: 100,
       valueType: "select",
+      // filters: true,
       ellipsis: true,
       editable: (text, record, index) => true,
       valueEnum: {
@@ -238,54 +267,57 @@ const PeripheralImport: React.FC = () => {
       valueType: "option",
       width: 100,
       key: "option",
-      render: (text, record, _, action) => {
-        return [
-          <Button
-            key="editable"
-            variant="link"
-            color="primary"
-            icon={<EditOutlined />}
-            onClick={() => {
-              action?.startEditable?.(String(record.instr_id));
-            }}
-          >
-            编辑
-          </Button>,
-        ];
-      },
+      render: (text, record, _, action) => [
+        <Button
+          key="editable"
+          variant="link"
+          color="primary"
+          icon={<EditOutlined />}
+          onClick={() => {
+            action?.startEditable?.(record.id);
+          }}
+        >
+          编辑
+        </Button>,
+      ],
     },
   ];
 
   // 通道配置表格列定义2
-  const channelConfigColumns: ProColumns<any>[] = [
+  const channelConfigColumns: ProColumns<ChannelConfig>[] = [
     {
       title: "设备型号",
-      dataIndex: "instr_name",
+      dataIndex: "deviceModel",
       width: 150,
       editable: false,
     },
     {
       title: "通道号",
-      dataIndex: "channel",
+      dataIndex: "channelNumber",
       width: 100,
       editable: false,
     },
     {
       title: "指定序号",
-      dataIndex: "serial",
+      dataIndex: "assignedSequenceNumber",
       width: 120,
       valueType: "select",
-      editable: () => true,
-      fieldProps: (_, { entity }) => {
-        const max = Number(entity?.list_indexmax) || 0;
-        const options = [
-          { label: "-1", value: "-1" },
-          ...Array.from({ length: max }, (_, i) => {
-            const v = String(i + 1);
-            return { label: v, value: v };
-          }),
-        ];
-        return { options };
+      editable: (text, record, index) => true,
+      valueEnum: {
+        "1": { text: "1" },
+        "2": { text: "2" },
+        "3": { text: "3" },
+        "4": { text: "4" },
+      },
+      renderFormItem: () => {
+        return (
+          <Select>
+            <Select.Option value="1">1</Select.Option>
+            <Select.Option value="2">2</Select.Option>
+            <Select.Option value="3">3</Select.Option>
+            <Select.Option value="4">4</Select.Option>
+          </Select>
+        );
       },
     },
     {
@@ -293,32 +325,26 @@ const PeripheralImport: React.FC = () => {
       valueType: "option",
       key: "option",
       width: 100,
-      render: (text, record, _, action) => {
-        const disabled = !(Number(record?.list_indexmax) > 0);
-        return [
-          <Button
-            key="editable"
-            variant="link"
-            color="primary"
-            disabled={disabled}
-            icon={<EditOutlined />}
-            onClick={() => {
-              if (disabled) {
-                message.warning("该行不可编辑（list_indexmax 为 0）");
-                return;
-              }
-              action?.startEditable?.(String(record.instr_id));
-            }}
-          >
-            编辑
-          </Button>,
-        ];
-      },
+      render: (text, record, _, action) => [
+        <Button
+          key="editable"
+          variant="link"
+          color="primary"
+          icon={<EditOutlined />}
+          onClick={() => {
+            action?.startEditable?.(record.id);
+          }}
+        >
+          编辑
+        </Button>,
+      ],
     },
   ];
   // 树节点选择处理
   const onSelect = async (selectedKeys: React.Key[], info: any) => {
     const node = info.node as Node;
+    console.log("node", node);
+
     setState({
       isSelfCheck: false,
     });
@@ -327,73 +353,63 @@ const PeripheralImport: React.FC = () => {
       setChannelConfigData([]);
       return;
     }
-    setDeviceConfigData([]); //清空设备种类table
-    setChannelConfigData([]); //清空设备型号table
+
+    // if (selectedKeys.length > 0) {
     setSelectedDevice(selectedKeys[0] as string);
-    if (!node?.level) {
-      // level 异常时直接返回
-      message.error("节点层级信息缺失");
-      return;
-    }
-    if (node?.level == 1) {
+    // }
+    if (selectedKeys[0] === "instrument") {
       const { code, data, message: msg } = await getAllTypeAndModal({});
       if (code !== 0) {
         message.error(msg || "操作失败");
+        setDeviceConfigData([]); //清空设备种类table
+        setChannelConfigData([]); //清空设备型号table
         return;
       }
-      setDeviceConfigData(data?.list_info1 || []);
-      setChannelConfigData([]); //清空设备型号table(一级不展示型号信息)
+      setDeviceConfigData(data?.list_info || []);
+      setChannelConfigData([]); //清空设备型号table
       return;
     }
-    if (node?.level == 2) {
-      const {
-        code,
-        data,
-        message: msg,
-      } = await getAllTypeAndModal({ type_code: selectedKeys[0] });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      setDeviceConfigData(data?.list_info1 || []);
+    // if (node.level == 2) {
+    // }
+    console.log("selectedKeys", selectedKeys, node);
 
-      let list =
-        isArray(data?.list_info2) && data?.list_info2.length > 0
-          ? data.list_info2.map((item: any) => {
-              return {
-                ...item,
-                list_indexmax: data?.list_indexmax || 0,
-              };
-            })
-          : [];
-
-      console.log("list", list);
-
-      setChannelConfigData(list);
-    }
-    if (node?.level == 3) {
-      const num = Number(node.key.replace("child", ""));
-      const {
-        code,
-        data,
-        message: msg,
-      } = await getAllTypeAndModal({ id: num });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      let list =
-        isArray(data?.list_info2) && data?.list_info2.length > 0
-          ? data.list_info2.map((item: any) => {
-              return {
-                ...item,
-                list_indexmax: data?.list_indexmax || 0,
-              };
-            })
-          : [];
-      setDeviceConfigData(data?.list_info1 || []);
-      setChannelConfigData(list);
-    }
+    // // 选中请求table数据
+    // const data1 = [
+    //   {
+    //     deviceModel: "RS2328",
+    //     channelNumber: "1",
+    //     assignedSequenceNumber: "1",
+    //     id: 1,
+    //   },
+    // ];
+    // const data2 = [
+    //   {
+    //     deviceType: "CAN",
+    //     deviceModel: "VECTOR",
+    //     interface: "CAN",
+    //     parameterConfig: "81,22,1",
+    //     isValid: 1,
+    //     id: 1,
+    //   },
+    //   {
+    //     deviceType: "RS232 Device",
+    //     deviceModel: "RS2328",
+    //     interface: "RS232",
+    //     parameterConfig: "1,115200,1",
+    //     isValid: 0,
+    //     id: 2,
+    //   },
+    //   {
+    //     deviceType: "LIN",
+    //     deviceModel: "LIN",
+    //     interface: "RS232",
+    //     parameterConfig: "1,115200,1",
+    //     isValid: 0,
+    //     id: 3,
+    //   },
+    // ];
+    // setDeviceConfigData(data2);
+    // setChannelConfigData(data1);
   };
 
   // 树节点展开/收起处理
@@ -1080,10 +1096,11 @@ const PeripheralImport: React.FC = () => {
             />
           </Card>
 
-          {/* 右侧区域 */}
+          {/* 右侧表格区域 */}
           <div className="table-panel">
-            {isSelfCheck ? (
-              <Card className="table-card">
+            {/* 设备配置表格 */}
+            <Card className="table-card">
+              {isSelfCheck ? (
                 <div className="self-check-container">
                   <div className="self-check-header">
                     <h3>自检信息</h3>
@@ -1137,97 +1154,67 @@ const PeripheralImport: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </Card>
-            ) : (
-              <Card className="table-card">
-                {/* 设备配置表格 */}
-                <div className="protable-holder">
-                  <ProTable<any>
-                    dateFormatter="string"
-                    columns={deviceConfigColumns}
-                    dataSource={deviceConfigData}
-                    pagination={false}
-                    search={false}
-                    options={false}
-                    size="small"
-                    // scroll={{ y: "max-content" }}
-                    sticky={{ offsetHeader: 0 }}
-                    rowKey={(row) => String(row?.instr_id)}
-                    editable={{
-                      type: "single",
-                      actionRender: (row, config, defaultDoms) => {
-                        // 这里只返回 save/cancel 没问题，因为你在列里自定义了“编辑”按钮
-                        return [defaultDoms.save, defaultDoms.cancel];
-                      },
-                      onSave: async (rowKey, data, row) => {
-                        const { code, message: msg } = await updateTypeAndModal(
-                          {
-                            is_active: data.is_active,
-                            index: String(rowKey),
-                          }
-                        );
-                        if (code !== 0) {
-                          message.error(msg || "操作失败");
-                          return;
-                        }
-                        const newData = deviceConfigData.map((item) =>
-                          String(item.instr_id) === String(rowKey)
-                            ? { ...item, ...data }
-                            : item
-                        );
-                        setDeviceConfigData(newData);
-                        message.success(msg || "操作成功");
-                      },
-                    }}
-                  />
-                </div>
-              </Card>
-            )}
-
-            {/* 通道配置表格 */}
-            <Card className="table-card">
-              {/* 指定序号可编辑
-               */}
-              <div className="protable-holder">
-                <ProTable<any>
-                  dateFormatter="string"
-                  columns={channelConfigColumns}
-                  dataSource={channelConfigData}
+              ) : (
+                <ProTable<DeviceConfig>
+                  columns={deviceConfigColumns}
+                  dataSource={deviceConfigData}
                   pagination={false}
                   search={false}
                   options={false}
                   size="small"
-                  sticky={{ offsetHeader: 0 }}
-                  rowKey={(row) => String(row?.instr_id)}
+                  rowKey="id"
                   editable={{
                     type: "single",
                     actionRender: (row, config, defaultDoms) => {
                       return [defaultDoms.save, defaultDoms.cancel];
                     },
                     onSave: async (rowKey, data, row) => {
-                      const { code, message: msg } = await updateTypeAndModal({
-                        useindex: data.serial,
-                        index: String(rowKey),
-                      });
-                      if (code !== 0) {
-                        message.error(msg || "操作失败");
-                        return;
-                      }
-                      // 更新通道配置数据
-                      const newData = channelConfigData.map((item) =>
-                        String(item.instr_id) === String(rowKey)
-                          ? { ...item, ...data }
-                          : item
+                      // 更新设备配置数据
+                      const newData = deviceConfigData.map((item) =>
+                        item.id === rowKey ? { ...item, ...data } : item
                       );
-                      setChannelConfigData(newData);
-                      message.success(msg || "操作成功");
+                      setDeviceConfigData(newData);
+                      message.success("保存成功");
                     },
                     onCancel: async (rowKey, record, originRow) => {
                       message.info("已取消编辑");
                     },
                   }}
                 />
-              </div>
+              )}
+            </Card>
+
+            {/* 通道配置表格 */}
+            <Card className="table-card">
+              {/* 指定序号可编辑
+               */}
+
+              <ProTable<ChannelConfig>
+                columns={channelConfigColumns}
+                dataSource={channelConfigData}
+                pagination={false}
+                search={false}
+                options={false}
+                size="small"
+                rowKey="id"
+                editable={{
+                  type: "single",
+                  actionRender: (row, config, defaultDoms) => {
+                    return [defaultDoms.save, defaultDoms.cancel];
+                  },
+                  onSave: async (rowKey, data, row) => {
+                    // 更新通道配置数据
+                    const newData = channelConfigData.map((item) =>
+                      item.id === rowKey ? { ...item, ...data } : item
+                    );
+                    setChannelConfigData(newData);
+                    message.success("保存成功");
+                  },
+                  onCancel: async (rowKey, record, originRow) => {
+                    message.info("已取消编辑");
+                  },
+                }}
+              />
             </Card>
           </div>
         </div>
@@ -1250,11 +1237,10 @@ const PeripheralImport: React.FC = () => {
         data={oneModelNode}
         onOk={handleAddModelSuccess}
       />
-      {/* 配置参数 */}
+      {/* 串口配置参数 */}
       <ParamModal
         open={isParamModalOpen}
         data={currentParamRecord}
-        type={paramType}
         onCancel={() => {
           setState({
             isParamModalOpen: false,
@@ -1282,20 +1268,20 @@ const PeripheralImport: React.FC = () => {
         }}
       />
       {/* lin */}
-      {/* <LinModal
-        open={isVxiModalOpen}
+      <LinModal
+        open={isLinModalOpen}
         data={currentParamRecord}
         onCancel={() => {
           setState({
-            isVxiModalOpen: false,
+            isLinModalOpen: false,
           });
         }}
         onOk={() => {
           setState({
-            isVxiModalOpen: false,
+            isLinModalOpen: false,
           });
         }}
-      /> */}
+      />
       {/* 保存另存为 */}
       <SaveModal
         open={isSaveModalOpen}

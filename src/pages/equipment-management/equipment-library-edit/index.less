@@ -71,17 +71,25 @@
         background: white;
         border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
         .ant-card-head {
           flex-shrink: 0;
           background: #fafafa;
           border-bottom: 1px solid #f0f0f0;
         }
+        .protable-holder {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          min-height: 0; // ★ 关键
+          overflow-y: auto;
+        }
 
         .ant-card-body {
+          display: flex;
           flex: 1;
-          padding: 16px;
-          overflow: hidden;
+          flex-direction: column;
+          min-height: 0; // ★ 关键：允许子级撑满后滚动
+          overflow: hidden; // 让滚动交给 ProTable 的 scroll.y，避免双滚动
         }
 
         .ant-pro-table {

@@ -1,12 +1,13 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Modal, Select } from "antd";
+import { Form, Input, Modal, Select } from "antd";
 
 import { useEffect, useState } from "react";
 import {
   COMOptions,
   dataBitsOption,
+  linRateOption,
   parityOption,
   rateOption,
+  spaceOptions,
   stopBitsOption,
 } from "../schemas";
 interface SetMemberModalProps {
@@ -15,6 +16,7 @@ interface SetMemberModalProps {
   onCancel?: () => void;
   onSelect?: () => void;
   data?: any;
+  type: any;
 }
 const { Option } = Select;
 
@@ -29,46 +31,114 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
   onCancel,
   onSelect,
   data,
+  type,
 }) => {
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
-      }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [form] = Form.useForm();
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const port = Form.useWatch("param6", form);
 
   useEffect(() => {
-    if (open) {
-      form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      // fetchAllUsers();
-      // if (isUpdate && data) {
-      //   console.log("uodateCalue", data);
-      //   formRef.current?.setFieldsValue(data);
-      // }
-      // if ((type === "edit" || type === "copy") && data) {
-      //   console.log("uodateCalue====", data);
-      //   form?.setFieldsValue(data);
-      // }
-    }
-  }, [open, data]);
+    initData();
+  }, [open, data, type]);
+  // 1) 拆分：保留空位 + 去两侧空格
+  const splitParas = (paras?: any) =>
+    String(paras ?? "")
+      .split(",")
+      .map((s) => s.trim());
 
-  const [form] = Form.useForm();
+  // 2) 选择器值校验：值在 options 中则用之；不在则取第一个；但空字符串 "" 原样保留
+  const getValidValue = (value: any, options: any[]) => {
+    if (value === "") return ""; // 用户传空就保持空
+    if (!options || options.length === 0) return value;
+    const values = options.map((o) =>
+      typeof o === "object" ? o.value ?? o : o
+    );
+    return values.includes(value) ? value : values[0];
+  };
+
+  // 3) 生成赋值数组：
+  //    - FRONT: 从开头取 n 个；PXI 用 BACK：从末尾取 n 个
+  //    - 截断/补齐长度
+  const pickForType = (parts: string[], n: number, mode: "FRONT" | "BACK") => {
+    let picked = mode === "BACK" ? parts.slice(-n) : parts.slice(0, n);
+    if (picked.length < n)
+      picked = picked.concat(Array(n - picked.length).fill(""));
+    if (picked.length > n) picked = picked.slice(0, n);
+    return picked;
+  };
+
+  // 4) 仅过滤 undefined，保留空字符串
+  const setIfAny = (obj: Record<string, any>) =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+  const initData = () => {
+    if (!open) return;
+    form?.resetFields();
+
+    const parts = splitParas(data?.paras);
+
+    switch (type) {
+      /** ------------ RS232：前 5 个 -------------- */
+      case "RS232": {
+        const [p1, p2, p3, p4, p5] = pickForType(parts, 5, "FRONT");
+        form.setFieldsValue(
+          setIfAny({
+            param1: getValidValue(p1, COMOptions),
+            param2: getValidValue(p2, rateOption),
+            param3: getValidValue(p3, dataBitsOption),
+            param4: getValidValue(p4, stopBitsOption),
+            param5: getValidValue(p5, parityOption),
+          })
+        );
+        return;
+      }
+
+      /** -------------- LIN：前 3 个 -------------- */
+      case "LIN": {
+        const [mode, rate, space] = pickForType(parts, 3, "FRONT");
+        form.setFieldsValue(
+          setIfAny({
+            param6: getValidValue(mode, [{ value: "1" }, { value: "2" }]),
+            param7: getValidValue(rate, linRateOption),
+            param8: getValidValue(space, spaceOptions),
+          })
+        );
+        return;
+      }
+
+      /** -------- TCPIP：前 2 个（多余丢弃） -------- */
+      case "TCPIP": {
+        // 例："192.168.110.212,30000,  " -> ["192.168.110.212","30000",""]
+        // 赋值只取前两位 -> IP/端口
+        const [ip, port] = pickForType(parts, 2, "FRONT");
+        form.setFieldsValue(
+          setIfAny({
+            param9: ip,
+            param10: port,
+          })
+        );
+        return;
+      }
+
+      /** -------- PXI：后 2 个（默认取后两位） ------- */
+      case "PXI": {
+        const [chassis, slot] = pickForType(parts, 2, "BACK");
+
+        console.log("chassis", chassis);
+        console.log("slot", slot);
+
+        form.setFieldsValue(
+          setIfAny({
+            param11: chassis,
+            param12: slot,
+          })
+        );
+        return;
+      }
+
+      default:
+        return;
+    }
+  };
 
   const handleOk = () => {
     form
@@ -92,101 +162,205 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
+      destroyOnHidden
+      confirmLoading={confirmLoading}
       styles={{ body: { minHeight: 100, padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="port" label="端口">
-          <Select
-            placeholder="选择设备类型"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {COMOptions.map((com) => (
-              <Option key={com} value={com}>
-                {com}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item name="rate" label="波特率">
-          <Select
-            placeholder="选择波特率 "
-            allowClear
-            showSearch
-            options={rateOption}
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          ></Select>
-        </Form.Item>
-        <Form.Item name="databits" label="数据位">
-          <Select
-            placeholder="选择数据位"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {dataBitsOption.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item name="stopbits" label="停止位">
-          <Select
-            placeholder="选择停止位"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {stopBitsOption.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item name="parity" label="奇偶校验">
-          <Select
-            placeholder="选择奇偶校验"
-            allowClear
-            showSearch
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {parityOption.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+        {type && type == "RS232" && (
+          <>
+            <Form.Item name="param1" label="端口" rules={[{ required: true }]}>
+              <Select
+                placeholder="选择设备类型"
+                showSearch
+                allowClear
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {COMOptions.map((com) => (
+                  <Option key={com} value={com}>
+                    {com}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="param2"
+              label="波特率"
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择波特率"
+                showSearch
+                allowClear
+                options={rateOption}
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              ></Select>
+            </Form.Item>
+            <Form.Item
+              name="param3"
+              label="数据位"
+              initialValue={"8"}
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择数据位"
+                showSearch
+                allowClear
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {dataBitsOption.map((item) => (
+                  <Option value={item.value} key={item.value}>
+                    {item.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="param4"
+              label="停止位"
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择停止位"
+                showSearch
+                allowClear
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {stopBitsOption.map((item) => (
+                  <Option value={item.value} key={item.value}>
+                    {item.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="param5"
+              label="奇偶校验"
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择奇偶校验"
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {parityOption.map((item) => (
+                  <Option value={item.value} key={item.value}>
+                    {item.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </>
+        )}
+        {type && type == "LIN" && (
+          <>
+            <Form.Item
+              name="param6"
+              label="主从模式"
+              rules={[{ required: true }]}
+            >
+              <Select placeholder="选择主从模式" allowClear>
+                <Option value="1">master</Option>
+                <Option value="2">slave</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="param7"
+              label="波特率值"
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择波特率值"
+                showSearch
+                allowClear
+                options={linRateOption}
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              ></Select>
+            </Form.Item>
+            <Form.Item
+              name="param8"
+              label="同步间隔宽度(bit)"
+              rules={[{ required: true }]}
+            >
+              <Select
+                placeholder="选择间隔宽度"
+                disabled={port == 2}
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {spaceOptions.map((item) => (
+                  <Option value={item.value} key={item.value}>
+                    {item.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </>
+        )}
+        {type && type == "TCPIP" && (
+          <>
+            <Form.Item
+              name="param9"
+              label="IP地址"
+              rules={[{ required: true }]}
+            >
+              <Input placeholder="输入IP地址" allowClear />
+            </Form.Item>
+            <Form.Item
+              name="param10"
+              label="端口号"
+              rules={[{ required: true }]}
+            >
+              <Input placeholder="输入端口号" allowClear />
+            </Form.Item>
+          </>
+        )}{" "}
+        {type && type == "PXI" && (
+          <>
+            <Form.Item
+              name="param11"
+              label="PXI机箱地址"
+              rules={[{ required: true }]}
+            >
+              <Input placeholder="输入PXI机箱地址" allowClear />
+            </Form.Item>
+            <Form.Item name="param12" label="Slot" rules={[{ required: true }]}>
+              <Input placeholder="输入Slot" allowClear />
+            </Form.Item>
+          </>
+        )}
       </Form>
     </Modal>
   );

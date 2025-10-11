@@ -93,63 +93,40 @@ export async function deleteModalOne(instr_id: any) {
  */
 
 export async function deleteAllBatch() {
-  const result: any = await request<{}>(`${baseUrl}/temphwcquery`, {
-    method: "GET",
-  });
-  return result;
-}
-// 点击Instrment，查询类型所有数据
-
-export async function getAllType() {
   const result: any = await request<{}>(`${baseUrl}/temphwcdelall`, {
     method: "GET",
   });
   return result;
 }
-
-// ============================================================
-export async function getList(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getList`, {
+/**
+ * 点击左侧树，查询类型所有数据
+ *
+ * @param {Object} params 请求参数
+ * @param {Int} params.type_code 非必填，如果填了，就返回当前类别的仪器清单
+ * @param {Int} params.id 非必填，按照当前表格中的索引值，查看仪器信息
+ */
+export async function getAllTypeAndModal(params: any) {
+  const result: any = await request<{}>(`${baseUrl}/temphwcquery`, {
     method: "GET",
-    params: params,
+    params,
   });
   return result;
 }
 
-export async function getAll(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getAll`, {
-    method: "GET",
-    params: params,
-  });
-  return result;
-}
+/**
+ * 修改型号和类型的数据
+ *
+ * @param {Object} params 请求参数
+ * @param {Int} params.index 待设置参数的仪器在临时表中的index
+ * @param {Int} params.paras 待设置参数的仪器的参数
+ * @param {Int} params.is_active 待设置参数的仪器是否有效
+ * @param {Int} params.useindex 待设置参数的仪器在当前类别中的序号
+ */
 
-export async function getOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/getOne/${id}`, {
-    method: "GET",
-  });
-  return result;
-}
-
-export async function updateOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
+export async function updateTypeAndModal(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/hwcinstrparamodify`, {
     method: "POST",
     data: data,
-  });
-  return result;
-}
-
-export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
-    method: "DELETE",
-  });
-  return result;
-}
-
-export async function deleteBatch(ids: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-    method: "DELETE",
-    data: ids,
   });
   return result;
 }
