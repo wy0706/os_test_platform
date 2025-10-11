@@ -1,5 +1,8 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Modal, Select } from "antd";
+import {
+  createTypeOne,
+  getInstrumentType,
+} from "@/services/equipment-management/equipment-library-edit.service";
+import { Form, message, Modal, Select } from "antd";
 import { useEffect, useState } from "react";
 
 interface SetMemberModalProps {
@@ -26,67 +29,55 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
-  const [title, setTitle] = useState("新建");
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [typeList, setTypeList] = useState<any[]>([]);
 
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
-      }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
+  const [loading, setLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+
+  const getTypeList = async () => {
+    const {
+      code,
+      data,
+      message: msg,
+    } = await getInstrumentType({
+      route: 0,
+    });
+    if (code !== 0) {
+      message.error(msg);
+      setTypeList([]);
+      return;
     }
+    setTypeList(data?.list_info || []);
   };
 
   useEffect(() => {
-    const name = type === "edit" ? "编辑" : type === "copy" ? "复制" : "新建";
-    setTitle(name);
-    if (open) {
-      form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      fetchAllUsers();
-      // if (isUpdate && updateValue) {
-      //   console.log("uodateCalue", updateValue);
-      //   formRef.current?.setFieldsValue(updateValue);
-      // }
-      if ((type === "edit" || type === "copy") && updateValue) {
-        console.log("uodateCalue====", updateValue);
-        form?.setFieldsValue(updateValue);
-      }
-    }
+    initData();
   }, [open, type, updateValue]);
 
+  const initData = async () => {
+    if (open) {
+      form?.resetFields();
+      getTypeList();
+    }
+  };
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
-    console.log(values);
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    setSubmitLoading(true);
+    try {
+      const { code, message: msg } = await createTypeOne({ ...values });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      let obj = typeList.find((item) => item.type_code == values.type_code);
+      onOk?.(obj);
+    } catch (error) {
+    } finally {
+      setSubmitLoading(false);
+    }
   };
-
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
-  };
-
   return (
     <Modal
       title="添加设备类型"
@@ -95,12 +86,18 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 100, padding: 20 } }}
+      destroyOnHidden
+      confirmLoading={submitLoading}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="name" label="设备类型" rules={[{ required: true }]}>
+      <Form {...layout} form={form} name="control-hooks">
+        <Form.Item
+          name="type_code"
+          label="设备类型"
+          rules={[{ required: true }]}
+        >
           <Select
             placeholder="选择设备类型"
             allowClear
@@ -112,17 +109,9 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
                 .includes(input.toLowerCase())
             }
           >
-            <Option value="AC SOURCE">AC SOURCE</Option>
-            <Option value="DSO">DSO</Option>
-            <Option value="LOAD">LOAD</Option>
-            <Option value="AWC">AWC</Option>
-            <Option value="LED LOAD">LED LOAD</Option>
-            {userList.map((user) => (
-              <Option key={user.id} value={user.id}>
-                {user.name ||
-                  user.username ||
-                  user.realName ||
-                  user.displayName}
+            {typeList.map((item) => (
+              <Option key={item.type_code} value={item.type_code}>
+                {item.group_name}
               </Option>
             ))}
           </Select>

@@ -100,7 +100,7 @@ const Page: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: "状态",
+      title: "是否激活",
       dataIndex: "status",
       ellipsis: true,
       hideInSearch: true,

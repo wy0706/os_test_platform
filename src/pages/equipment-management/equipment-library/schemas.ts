@@ -6,14 +6,12 @@ export const schemasTitle: any = {
 export const schemasColumns: any = [
   {
     title: "名称",
-    dataIndex: "title",
+    dataIndex: "file_name",
     ellipsis: true,
-    sorter: true,
   },
   {
     title: "创建时间",
-    dataIndex: "createTime",
-    key: "showTime",
+    dataIndex: "edit_time",
     ellipsis: true,
     sorter: true,
     valueType: "dateTime",
@@ -21,8 +19,8 @@ export const schemasColumns: any = [
   },
   {
     title: "创建时间",
-    dataIndex: "createTime",
-
+    dataIndex: "edit_time",
+    key: "edit_time",
     valueType: "date",
     hideInTable: true,
   },

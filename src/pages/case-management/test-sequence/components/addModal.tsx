@@ -1,5 +1,4 @@
 import { DemoService } from "@/services/case-management/test-sequence.service";
-import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Form, Input, message, Modal, Select, TreeSelect } from "antd";
 import { useEffect } from "react";
@@ -184,23 +183,42 @@ const AddModal: React.FC<SetMemberModalProps> = ({
               >
                 选择测试用例
               </Button>
-
+              {/* 
               {selectTestData && selectTestData.length > 0 ? (
-                <div style={{ width: "100%" }}>
-                  <ProTable<any>
-                    search={false}
-                    columns={columns}
-                    cardBordered
-                    options={false}
-                    dataSource={selectTestData}
-                    rowKey="id"
-                    pagination={{
-                      pageSize: 100,
-                    }}
-                    headerTitle="已关联测试用例"
-                  />
+                <>
+                  <div>已关联测试用例：</div>{" "}
+                  <div>
+                    {selectTestData.map((item: any) => item.title).join(",")}
+                  </div>
+                </>
+              ) : (
+                <span></span>
+              )} */}
+              {selectTestData && selectTestData.length > 0 ? (
+                <div>
+                  <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                    已关联测试用例：
+                  </div>
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                  >
+                    {selectTestData.map((item: any, index: number) => (
+                      <span
+                        key={index}
+                        style={{
+                          background: "#f0f0f0",
+                          padding: "4px 10px",
+                          borderRadius: "12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {item.title}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ) : (
+                // <span>暂无关联用例</span>
                 <span></span>
               )}
             </div>
@@ -216,7 +234,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         selectData={selectTestData}
         onOk={(values) => {
           console.log("values", values);
-
           setState({
             selectTestData: values,
           });

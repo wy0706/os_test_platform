@@ -1,4 +1,5 @@
 import {
+  createOne,
   deleteOne,
   getList,
 } from "@/services/equipment-management/equipment-library.service";
@@ -11,8 +12,9 @@ import {
 import { history, useAccess } from "@umijs/max";
 import DetailModal from "./components/detailModal";
 
+import { transformParams } from "@/utils/params";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal } from "antd";
+import { Button, Form, message, Modal } from "antd";
 import React, { useRef, useState } from "react";
 import { schemasColumns, schemasTitle } from "./schemas";
 
@@ -38,7 +40,7 @@ const Page: React.FC = () => {
       <Button
         key="edit"
         variant="link"
-        color="primary"
+        color="danger"
         icon={<DeleteOutlined />}
         onClick={() => {
           Modal.confirm({
@@ -76,23 +78,36 @@ const Page: React.FC = () => {
     ],
   };
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
-        total: 1,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
     }
+    return {
+      data: data?.list_info || [],
+      total: data?.total_cnt,
+      success: true,
+    };
   };
+
   //   处理行点击事件
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
   const handleRowClick = (record: any, index: number) => {
     history.push(`/equipment-management/equipment-library-edit/${record.id}`);
     // 更新选中的行
     setSelectedRow(record);
+  };
+
+  const handleAdd = async () => {
+    const { code, message: msg, data } = await createOne();
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
+    }
+
+    history.push("/equipment-management/equipment-library-edit/add");
   };
   return (
     <PageContainer>
@@ -108,8 +123,8 @@ const Page: React.FC = () => {
         rowKey="id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
+        dateFormatter="string"
         headerTitle={title.label}
         toolBarRender={() =>
           access["equipmentManagement-edit"]
@@ -117,11 +132,7 @@ const Page: React.FC = () => {
                 <Button
                   key="button"
                   icon={<PlusOutlined />}
-                  onClick={() => {
-                    history.push(
-                      "/equipment-management/equipment-library-edit/add"
-                    );
-                  }}
+                  onClick={handleAdd}
                   type="primary"
                 >
                   新建

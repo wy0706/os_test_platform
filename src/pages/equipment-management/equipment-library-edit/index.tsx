@@ -1,4 +1,10 @@
 import {
+  deleteAllBatch,
+  deleteModalOne,
+  deleteTypeOne,
+  getAllType,
+} from "@/services/equipment-management/equipment-library-edit.service";
+import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -234,7 +240,7 @@ const PeripheralImport: React.FC = () => {
       key: "isValid",
       width: 100,
       valueType: "select",
-      filters: true,
+      // filters: true,
       ellipsis: true,
       editable: (text, record, index) => true,
       valueEnum: {
@@ -335,50 +341,70 @@ const PeripheralImport: React.FC = () => {
     },
   ];
   // 树节点选择处理
-  const onSelect = (selectedKeys: React.Key[]) => {
+  const onSelect = async (selectedKeys: React.Key[], info: any) => {
+    const node = info.node as Node;
     setState({
       isSelfCheck: false,
     });
-    if (selectedKeys.length > 0) {
-      setSelectedDevice(selectedKeys[0] as string);
+    if (selectedKeys.length == 0) {
+      setDeviceConfigData([]);
+      setChannelConfigData([]);
+      return;
     }
-    // 选中请求table数据
-    const data1 = [
-      {
-        deviceModel: "RS2328",
-        channelNumber: "1",
-        assignedSequenceNumber: "1",
-        id: 1,
-      },
-    ];
-    const data2 = [
-      {
-        deviceType: "CAN",
-        deviceModel: "VECTOR",
-        interface: "CAN",
-        parameterConfig: "81,22,1",
-        isValid: 1,
-        id: 1,
-      },
-      {
-        deviceType: "RS232 Device",
-        deviceModel: "RS2328",
-        interface: "RS232",
-        parameterConfig: "1,115200,1",
-        isValid: 0,
-        id: 2,
-      },
-      {
-        deviceType: "LIN",
-        deviceModel: "LIN",
-        interface: "RS232",
-        parameterConfig: "1,115200,1",
-        isValid: 0,
-        id: 3,
-      },
-    ];
-    setDeviceConfigData(data2);
-    setChannelConfigData(data1);
+
+    // if (selectedKeys.length > 0) {
+    setSelectedDevice(selectedKeys[0] as string);
+    // }
+    if (selectedKeys[0] === "instrument") {
+      const { code, data, message: msg } = await getAllType();
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        setDeviceConfigData([]); //清空设备种类table
+        setChannelConfigData([]); //清空设备型号table
+        return;
+      }
+      setDeviceConfigData(data?.list_info || []);
+      setChannelConfigData([]); //清空设备型号table
+    }
+    console.log("selectedKeys", selectedKeys, node);
+
+    // // 选中请求table数据
+    // const data1 = [
+    //   {
+    //     deviceModel: "RS2328",
+    //     channelNumber: "1",
+    //     assignedSequenceNumber: "1",
+    //     id: 1,
+    //   },
+    // ];
+    // const data2 = [
+    //   {
+    //     deviceType: "CAN",
+    //     deviceModel: "VECTOR",
+    //     interface: "CAN",
+    //     parameterConfig: "81,22,1",
+    //     isValid: 1,
+    //     id: 1,
+    //   },
+    //   {
+    //     deviceType: "RS232 Device",
+    //     deviceModel: "RS2328",
+    //     interface: "RS232",
+    //     parameterConfig: "1,115200,1",
+    //     isValid: 0,
+    //     id: 2,
+    //   },
+    //   {
+    //     deviceType: "LIN",
+    //     deviceModel: "LIN",
+    //     interface: "RS232",
+    //     parameterConfig: "1,115200,1",
+    //     isValid: 0,
+    //     id: 3,
+    //   },
+    // ];
+    // setDeviceConfigData(data2);
+    // setChannelConfigData(data1);
   };
 
   // 树节点展开/收起处理
@@ -389,6 +415,9 @@ const PeripheralImport: React.FC = () => {
   // 根据节点层级获取右键菜单
   const getContextMenu = (node: TreeNode) => {
     const level = node.level || 1;
+    const hasChildren =
+      Array.isArray(node.children) && node.children.length > 0;
+
     switch (level) {
       case 1: // Instrument 级别
         return {
@@ -405,6 +434,7 @@ const PeripheralImport: React.FC = () => {
               key: "deleteAll",
               icon: <DeleteOutlined />,
               label: "删除全部",
+              disabled: !hasChildren,
               onClick: () => handleDeleteAll(),
             },
           ],
@@ -576,10 +606,9 @@ const PeripheralImport: React.FC = () => {
 
   // 添加种类
   const handleAddTypeSuccess = (values: any) => {
-    console.log(values);
     const newNode: TreeNode = {
-      title: values.name,
-      key: `type-${Date.now()}`,
+      title: values.group_name,
+      key: values.type_code,
       level: 2,
     };
     setTreeData((prevData) => {
@@ -607,7 +636,12 @@ const PeripheralImport: React.FC = () => {
           </div>
         </div>
       ),
-      onOk: () => {
+      onOk: async () => {
+        const { code, message: msg } = await deleteAllBatch();
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
         setTreeData((prevData) =>
           prevData.map((node) => ({
             ...node,
@@ -616,7 +650,7 @@ const PeripheralImport: React.FC = () => {
         );
         // 删除所有子节点后，只保留根节点展开
         setExpandedKeys(["instrument"]);
-        message.success("已删除所有设备种类");
+        message.success(msg || "操作成功");
       },
     });
   };
@@ -671,8 +705,8 @@ const PeripheralImport: React.FC = () => {
   // 添加型号成功
   const handleAddModelSuccess = (values: any) => {
     const newNode: TreeNode = {
-      title: values.name.label,
-      key: `model-${Date.now()}`,
+      title: values.instr_name,
+      key: `child${values.instr_id}`,
       level: 3,
     };
     setTreeData((prevData) => {
@@ -706,13 +740,18 @@ const PeripheralImport: React.FC = () => {
           </div>
         </div>
       ),
-      onOk: () => {
+      onOk: async () => {
+        const { code, message: msg } = await deleteTypeOne(node.key);
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
         setTreeData((prevData) => deleteNode(prevData, node.key));
         // 删除节点后，从展开列表中移除该节点
         setExpandedKeys((prevKeys) =>
           prevKeys.filter((key) => key !== node.key)
         );
-        message.success("设备种类删除成功");
+        message.success(msg || "操作成功");
       },
     });
   };
@@ -730,13 +769,19 @@ const PeripheralImport: React.FC = () => {
           </div>
         </div>
       ),
-      onOk: () => {
+      onOk: async () => {
+        const num = Number(node.key.replace("child", ""));
+        const { code, message: msg } = await deleteModalOne(num);
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
         setTreeData((prevData) => deleteNode(prevData, node.key));
         // 删除节点后，从展开列表中移除该节点
         setExpandedKeys((prevKeys) =>
           prevKeys.filter((key) => key !== node.key)
         );
-        message.success("设备型号删除成功");
+        message.success(msg || "操作成功");
       },
     });
   };
@@ -1184,6 +1229,7 @@ const PeripheralImport: React.FC = () => {
         onCancel={() => {
           setState({ isModelModalOpen: false });
         }}
+        data={oneModelNode}
         onOk={handleAddModelSuccess}
       />
       {/* 串口配置参数 */}
