@@ -18,8 +18,10 @@
     min-height: 0;
 
     .tree-panel {
+      flex: 0 0 260px; /* 你自己定具体值 */
       flex-shrink: 0;
-      width: 300px;
+      // width: 300px;
+      min-width: 220px;
       background: white;
       border-radius: 6px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -58,11 +60,11 @@
 
     .table-panel {
       display: flex;
-      flex: 1;
+      flex: 1 1 auto;
       flex-direction: column;
       gap: 16px;
+      min-width: 0;
       min-height: 0;
-
       .table-card {
         display: flex;
         flex: 1;
@@ -81,6 +83,7 @@
           flex: 1;
           flex-direction: column;
           min-height: 0; // ★ 关键
+          overflow: auto;
           overflow-y: auto;
         }
 

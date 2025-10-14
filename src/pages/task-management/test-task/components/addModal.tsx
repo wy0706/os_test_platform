@@ -1,4 +1,5 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
+
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input, Modal, Select, Tooltip } from "antd";
 import { useEffect, useState } from "react";
@@ -114,7 +115,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
     >
       {" "}
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form} onFinish={onFinish}>
         <Form.Item name="note" label="任务名称" rules={[{ required: true }]}>
           <Input placeholder="输入任务名称" disabled={type == "edit"} />
         </Form.Item>

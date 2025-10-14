@@ -92,7 +92,7 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item
           name="type_code"
           label="设备类型"

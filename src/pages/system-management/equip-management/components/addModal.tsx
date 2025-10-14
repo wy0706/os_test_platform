@@ -1,5 +1,5 @@
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
 import { uploadFile as uploadFileService } from "@/services/system-management/equip-management.service";
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
 import { InfoCircleOutlined, UploadOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
 import { Button, Col, Form, Input, Modal, Row, Select, Upload } from "antd";
@@ -22,7 +22,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-
   type,
   updateValue,
 }) => {
@@ -32,6 +31,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     label: String(i + 1),
     value: i + 1,
   }));
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   const [state, setState] = useSetState<any>({
     title: "新建",
   });
@@ -111,17 +112,19 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
+      afterClose={() => form.resetFields()}
+      confirmLoading={confirmLoading}
       styles={{ body: { minHeight: 200, padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
       {" "}
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Row gutter={[24, 24]}>
           <Col span={12}>
             {" "}
             <Form.Item
-              name="title"
+              name="instr_model"
               label="设备类型"
               rules={[{ required: true }]}
             >

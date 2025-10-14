@@ -1,12 +1,16 @@
-
 import {
   createOne,
   deleteOne,
   getList,
   getOne,
   updateOne,
-} from "@/services/system-management/user-management.service";
-import { DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
+} from "@/services/system-management/command-management.service";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   ActionType,
   BetaSchemaForm,
@@ -111,7 +115,7 @@ const Page: React.FC = () => {
       return res;
     } catch {
       return {
-        data: [{id: 1,title: '测试数据',createTime: '测试数据',}],
+        data: [{ id: 1, title: "测试数据", createTime: "测试数据" }],
         total: 1,
         success: true,
       };
@@ -206,7 +210,7 @@ const Page: React.FC = () => {
               return res;
             } catch {
               return {
-                data: {id: 1,title: '测试数据',createTime: '测试数据',},
+                data: { id: 1, title: "测试数据", createTime: "测试数据" },
                 success: true,
               };
             }
@@ -218,4 +222,3 @@ const Page: React.FC = () => {
 };
 
 export default Page;
-

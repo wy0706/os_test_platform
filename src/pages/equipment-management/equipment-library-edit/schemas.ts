@@ -376,7 +376,10 @@ export const domainOption = [
   },
 ];
 
-export const COMOptions = Array.from({ length: 30 }, (_, i) => `COM${i + 1}`);
+export const COMOptions = Array.from({ length: 30 }, (_, i) => ({
+  label: `COM${i + 1}`,
+  value: i + 1,
+}));
 export const linRateOption = [
   {
     value: "38400",
@@ -410,3 +413,44 @@ export const spaceOptions = Array.from({ length: 17 }, (_, i) => {
     value: num,
   };
 });
+
+// 通用 IP 地址正则：同时支持 IPv4 和 IPv6
+const ipPattern =
+  /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$|^(?:[a-fA-F0-9]{0,4}:){2,7}[a-fA-F0-9]{0,4}$/;
+
+// 封装为校验函数
+export const validateIP = (_: any, value: string) => {
+  // if (!value) {
+  //   return Promise.reject(new Error("请输入 IP 地址"));
+  // }
+  if (!ipPattern.test(value.trim())) {
+    return Promise.reject(new Error("请输入合法的 IPv4 或 IPv6 地址"));
+  }
+  return Promise.resolve();
+};
+// 端口号校验函数
+export const validatePort = (_: any, value: string) => {
+  // if (!value) {
+  //   return Promise.reject(new Error("请输入端口号"));
+  // }
+  const num = Number(value);
+  if (!/^\d+$/.test(value)) {
+    return Promise.reject(new Error("端口号必须是数字"));
+  }
+  // if (num < 0 || num > 65535) {
+  //   return Promise.reject(new Error("端口号范围为 0 - 65535"));
+  // }
+  return Promise.resolve();
+};
+
+const IP_PATTERN =
+  /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$|^(?:[A-Fa-f0-9]{1,4}:){2,7}[A-Fa-f0-9]{0,4}$/;
+
+export const isValidIP = (ip?: string) => !!ip && IP_PATTERN.test(ip.trim());
+export const isValidPort = (val?: string | number) => {
+  if (val === undefined || val === null) return false;
+  const s = String(val).trim();
+  if (!/^\d+$/.test(s)) return false;
+  const n = Number(s);
+  return n >= 0 && n <= 65535;
+};

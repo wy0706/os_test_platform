@@ -63,7 +63,7 @@ const OtherModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item name="param1" label="参数1">
           <Input allowClear placeholder="输入参数1" />
         </Form.Item>{" "}

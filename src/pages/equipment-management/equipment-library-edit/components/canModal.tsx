@@ -1,4 +1,3 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
 import { useSetState } from "ahooks";
 import {
   Button,
@@ -73,30 +72,11 @@ const CanModal: React.FC<SetMemberModalProps> = ({
     domainPoint,
     domainBaudRate,
   } = state;
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
-      }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (open) {
       form?.resetFields();
       // 打开弹窗时获取所有用户列表
-      // fetchAllUsers();
       // if (isUpdate && data) {
       //   console.log("uodateCalue", data);
       //   formRef.current?.setFieldsValue(data);
@@ -274,7 +254,7 @@ const CanModal: React.FC<SetMemberModalProps> = ({
         width={"50%"}
         onOk={handleOk}
       >
-        <Form {...layout} form={form} name="control-hooks">
+        <Form {...layout} form={form}>
           {/* <Divider>基础设置</Divider> */}
           <Form.Item name="name1" label="总线协议">
             <Select

@@ -1,5 +1,5 @@
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
 import { uploadFile as uploadFileService } from "@/services/system-management/equip-management.service";
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
 import { useSetState } from "ahooks";
 import { Col, Divider, Form, Input, Modal, Row, Select } from "antd";
 import { useEffect, useState } from "react";

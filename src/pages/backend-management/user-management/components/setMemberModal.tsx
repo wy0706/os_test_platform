@@ -109,6 +109,7 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
       onCancel={handleCancel}
       confirmLoading={submitLoading}
       destroyOnHidden
+      // afterClose={() => form.resetFields()}
       footer={[
         <div
           key="checkbox"
@@ -139,7 +140,7 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
         </div>,
       ]}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item name="name" label="姓名" rules={[{ required: true }]}>
           <Input placeholder="输入姓名" />
         </Form.Item>{" "}

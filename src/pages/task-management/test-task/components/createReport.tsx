@@ -50,7 +50,7 @@ const CreateReportModal: React.FC<SetMemberModalProps> = ({
       onOk={handleOk}
     >
       {" "}
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item
           name="note"
           label="模版"

@@ -1,6 +1,7 @@
 import {
   createOne,
   deleteOne,
+  getDataAddNew,
   getList,
 } from "@/services/equipment-management/equipment-library.service";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
@@ -10,7 +11,6 @@ import {
   ProTable,
 } from "@ant-design/pro-components";
 import { history, useAccess } from "@umijs/max";
-import DetailModal from "./components/detailModal";
 
 import { transformParams } from "@/utils/params";
 import { useSetState } from "ahooks";
@@ -35,7 +35,7 @@ const Page: React.FC = () => {
     title: "操作",
     valueType: "option",
     key: "option",
-    width: 100,
+    width: 80,
     render: (text: any, record: any, index: any, action: any) => [
       <Button
         key="edit"
@@ -94,19 +94,26 @@ const Page: React.FC = () => {
 
   //   处理行点击事件
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const handleRowClick = (record: any, index: number) => {
-    history.push(`/equipment-management/equipment-library-edit/${record.id}`);
-    // 更新选中的行
-    setSelectedRow(record);
-  };
-
-  const handleAdd = async () => {
-    const { code, message: msg, data } = await createOne();
+  const handleRowClick = async (record: any, index: number) => {
+    const { code, message: msg } = await getDataAddNew({
+      file_name: record.file_name,
+    });
     if (code !== 0) {
       message.error(msg || "操作失败");
       return;
     }
-
+    history.push(
+      `/equipment-management/equipment-library-edit/${record.id}?fileName=${record.file_name}`
+    );
+    // 更新选中的行
+    setSelectedRow(record);
+  };
+  const handleAdd = async () => {
+    const { code, message: msg } = await createOne();
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
+    }
     history.push("/equipment-management/equipment-library-edit/add");
   };
   return (
@@ -157,7 +164,6 @@ const Page: React.FC = () => {
                     e.stopPropagation();
                     return;
                   }
-
                   // 否则执行正常的行点击逻辑
                   handleRowClick(record, index || 0);
                 },
@@ -169,14 +175,6 @@ const Page: React.FC = () => {
               }
             : {}
         }
-      />
-
-      <DetailModal
-        open={isPreviewModalOpen}
-        details={detailValue}
-        onCancel={() => {
-          setState({ isPreviewModalOpen: false });
-        }}
       />
     </PageContainer>
   );

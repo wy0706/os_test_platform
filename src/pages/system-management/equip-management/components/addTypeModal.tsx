@@ -1,4 +1,4 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
 import { useSetState } from "ahooks";
 import { Form, Input, Modal, Select } from "antd";
 import { useEffect, useState } from "react";
@@ -24,6 +24,7 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const [userList, setUserList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [state, setState] = useSetState<any>({
     title: "新建",
@@ -84,16 +85,16 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
       title={`${title}设备类型`}
       maskClosable={false}
       open={open}
+      confirmLoading={confirmLoading}
       onCancel={() => {
         onCancel && onCancel();
       }}
+      afterClose={() => form.resetFields()}
       styles={{ body: { minHeight: 200, padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
-      {" "}
-      <Form {...layout} form={form} name="control-hooks">
-        {" "}
+      <Form {...layout} form={form}>
         <Form.Item
           name="name"
           label="设备类型名称"

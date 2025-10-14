@@ -55,3 +55,26 @@ export function arrayToObject(arr: any[], separator = "-") {
     return acc;
   }, {});
 }
+
+/**
+ * 给指定 level 的 key 添加前缀
+ * @param {Array} data - 原始树形数据
+ * @param {number} targetLevel - 要添加前缀的层级
+ * @param {string} prefix - 要添加的前缀
+ * @returns {Array} 新的树形数据
+ */
+export function addPrefixToLevelKey(data: any, targetLevel: any, prefix: any) {
+  return data.map((item: any) => {
+    // 递归处理子节点
+    if (item.children) {
+      item.children = addPrefixToLevelKey(item.children, targetLevel, prefix);
+    }
+
+    // 判断是否是目标层级
+    if (item.level === targetLevel) {
+      item.key = `${prefix}${item.key}`;
+    }
+
+    return item;
+  });
+}

@@ -1,7 +1,7 @@
 import {
   deleteOne,
   getList,
-} from "@/services/system-management/user-management.service";
+} from "@/services/system-management/equip-management.service";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,

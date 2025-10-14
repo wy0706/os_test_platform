@@ -14,7 +14,7 @@ export const schemasColumns: any = [
     dataIndex: "edit_time",
     ellipsis: true,
     sorter: true,
-    valueType: "dateTime",
+    // valueType: "dateTime",
     hideInSearch: true,
   },
   {

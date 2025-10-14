@@ -130,3 +130,53 @@ export async function updateTypeAndModal(data: any) {
   });
   return result;
 }
+
+/**
+ * 更新Visa资源（获取最新的visa资源）
+ */
+
+export async function getNewVisa() {
+  const result: any = await request<{}>(`${baseUrl}/hwceditgetvisalist`, {
+    method: "GET",
+  });
+  return result;
+}
+
+/***
+ *
+ * 获取左侧树结构
+ */
+
+export async function getInstrumentTree() {
+  const result: any = await request<{}>(`${baseUrl}/temphwctree`, {
+    method: "GET",
+  });
+  return result;
+}
+/**
+ * 保存 另存为
+ *
+ * @param {Object} params 请求参数
+ * @param {Int} params.file_name 待保存文件名称
+ * @param {Int} params.method 0-新建，1-保存不改名，2-保存改名，3-另存为
+
+ */
+
+export async function saveData(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/hwcfilesave`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+/**
+ * 返回时判断数据是否保存提示
+ */
+
+export async function treeIsUpdate() {
+  const result: any = await request<{}>(`${baseUrl}/hwcfilemodifyjudge `, {
+    method: "GET",
+  });
+  return result;
+}

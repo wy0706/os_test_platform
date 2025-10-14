@@ -93,7 +93,7 @@ const AddModelModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form} onFinish={onFinish}>
         <Form.Item
           name="instr_name"
           label="设备型号"

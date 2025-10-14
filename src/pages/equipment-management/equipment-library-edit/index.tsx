@@ -3,9 +3,13 @@ import {
   deleteModalOne,
   deleteTypeOne,
   getAllTypeAndModal,
+  getInstrumentTree,
+  saveData,
+  treeIsUpdate,
   updateTypeAndModal,
 } from "@/services/equipment-management/equipment-library-edit.service";
-import { isArray } from "@/utils";
+import { createOne } from "@/services/equipment-management/equipment-library.service";
+import { addPrefixToLevelKey, isArray } from "@/utils";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -15,11 +19,12 @@ import {
   SaveOutlined,
 } from "@ant-design/icons";
 import {
+  ActionType,
   PageContainer,
   ProTable,
   type ProColumns,
 } from "@ant-design/pro-components";
-import { history, useParams } from "@umijs/max";
+import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import {
   Button,
@@ -31,12 +36,13 @@ import {
   Tree,
   message,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import AddModelModal from "./components/addModelModal";
 import AddTypeModal from "./components/addTypeModal";
 import CanModal from "./components/canModal";
 import ParamModal from "./components/paramModal";
 import SaveModal from "./components/saveModal";
+import VXIModal from "./components/vxiModal";
 import "./index.less";
 
 interface TreeNode {
@@ -78,6 +84,11 @@ const PeripheralImport: React.FC = () => {
     selfCheckMessages: [], //自检信息列表
     isSelfChecking: false, //是否正在自检中
     isSaveModalOpen: false,
+    file_name: null,
+    id: null,
+    saveType: "save",
+    open: false,
+    btnType: "",
   });
 
   const {
@@ -94,39 +105,21 @@ const PeripheralImport: React.FC = () => {
     isSelfChecking,
     isSaveModalOpen,
     isOtherModalOPen,
+    file_name,
+    id,
+    saveType,
+    open,
+    btnType,
   } = state;
   const params = useParams();
+  const [searchParams] = useSearchParams();
   useEffect(() => {
+    setState({
+      id: params.id !== "add" ? params.id : null,
+      file_name: searchParams.get("fileName"),
+    });
     if (params.id && params.id !== "add") {
-      const data = [
-        {
-          title: "Instrument",
-          key: "instrument",
-          level: 1,
-          children: [
-            {
-              title: "AC SOURCE",
-              key: "ac-source",
-              level: 2,
-              children: [
-                {
-                  title: "Chroma 61600 Series",
-                  key: "chroma-61600",
-                  level: 3,
-                },
-              ],
-            },
-            {
-              title: "CAN",
-              key: "can",
-              level: 2,
-            },
-          ],
-        },
-      ];
-      setTreeData(data);
-      // 设置默认展开所有节点
-      setExpandedKeys(getAllKeys(data));
+      initData();
     } else {
       const data = [
         {
@@ -141,6 +134,32 @@ const PeripheralImport: React.FC = () => {
     }
   }, []);
 
+  const initData = async () => {
+    const { code, data, message: msg } = await getInstrumentTree();
+    if (code !== 0) {
+      message.error(msg || "获取详情失败");
+      history.back();
+      return;
+    }
+    // 防御：data 为空时直接提示并返回
+    if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
+      // message.warning("未获取到有效的树形数据");
+      setTreeData([
+        {
+          title: "Instrument",
+          key: "instrument",
+          level: 1,
+        },
+      ]);
+      return;
+    }
+    const updatedData = addPrefixToLevelKey([data], 3, "child");
+    setTreeData(updatedData);
+    // setExpandedKeys(getAllKeys(updatedData));
+    setExpandedKeys([updatedData[0].key]);
+  };
+
+  const actionRef = useRef<ActionType>();
   // 设备配置表格列定义 1
   const deviceConfigColumns: ProColumns<any>[] = [
     {
@@ -170,7 +189,16 @@ const PeripheralImport: React.FC = () => {
       render: (text, record) => {
         return (
           <div
-            onClick={() => {
+            onClick={async () => {
+              if (actionRef.current?.cancelEditable) {
+                try {
+                  await actionRef.current?.cancelEditable(
+                    String(record.instr_id)
+                  );
+                } catch (e) {
+                  console.warn("取消编辑失败:", e);
+                }
+              }
               let type = record.interface.toUpperCase();
               setState({
                 paramType: type,
@@ -373,6 +401,7 @@ const PeripheralImport: React.FC = () => {
     }
     if (node?.level == 3) {
       const num = Number(node.key.replace("child", ""));
+
       const {
         code,
         data,
@@ -525,71 +554,77 @@ const PeripheralImport: React.FC = () => {
       return node;
     });
   };
-
-  // 操作按钮处理
-  const handleAdd = () => {
-    // 检查 Instrument 下是否有 children
-    const instrumentNode = treeData.find((node) => node.key === "instrument");
-    const hasChildren =
-      instrumentNode?.children && instrumentNode.children.length > 0;
-
-    if (hasChildren) {
-      // 如果有子节点，提示是否需要保存
-      Modal.confirm({
-        title: "当前文件有未保存的内容，是否需要保存？",
-        onOk: () => {
-          // 保存后清空数据，显示默认界面
-          setTreeData([
-            {
-              title: "Instrument",
-              key: "instrument",
-              level: 1,
-              children: [],
-            },
-          ]);
-          setDeviceConfigData([]);
-          setChannelConfigData([]);
-          setSelectedDevice("");
-          // 重置展开状态，只展开根节点
-          setExpandedKeys(["instrument"]);
-          message.success("已保存并创建新文件");
-        },
-        onCancel: () => {
-          // 不保存，不做任何操作
-        },
-      });
-      return;
-    } else {
-      // 如果没有子节点，直接创建新文件
-      setTreeData([
-        {
-          title: "Instrument",
-          key: "instrument",
-          level: 1,
-          children: [],
-        },
-      ]);
-      setDeviceConfigData([]);
-      setChannelConfigData([]);
-      setSelectedDevice("");
-      // 重置展开状态，只展开根节点
-      setExpandedKeys(["instrument"]);
-      message.success("已创建新文件");
-    }
-  };
-
-  const handleImport = () => {
-    // message.info("导入功能");
-  };
-
-  const handleExport = () => {
-    // message.info("保存另存为功能");
-    if (!treeData[0].children || treeData[0].children.length == 0) {
-      message.warning("文件为空，请添加设备配置！");
+  const isTreeUpdate = async (str: string) => {
+    const { code, data, message: msg } = await treeIsUpdate();
+    if (code === 0) {
+      if (str == "add") {
+        await addNewDataBase();
+      } else {
+        history.back();
+      }
       return;
     }
     setState({
+      open: true,
+    });
+    message.error(msg || "操作失败");
+  };
+  // 操作按钮处理
+  const handleAdd = async () => {
+    setState({
+      btnType: "add",
+    });
+    isTreeUpdate("add");
+  };
+  const handleAddOk = async () => {
+    // 保存数据后创建新的临时库
+    const { code, message: msg } = await saveData({
+      method: params.id !== "add" ? 1 : 0,
+    });
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
+    }
+    message.success(msg || "操作成功");
+    history.back();
+  };
+  const handleAddNo = async () => {
+    if (btnType == "back") {
+      history.back();
+      return;
+    }
+
+    addNewDataBase();
+  };
+
+  const addNewDataBase = async () => {
+    // 清空数据创建新的临时库
+    const { code, message: msg } = await createOne();
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      history.back();
+      return;
+    }
+    setTreeData([
+      {
+        title: "Instrument",
+        key: "instrument",
+        level: 1,
+        children: [],
+      },
+    ]);
+    setDeviceConfigData([]);
+    setChannelConfigData([]);
+    setSelectedDevice("");
+    // 重置展开状态，只展开根节点
+    setExpandedKeys(["instrument"]);
+    message.success("已新建");
+  };
+
+  const handleExport = (type: string) => {
+    setState({
       isSaveModalOpen: true,
+      saveType: type,
     });
   };
 
@@ -643,46 +678,11 @@ const PeripheralImport: React.FC = () => {
       },
     });
   };
-  const handleGoBack = () => {
-    // 检查 Instrument 下是否有 children
-    const instrumentNode = treeData.find((node) => node.key === "instrument");
-    const hasChildren =
-      instrumentNode?.children && instrumentNode.children.length > 0;
-
-    if (hasChildren) {
-      // 如果有子节点，提示是否需要保存
-      Modal.confirm({
-        title: "当前文件有未保存的内容，是否需要保存？",
-        // content: "当前文件有未保存的内容，是否需要保存？",
-        // okText: "保存",
-        // cancelText: "不保存",
-        onOk: () => {
-          // 保存后清空数据，显示默认界面
-          setTreeData([
-            {
-              title: "Instrument",
-              key: "instrument",
-              level: 1,
-              children: [],
-            },
-          ]);
-          setDeviceConfigData([]);
-          setChannelConfigData([]);
-          setSelectedDevice("");
-          // 重置展开状态，只展开根节点
-          setExpandedKeys(["instrument"]);
-          message.success("已保存文件");
-          history.back();
-        },
-        onCancel: () => {
-          history.back();
-        },
-      });
-      return;
-    } else {
-      // 如果没有子节点，直接创建新文件
-      history.back();
-    }
+  const handleGoBack = async () => {
+    setState({
+      btnType: "back",
+    });
+    isTreeUpdate("back");
   };
   // 添加型号
   const handleAddModel = (parentNode: TreeNode) => {
@@ -1025,6 +1025,16 @@ const PeripheralImport: React.FC = () => {
       }));
     }, 3000);
   };
+
+  const handleParasOk = (values: any) => {
+    // 更新表单对应一条的数据
+    const newData = deviceConfigData.map((item) =>
+      String(item.instr_id) === String(currentParamRecord.instr_id)
+        ? { ...item, paras: values }
+        : item
+    );
+    setDeviceConfigData(newData);
+  };
   return (
     <PageContainer
       header={{
@@ -1043,13 +1053,17 @@ const PeripheralImport: React.FC = () => {
             <Button icon={<PlusOutlined />} onClick={handleAdd}>
               新建
             </Button>
-            {/* <Button icon={<FolderOpenOutlined />} onClick={handleImport}>
-              打开
-            </Button> */}
-            <Button icon={<SaveOutlined />} onClick={handleExport}>
+
+            <Button
+              icon={<SaveOutlined />}
+              onClick={() => handleExport("save")}
+            >
               保存
             </Button>
-            <Button icon={<FileAddOutlined />} onClick={handleExport}>
+            <Button
+              icon={<FileAddOutlined />}
+              onClick={() => handleExport("saveAs")}
+            >
               另存为
             </Button>
             <Button icon={<CheckCircleOutlined />} onClick={handleSelfCheck}>
@@ -1144,6 +1158,7 @@ const PeripheralImport: React.FC = () => {
                 <div className="protable-holder">
                   <ProTable<any>
                     dateFormatter="string"
+                    actionRef={actionRef}
                     columns={deviceConfigColumns}
                     dataSource={deviceConfigData}
                     pagination={false}
@@ -1184,7 +1199,7 @@ const PeripheralImport: React.FC = () => {
               </Card>
             )}
 
-            {/* 通道配置表格 */}
+            {/* 设备型号*/}
             <Card className="table-card">
               {/* 指定序号可编辑
                */}
@@ -1260,7 +1275,8 @@ const PeripheralImport: React.FC = () => {
             isParamModalOpen: false,
           });
         }}
-        onOk={() => {
+        onOk={(values) => {
+          handleParasOk(values);
           setState({
             isParamModalOpen: false,
           });
@@ -1281,8 +1297,8 @@ const PeripheralImport: React.FC = () => {
           });
         }}
       />
-      {/* lin */}
-      {/* <LinModal
+      {/* VXI */}
+      <VXIModal
         open={isVxiModalOpen}
         data={currentParamRecord}
         onCancel={() => {
@@ -1290,15 +1306,20 @@ const PeripheralImport: React.FC = () => {
             isVxiModalOpen: false,
           });
         }}
-        onOk={() => {
+        onOk={(values) => {
+          handleParasOk(values);
           setState({
             isVxiModalOpen: false,
           });
         }}
-      /> */}
+      />
+
       {/* 保存另存为 */}
       <SaveModal
         open={isSaveModalOpen}
+        id={id}
+        type={saveType}
+        name={file_name}
         onCancel={() => {
           setState({
             isSaveModalOpen: false,
@@ -1308,8 +1329,50 @@ const PeripheralImport: React.FC = () => {
           setState({
             isSaveModalOpen: false,
           });
+          // history.back();
         }}
       />
+      <Modal
+        title="提示"
+        open={open}
+        destroyOnHidden
+        onCancel={() => {
+          setState({
+            open: false,
+          });
+        }}
+        footer={[
+          <Button
+            key="yes"
+            type="primary"
+            style={{ marginRight: 10 }}
+            onClick={handleAddOk}
+          >
+            是
+          </Button>,
+          <Button
+            key="no"
+            danger
+            style={{ marginRight: 10 }}
+            onClick={handleAddNo}
+          >
+            否
+          </Button>,
+          <Button
+            key="cancel"
+            style={{ marginRight: 10 }}
+            onClick={() => {
+              setState({
+                open: false,
+              });
+            }}
+          >
+            取消
+          </Button>,
+        ]}
+      >
+        <p>当前文件有未保存的内容，是否需要保存？</p>
+      </Modal>
     </PageContainer>
   );
 };

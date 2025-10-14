@@ -1,5 +1,5 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Input, Modal, Select } from "antd";
+import { saveData } from "@/services/equipment-management/equipment-library-edit.service";
+import { Form, Input, message, Modal, Select } from "antd";
 
 import { useEffect, useState } from "react";
 interface SetMemberModalProps {
@@ -7,6 +7,9 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   data?: any;
+  id?: any;
+  name?: string;
+  type?: string;
 }
 const { Option } = Select;
 
@@ -20,66 +23,74 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
   onOk,
   onCancel,
   data,
+  id,
+  name,
+  type,
 }) => {
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
-      }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      // fetchAllUsers();
-      // if (isUpdate && data) {
-      //   console.log("uodateCalue", data);
-      //   formRef.current?.setFieldsValue(data);
-      // }
-      // if ((type === "edit" || type === "copy") && data) {
-      //   console.log("uodateCalue====", data);
-      //   form?.setFieldsValue(data);
-      // }
+      form?.setFieldsValue({ name });
     }
-  }, [open, data]);
+  }, [open, id, type]);
 
   const [form] = Form.useForm();
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    console.log("values", values);
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
+    let method;
+    if (type === "save") {
+      if (id === undefined || id === null || id === "") {
+        // 新建保存
+        method = 0;
+      } else if (id === "0" || id === 0 || id) {
+        // 编辑保存
+        if (values.file_name && values.file_name.trim() !== "") {
+          method = 2; // 有文件名
+        } else {
+          method = 1; // 无文件名
         }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
+      }
+    } else if (type === "saveAs") {
+      method = 3;
+    }
+
+    const params = {
+      method,
+      file_name: type === "save" ? values.file_name : values.saveAs_name,
+    };
+
+    try {
+      setConfirmLoading(true);
+      const {
+        code,
+        message: msg,
+        data: { result },
+      } = await saveData(params);
+      // 0:操作成功 -1:文件为空无法保存  -2:文件名重复
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+      if (onOk) onOk(params);
+    } catch (error) {
+      console.error("保存失败:", error);
+    } finally {
+      setConfirmLoading(false);
+    }
   };
 
   return (
     <Modal
-      title="设备种类参数配置"
+      title={type == "save" ? "保存" : "另存为"}
       maskClosable={false}
       open={open}
+      confirmLoading={confirmLoading}
+      destroyOnHidden
       onCancel={() => {
         onCancel && onCancel();
       }}
@@ -87,19 +98,35 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="name" label="文件名" initialValue={"YSW-GC.hwc"}>
-          <Input disabled />
-        </Form.Item>
-        {/* <Form.Item name="rate" label="发布" initialValue={"2"}>
-          <Select placeholder="发布" disabled>
-            <Option value="1 ">✓</Option>
-            <Option value="2">✗</Option>
-          </Select>
-        </Form.Item> */}
-        <Form.Item name="stopbits" label="保存文件名（*.hwc）">
-          <Input placeholder="输入文件名" allowClear />
-        </Form.Item>
+      <Form {...layout} form={form}>
+        {id && (
+          <Form.Item name="name" label="文件名">
+            <Input disabled />
+          </Form.Item>
+        )}
+        {type && type == "save" && (
+          <Form.Item
+            name="file_name"
+            label="保存文件名（*.hwc）"
+            rules={[
+              {
+                required:
+                  id === undefined || id === null || id === "" ? true : false,
+              },
+            ]}
+          >
+            <Input placeholder="输入文件名" allowClear />
+          </Form.Item>
+        )}
+        {type && type == "saveAs" && (
+          <Form.Item
+            name="saveAs_name"
+            label="保存文件名（*.hwc）"
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="输入文件名" allowClear />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

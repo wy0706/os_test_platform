@@ -32,16 +32,22 @@ export async function deleteOne(id: any) {
   const result: any = await request<{}>(`${baseUrl}/hwcfilelistdel`, {
     method: "POST",
     data: {
-      file_id: id,
+      id,
     },
   });
   return result;
 }
 
-// export async function deleteBatch(ids: any) {
-//   const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-//     method: "DELETE",
-//     data: ids,
-//   });
-//   return result;
-// }
+/**
+ * 加载配置文件至临时表(点单条详情)
+ *  * @param {Object} params 请求参数
+ * @param  params.file_name 配置文件名称
+ */
+
+export async function getDataAddNew(params: any) {
+  const result: any = await request<{}>(`${baseUrl}/hwcfileload`, {
+    method: "GET",
+    params,
+  });
+  return result;
+}

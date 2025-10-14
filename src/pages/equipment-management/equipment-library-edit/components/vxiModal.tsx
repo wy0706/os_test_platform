@@ -1,148 +1,153 @@
-import { getAll as getUserList } from "@/services/system-management/user-management.service";
-import { Form, Modal, Select } from "antd";
+import {
+  getNewVisa,
+  updateTypeAndModal,
+} from "@/services/equipment-management/equipment-library-edit.service";
+import { isArray } from "@/utils";
+import { ActionType, ProTable } from "@ant-design/pro-components";
+import { Button, message, Modal, Space } from "antd";
+import React, { useEffect, useRef, useState } from "react";
 
-import { useEffect, useState } from "react";
-import { linRateOption, spaceOptions } from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
-  onOk?: (values: any) => void;
   onCancel?: () => void;
-  onSelect?: () => void;
-
+  onOk?: (keys: any) => void;
   data?: any;
 }
-const { Option } = Select;
 
-const layout = {
-  labelCol: { span: 24 },
-};
+const columns: any = [
+  { title: "序号", dataIndex: "index", hideInSearch: true },
+  { title: "Visa", dataIndex: "name" },
+];
 
-const VXIModal: React.FC<SetMemberModalProps> = ({
+const TasksModal: React.FC<SetMemberModalProps> = ({
   open,
-  onOk,
   onCancel,
-  onSelect,
+  onOk,
   data,
 }) => {
-  const [form] = Form.useForm();
-  const [userList, setUserList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const port = Form.useWatch("port", form);
+  const actionRef = useRef<ActionType>();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
-    setLoading(true);
+  // 记录当前表格数据的映射，便于校验和回填
+  const [rowMap, setRowMap] = useState<Record<string | number, any>>({});
+
+  // 当 modal 打开 或 表格数据变化 时，校验并回填选中
+  useEffect(() => {
+    if (!open) return;
+    const key = data?.paras;
+    if (key !== undefined && key !== null && rowMap.hasOwnProperty(key)) {
+      setSelectedRowKeys([key]);
+      setSelectedRows([rowMap[key]]);
+    } else {
+      // 不匹配就不赋值（清空）
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
+    }
+  }, [open, data?.paras, rowMap]);
+
+  const handleOk = async () => {
+    console.log("selectedRowKeys", selectedRowKeys);
+    if (selectedRowKeys.length == 0) {
+      message.warning("请选择数据");
+      return;
+    }
     try {
-      const params = {
-        page: 1,
-        pageSize: 1000, // 获取足够多的用户数据
-      };
-      const result = await getUserList(params);
-      if (result?.data) {
-        setUserList(result.data);
+      setConfirmLoading(true);
+      const { code, message: msg } = await updateTypeAndModal({
+        index: data.instr_id,
+        paras: selectedRowKeys[0],
+      });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
       }
-    } catch (error) {
-      console.error("获取用户列表失败:", error);
+      message.success(msg || "操作成功");
+      onOk?.(selectedRowKeys[0]);
     } finally {
-      setLoading(false);
+      setConfirmLoading(false);
     }
   };
 
-  useEffect(() => {
-    //当“主从模式”选择从机时，“同步间隔宽度（bit）”不可配，只能为13
-    if (port == "slave") {
-      form.setFieldsValue({
-        databits: 13,
-      });
+  const requestData = async () => {
+    const { code, data, message: msg } = await getNewVisa();
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return { data: [], total: 0, success: false };
     }
-  }, [port]);
-  useEffect(() => {
-    console.log("type====");
-
-    if (open) {
-      form?.resetFields();
-      // 打开弹窗时获取所有用户列表
-      // fetchAllUsers();
-      // if (isUpdate && data) {
-      //   console.log("uodateCalue", data);
-      //   formRef.current?.setFieldsValue(data);
-      // }
-
-      console.log("uodateCalue====", data);
-      form?.setFieldsValue(data);
-    }
-  }, [open, data]);
-
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
+    const list = !isArray(data)
+      ? []
+      : data.map((item: any, index: number) => ({
+          name: item,
+          id: item, // id 与 data.paras 类型需一致
+          index: index + 1,
+        }));
+    return {
+      data: list,
+      total: list.length,
+      success: true,
+    };
   };
 
   return (
     <Modal
-      title="设备种类参数配置"
       maskClosable={false}
+      title="设备参数种类配置"
       open={open}
-      onCancel={() => {
-        onCancel && onCancel();
-      }}
-      styles={{ body: { minHeight: 100, padding: 20 } }}
+      destroyOnHidden
+      confirmLoading={confirmLoading}
       width={"50%"}
-      onOk={handleOk}
+      styles={{ body: { padding: 20, maxHeight: 500, overflow: "auto" } }}
+      footer={
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Button onClick={() => actionRef.current?.reload()}>刷新</Button>
+          <Space>
+            <Button onClick={onCancel}>取消</Button>
+            <Button type="primary" onClick={handleOk}>
+              确定
+            </Button>
+          </Space>
+        </div>
+      }
     >
-      <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="port" label="主从模式">
-          <Select placeholder="选择主从模式" allowClear>
-            <Option value="1">master</Option>
-            <Option value="2">slave</Option>
-          </Select>
-        </Form.Item>
-        <Form.Item name="rate" label="波特率值">
-          <Select
-            placeholder="选择波特率值"
-            allowClear
-            showSearch
-            options={linRateOption}
-            loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          ></Select>
-        </Form.Item>
-        <Form.Item name="databits" label="同步间隔宽度(bit)">
-          <Select
-            placeholder="选择间隔宽度"
-            allowClear
-            disabled={port == 2}
-            showSearch
-            // loading={loading}
-            filterOption={(input, option) =>
-              (option?.children as unknown as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          >
-            {spaceOptions.map((item) => (
-              <Option value={item.value} key={item.value}>
-                {item.label}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-      </Form>
+      <ProTable<any>
+        columns={columns}
+        actionRef={actionRef}
+        cardBordered
+        options={false}
+        request={requestData}
+        search={false}
+        rowKey="id"
+        pagination={{ pageSize: 10 }}
+        // 表格数据加载后更新映射，供回填用
+        onLoad={(dataSource) => {
+          const m: Record<string | number, any> = {};
+          dataSource.forEach((row: any) => {
+            m[row.id] = row;
+          });
+          setRowMap(m);
+        }}
+        rowSelection={{
+          type: "radio",
+          selectedRowKeys,
+          onChange: (keys, rows) => {
+            const lastKey = keys[keys.length - 1];
+            const lastRow = rows[rows.length - 1];
+            setSelectedRowKeys(lastKey ? [lastKey] : []);
+            setSelectedRows(lastRow ? [lastRow] : []);
+          },
+        }}
+        tableAlertRender={false}
+        onRow={(record) => ({
+          onClick: () => {
+            setSelectedRowKeys([record.id]);
+            setSelectedRows([record]);
+          },
+        })}
+      />
     </Modal>
   );
 };
 
-export default VXIModal;
+export default TasksModal;

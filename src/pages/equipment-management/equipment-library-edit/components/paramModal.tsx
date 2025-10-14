@@ -1,9 +1,11 @@
-import { Form, Input, Modal, Select } from "antd";
-
+import { updateTypeAndModal } from "@/services/equipment-management/equipment-library-edit.service";
+import { Form, Input, message, Modal, Select } from "antd";
 import { useEffect, useState } from "react";
 import {
   COMOptions,
   dataBitsOption,
+  isValidIP,
+  isValidPort,
   linRateOption,
   parityOption,
   rateOption,
@@ -14,13 +16,11 @@ interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
-  onSelect?: () => void;
   data?: any;
   type: any;
 }
 const { Option } = Select;
 
-let index = 0;
 const layout = {
   labelCol: { span: 24 },
 };
@@ -29,13 +29,12 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  onSelect,
   data,
   type,
 }) => {
   const [form] = Form.useForm();
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const port = Form.useWatch("param6", form);
+  const port = Form.useWatch("param6", form); // "1" | "2"
 
   useEffect(() => {
     initData();
@@ -140,18 +139,86 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
     }
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+
+      if (type === "TCPIP") {
+        const ip = values.param9;
+        const port = values.param10;
+
+        if (!ip || !isValidIP(ip)) {
+          form.setFields([
+            { name: "param9", errors: ["请输入合法的 IP 地址"] },
+          ]);
+          form.scrollToField("param9", { block: "center" });
+          return;
         }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
+
+        if (!port || !isValidPort(port)) {
+          form.setFields([
+            { name: "param10", errors: ["端口号必须为 0-65535 的整数"] },
+          ]);
+          form.scrollToField("param10", { block: "center" });
+          return;
+        }
+      }
+      let parasArr: string[] = [];
+      switch (type) {
+        case "RS232":
+          parasArr = [
+            values.param1,
+            values.param2,
+            values.param3,
+            values.param4,
+            values.param5,
+          ];
+          break;
+        case "LIN":
+          parasArr = [values.param6, values.param7, values.param8];
+          break;
+        case "TCPIP":
+          parasArr = [values.param9, values.param10];
+          break;
+        case "PXI":
+          parasArr = [0, values.param11, values.param12];
+          break;
+        default:
+          parasArr = [];
+      }
+
+      const hasEmpty = parasArr.some(
+        (item) =>
+          item === undefined || item === null || String(item).trim() === ""
+      );
+      if (hasEmpty) {
+        Modal.warning({
+          title: "参数不完整",
+          content: "请填写所有必填参数后再提交。",
+        });
+        return;
+      }
+      const paras = parasArr.join(",");
+
+      const submitData = { paras, type };
+      setConfirmLoading(true);
+      // await Promise.resolve(onOk?.(submitData));
+      console.log("data", data);
+      const params = {
+        index: data.instr_id,
+        paras,
+      };
+      const { code, message: msg } = await updateTypeAndModal(params);
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+      onOk?.(paras);
+    } catch (err) {
+    } finally {
+      setConfirmLoading(false);
+    }
   };
 
   return (
@@ -160,6 +227,7 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       open={open}
       onCancel={() => {
+        form?.resetFields();
         onCancel && onCancel();
       }}
       destroyOnHidden
@@ -168,7 +236,7 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         {type && type == "RS232" && (
           <>
             <Form.Item name="param1" label="端口" rules={[{ required: true }]}>
@@ -176,18 +244,13 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 placeholder="选择设备类型"
                 showSearch
                 allowClear
+                options={COMOptions}
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
-              >
-                {COMOptions.map((com) => (
-                  <Option key={com} value={com}>
-                    {com}
-                  </Option>
-                ))}
-              </Select>
+              ></Select>
             </Form.Item>
             <Form.Item
               name="param2"
@@ -200,8 +263,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 allowClear
                 options={rateOption}
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               ></Select>
@@ -217,8 +280,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 showSearch
                 allowClear
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               >
@@ -239,8 +302,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 showSearch
                 allowClear
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               >
@@ -261,8 +324,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 allowClear
                 showSearch
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               >
@@ -298,8 +361,8 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
                 allowClear
                 options={linRateOption}
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               ></Select>
@@ -311,12 +374,12 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
             >
               <Select
                 placeholder="选择间隔宽度"
-                disabled={port == 2}
+                disabled={port == "2"}
                 allowClear
                 showSearch
                 filterOption={(input, option) =>
-                  (option?.children as unknown as string)
-                    ?.toLowerCase()
+                  String(option?.label ?? "")
+                    .toLowerCase()
                     .includes(input.toLowerCase())
                 }
               >

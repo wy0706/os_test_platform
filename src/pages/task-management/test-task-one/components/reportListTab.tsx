@@ -1,4 +1,4 @@
-import { getList } from "@/services/system-management/user-management.service";
+import { getList } from "@/services/system-management/command-management.service";
 import { DownloadOutlined, EyeOutlined } from "@ant-design/icons";
 import {
   ActionType,
