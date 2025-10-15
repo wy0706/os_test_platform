@@ -1,9 +1,9 @@
 .peripheral-import-page {
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 120px);
   height: calc(100vh - 185px);
   background-color: #f5f5f5;
-
   .operation-bar {
     margin-bottom: 16px;
     background: white;
@@ -15,20 +15,29 @@
     display: flex;
     flex: 1;
     gap: 16px;
+    height: calc(100vh - 200px); // 减去顶部操作栏等
     min-height: 0;
-
     .tree-panel {
-      flex: 0 0 260px; /* 你自己定具体值 */
+      display: flex;
+      flex: 0 0 300px;
+      flex-direction: column;
       flex-shrink: 0;
       // width: 300px;
       min-width: 220px;
+      margin-right: 12px;
       background: white;
       border-radius: 6px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
       .ant-card-head {
         background: #fafafa;
         border-bottom: 1px solid #f0f0f0;
+      }
+      .ant-card-body {
+        flex: 1;
+        min-height: 0; // 关键：没有这个 overflow 不会起作用
+        padding-right: 8px; // 可选：给滚动条留点内边距
+        overflow-x: hidden;
+        overflow-y: auto; // 让内容在卡片体内滚动
       }
 
       .ant-tree {
@@ -60,16 +69,23 @@
 
     .table-panel {
       display: flex;
+      // display: flex;
       flex: 1 1 auto;
+      // flex-direction: column;
+      // gap: 16px;
+      // min-width: 0;
+      // min-height: 0;
+      // overflow: hidden;
+      flex: 1;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       min-width: 0;
-      min-height: 0;
       .table-card {
         display: flex;
         flex: 1;
         flex-direction: column;
         min-height: 0;
+        overflow: hidden;
         background: white;
         border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -117,7 +133,7 @@
       }
     }
   }
-
+  // =================
   .operation-buttons {
     .ant-btn {
       margin-right: 8px;

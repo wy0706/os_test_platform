@@ -567,7 +567,7 @@ const PeripheralImport: React.FC = () => {
     setState({
       open: true,
     });
-    message.error(msg || "操作失败");
+    // message.error(msg || "操作失败");
   };
   // 操作按钮处理
   const handleAdd = async () => {

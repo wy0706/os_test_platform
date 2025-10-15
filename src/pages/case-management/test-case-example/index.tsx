@@ -243,7 +243,6 @@ const TestCaseExample: React.FC = () => {
         const finalModules = [allItem, ...moduleData];
         setState({ modules: finalModules });
       } else {
-        console.log("获取模块列表API返回失败，使用默认数据");
         message.error(msg || "获取模块列表失败");
         setState({
           modules: [],
@@ -296,9 +295,6 @@ const TestCaseExample: React.FC = () => {
       //   </div>
       // ),
       onOk: async () => {
-        console.log("module", module);
-        console.log(selectedModule);
-
         // 调用后端删除接口
         const { code, message: msg } = await deleteOne(module.id);
 

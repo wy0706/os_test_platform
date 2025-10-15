@@ -1,7 +1,13 @@
 import {
-  deleteOne,
-  getList,
+  getInstrumentModal,
+  getInstrumentType,
+} from "@/services/equipment-management/equipment-library-edit.service";
+import {
+  deleteModelOne,
+  deleteTypeOne,
 } from "@/services/system-management/equip-management.service";
+import { isArray } from "@/utils";
+import { transformParams } from "@/utils/params";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -10,7 +16,7 @@ import {
 } from "@ant-design/pro-components";
 import { useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, List, Modal } from "antd";
+import { Button, List, message, Modal } from "antd";
 import React, { useEffect, useRef } from "react";
 import AddModal from "./components/addModal";
 import AddTypeModal from "./components/addTypeModal";
@@ -52,17 +58,30 @@ const Page: React.FC = () => {
     fetchTypeData();
   }, []);
 
-  const fetchTypeData: any = async (...args: any) => {
+  useEffect(() => {
+    actionRef.current?.reload();
+  }, [currentSelectedTypeId]);
+
+  const fetchTypeData: any = async () => {
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      setState({ equipTypeData: mockRoles });
-      return {
-        data: mockRoles,
-        total: 1,
-        success: true,
+      const { code, data } = await getInstrumentType({ route: 1 });
+      if (code !== 0) {
+        setState({ equipTypeData: [] });
+        return;
+      }
+      let allItem = {
+        group_id: "all",
+        group_name: "全部模块",
       };
+
+      let list = !isArray(data?.list_info)
+        ? []
+        : data?.list_info.length > 0
+        ? [allItem, ...data?.list_info]
+        : [];
+      setState({ equipTypeData: list });
+    } catch {
+      setState({ equipTypeData: [] });
     }
   };
 
@@ -71,18 +90,18 @@ const Page: React.FC = () => {
     if (id === currentSelectedTypeId) {
       return;
     }
-    requestData();
+    // requestData();
     setState({ currentSelectedTypeId: id });
   };
 
   const currentSelectedType = equipTypeData.find(
-    (r: any) => r.id === currentSelectedTypeId
+    (r: any) => r.group_id === currentSelectedTypeId
   );
 
   // 设备类型搜索过滤
-  const filterEquipType = equipTypeData.filter((item: any) =>
-    item.name.includes(typeSearch)
-  );
+  // const filterEquipType = equipTypeData.filter((item: any) =>
+  //   item.name.includes(typeSearch)
+  // );
 
   const operationColumn = {
     title: "操作",
@@ -114,7 +133,7 @@ const Page: React.FC = () => {
           Modal.confirm({
             title: "确认删除吗？",
             onOk: async () => {
-              await deleteOne(record.id);
+              await deleteModelOne(record.instr_id);
               if (actionRef.current) {
                 actionRef.current.reload();
               }
@@ -129,24 +148,34 @@ const Page: React.FC = () => {
   const schemasColumns = [
     {
       title: "设备型号",
-      dataIndex: "title",
+      dataIndex: "instr_name",
       ellipsis: true,
     },
     {
       title: "设备类型编码",
-      dataIndex: "title1",
+      dataIndex: "instr_id",
       hideInSearch: true,
       ellipsis: true,
     },
     {
       title: "是否激活",
-      dataIndex: "title2",
+      dataIndex: "is_actvie",
       hideInSearch: true,
       ellipsis: true,
+      valueEnum: {
+        1: {
+          text: "✓",
+          status: "Success",
+        },
+        0: {
+          text: "✗",
+          status: "Error",
+        },
+      },
     },
     {
       title: "添加时间",
-      dataIndex: "createTime",
+      dataIndex: "edittime",
       ellipsis: true,
       hideInSearch: true,
       sorter: true,
@@ -156,33 +185,27 @@ const Page: React.FC = () => {
     ? [...schemasColumns, operationColumn]
     : schemasColumns;
 
+  // 获取测试用例数据 1,38400,1
   const requestData: any = async (...args: any) => {
-    if (!currentSelectedTypeId) {
-      return {
-        data: [],
-        total: 0,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    console.log("params", params);
+
+    const {
+      code,
+      data,
+      message: msg,
+    } = await getInstrumentModal({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
     }
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [
-          {
-            id: 1,
-            title: "测试数据",
-            title2: true,
-            title1: 2,
-            createTime: "测试数据",
-          },
-        ],
-        total: 1,
-        success: true,
-      };
-    }
+    return {
+      data: data?.list_info || [],
+      total: data?.total_cnt,
+      success: code === 0,
+    };
   };
+
   return (
     <PageContainer>
       <div
@@ -252,11 +275,11 @@ const Page: React.FC = () => {
           >
             <List
               itemLayout="horizontal"
-              dataSource={filterEquipType}
+              dataSource={equipTypeData}
               renderItem={(item: any) => {
                 const hasEdit = !!access["systemManagement-edit"];
                 const actions = hasEdit
-                  ? item.id !== "all"
+                  ? item.group_id !== "all"
                     ? [
                         <Button
                           key="edit"
@@ -283,9 +306,10 @@ const Page: React.FC = () => {
                             Modal.confirm({
                               title: "确认删除吗？",
                               onOk: async () => {
-                                await deleteOne(item.id);
-                                if (item.id === currentSelectedTypeId) {
-                                  setState({ currentSelectedTypeId: null });
+                                await deleteTypeOne(item.group_id);
+                                fetchTypeData();
+                                if (item.group_id === currentSelectedTypeId) {
+                                  setState({ currentSelectedTypeId: "all" });
                                 }
                               },
                             });
@@ -297,7 +321,8 @@ const Page: React.FC = () => {
                           type="primary"
                           icon={<PlusOutlined />}
                           size="small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setState({
                               isAddTypeModalOpen: true,
                               typeOptionType: "add",
@@ -312,13 +337,13 @@ const Page: React.FC = () => {
                   <List.Item
                     style={{
                       background:
-                        currentSelectedTypeId === item.id
+                        currentSelectedTypeId === item.group_id
                           ? "#e6f7ff"
                           : undefined,
                       cursor: "pointer",
                       paddingLeft: 16,
                     }}
-                    onClick={() => handleTypeSelect(item.id)}
+                    onClick={() => handleTypeSelect(item.group_id)}
                     actions={actions}
                   >
                     <List.Item.Meta
@@ -330,7 +355,7 @@ const Page: React.FC = () => {
                             color: "rgba(0,0,0,.8)",
                           }}
                         >
-                          {item.name}
+                          {item.group_name}
                         </span>
                       }
                     />
@@ -338,88 +363,6 @@ const Page: React.FC = () => {
                 );
               }}
             />
-
-            {/* <List
-              itemLayout="horizontal"
-              dataSource={filterEquipType}
-              renderItem={(item: any) => (
-                <List.Item
-                  style={{
-                    background:
-                      currentSelectedTypeId === item.id ? "#e6f7ff" : undefined,
-                    cursor: "pointer",
-                    paddingLeft: 16,
-                  }}
-                  onClick={() => handleTypeSelect(item.id)}
-                  actions={
-                    item.id !== "all" // “全部” 不显示操作按钮
-                      ? [
-                          <Button
-                            icon={<EditOutlined />}
-                            size="small"
-                            type="link"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setState({
-                                isAddTypeModalOpen: true,
-                                typeOptionType: "edit",
-                                addTypeValue: item,
-                              });
-                            }}
-                            key="edit"
-                          />,
-                          <Button
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            type="link"
-                            danger
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              Modal.confirm({
-                                title: "确认删除吗？",
-                                onOk: async () => {
-                                  await deleteOne(item.id);
-                                  if (item.id === currentSelectedTypeId) {
-                                    setState({ currentSelectedTypeId: null });
-                                  }
-                                },
-                              });
-                            }}
-                            key="del"
-                          />,
-                        ]
-                      : [
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            size="small"
-                            onClick={() => {
-                              setState({
-                                isAddTypeModalOpen: true,
-                                typeOptionType: "add",
-                                addTypeValue: {},
-                              });
-                            }}
-                          ></Button>,
-                        ]
-                  }
-                >
-                  <List.Item.Meta
-                    title={
-                      <span
-                        style={{
-                          fontWeight: 400,
-                          fontSize: 12,
-                          color: "rgba(0,0,0,.8)",
-                        }}
-                      >
-                        {item.name}
-                      </span>
-                    }
-                  />
-                </List.Item>
-              )}
-            /> */}
           </div>
         </div>
         {/* </Card> */}
@@ -463,16 +406,13 @@ const Page: React.FC = () => {
             columns={columns}
             actionRef={actionRef}
             cardBordered
-            request={async (params, sorter, filter) => {
-              // 首次渲染还没选左侧时，不请求或返回空
-              if (!params.typeId) {
-                return { data: [], success: true, total: 0 };
-              }
-              return requestData({ ...params, sorter, filter });
-            }}
+            request={requestData}
             dateFormatter="string"
-            rowKey="id"
-            params={{ typeId: currentSelectedTypeId }}
+            rowKey={(row) => String(row?.instr_id)}
+            params={{
+              type_code:
+                currentSelectedTypeId !== "all" ? currentSelectedTypeId : null,
+            }}
             options={false}
             headerTitle="添加设备"
             pagination={{
@@ -509,19 +449,19 @@ const Page: React.FC = () => {
           setState({ isAddTypeModalOpen: false, addTypeValue: {} });
         }}
         onOk={(value) => {
-          console.log("values", value);
           setState({ isAddTypeModalOpen: false, addTypeValue: {} });
+          fetchTypeData();
         }}
       />
       <AddModal
         open={isAddModalOpen}
         type={addOptionType}
         updateValue={addEquipValue}
+        group_id={currentSelectedTypeId}
         onCancel={() => {
           setState({ isAddModalOpen: false, addEquipValue: {} });
         }}
         onOk={(value) => {
-          console.log("values", value);
           setState({ isAddModalOpen: false, addEquipValue: {} });
           if (actionRef.current) {
             actionRef.current.reload();

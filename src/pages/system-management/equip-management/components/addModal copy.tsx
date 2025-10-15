@@ -1,6 +1,5 @@
 import { getInstrumentType } from "@/services/equipment-management/equipment-library-edit.service";
 import {
-  addModelOne,
   updateModelOne,
   uploadFile as uploadFileService,
 } from "@/services/system-management/equip-management.service";
@@ -89,15 +88,15 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         form?.setFieldsValue({
           ...updateValue,
           instr_model: updateValue.instr_name,
-          apidll: updateValue.apidll || undefined, // ✅ 回填隐藏字段
+          file: updateValue.file || undefined, // ✅ 回填隐藏字段
         });
 
-        if (updateValue?.apidll) {
+        if (updateValue?.file) {
           const existed = {
             uid: "-1",
-            name: getNameFromPath(updateValue.apidll) || "已上传文件.dll",
+            name: getNameFromPath(updateValue.file) || "已上传文件.dll",
             status: "done" as const,
-            // url: updateValue.apidll, // 如果可下载/可预览，Upload 列表名可点
+            url: updateValue.file, // 如果可下载/可预览，Upload 列表名可点
           };
           setState({ fileList: [existed] });
         }
@@ -123,15 +122,18 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         onError?.(new Error(msg || "上传失败"));
         return;
       }
+
       // 上传成功：更新 fileList 与表单字段
       const newFile = {
         uid: file.uid,
         name: file.name,
         status: "done" as const,
+        url:
+          data ||
+          "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimage109.360doc.com%2FDownloadImg%2F2025%2F04%2F0321%2F296122601_4_20250403090445718&refer=http%3A%2F%2Fimage109.360doc.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1763088297&t=5ebfe24c31fc65667d74afd53c02bbcc",
       };
       setState({ fileList: [newFile] });
-
-      form.setFieldsValue({ apidll: data });
+      form.setFieldsValue({ file: data });
       message.success("上传成功");
       onSuccess?.(data, file);
     } catch (err) {
@@ -142,56 +144,35 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   };
 
   const beforeUpload = (file: any) => {
-    const isAllowed = /\.dll$/i.test(file.name);
+    // 生产环境改为 /\.dll$/i.test(file.name)
+    const isTestMode = true; // 只是测试时允许
+    const isAllowed = isTestMode || /\.dll$/i.test(file.name);
     const isLt2M = file.size / 1024 / 1024 < 2;
+
     if (!isAllowed) {
       message.error("仅允许上传 .dll 文件");
       return Upload.LIST_IGNORE;
     }
-    // if (!isLt2M) {
-    //   message.error("文件必须小于 2MB");
-    //   return Upload.LIST_IGNORE;
-    // }
+    if (!isLt2M) {
+      message.error("文件必须小于 2MB");
+      return Upload.LIST_IGNORE;
+    }
     return true;
   };
 
   const handleOk = async () => {
     const values = await form.validateFields();
 
-    if (
-      typeof values.defaultparas === "string" &&
-      values.defaultparas.trim() !== ""
-    ) {
-      let str = values.defaultparas.replace(/，/g, ",").trim();
-      if (str.endsWith(",")) {
-        str = str.slice(0, -1);
-      }
-      values.defaultparas = str;
+    const { code, message: msg } = await updateModelOne({
+      instr_id: updateValue && updateValue.instr_id,
+      ...values,
+    });
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
     }
-    console.log({ ...values, instr_id: updateValue.instr_id });
-
-    if (type == "add") {
-      // 因为现在上传没有返回地址appdll先写死
-      values.apidll = "PBZ20_20.dll";
-      const { code, message: msg } = await addModelOne(values);
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      message.success(msg || "操作成功");
-    } else {
-      const { code, message: msg } = await updateModelOne({
-        instr_id: updateValue.instr_id,
-        apidll: updateValue?.apidll || "",
-        ...values,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      message.success(msg || "操作成功");
-    }
-
+    message.success(msg || "操作成功");
+    console.log("Form values:", values);
     if (onOk) {
       onOk(values);
     }
@@ -203,7 +184,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       open={open}
       onCancel={() => {
-        setState({ fileList: [] });
         onCancel && onCancel();
       }}
       afterClose={() => form?.resetFields()}
@@ -244,14 +224,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           <Col span={12}>
             {" "}
             <Form.Item
-              rules={[{ required: true }]}
               name="is_active"
+              // rules={[{ required: true }]}
               label="激活"
-              initialValue={1}
+              initialValue={"1"}
             >
               <Select placeholder="选择是否激活" allowClear>
-                <Option value={1}>✓</Option>
-                <Option value={0}>✗</Option>
+                <Option value="1">✓</Option>
+                <Option value="0">✗</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -273,7 +253,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item
               name="interface"
               label="接口"
-              rules={[{ required: true }]}
+              // rules={[{ required: true }]}
             >
               <Select
                 placeholder="选择接口"
@@ -296,8 +276,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item
               name="modulesmax"
               label="通道"
+              // rules={[{ required: true }]}
               initialValue={1}
-              rules={[{ required: true }]}
             >
               <Select
                 placeholder="选择通道"
@@ -315,7 +295,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.Item
               name="defaultparas"
               label="默认参数"
-              rules={[{ required: true }]}
+              // rules={[{ required: true }]}
             >
               <Input
                 allowClear
@@ -326,27 +306,41 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         </Row>
         <Row gutter={[24, 24]}>
           <Col span={12}>
-            {" "}
             <Form.Item
               label="API DLL"
-              name="apidll"
-              rules={[{ required: true, message: "请上传 DLL 文件" }]}
+              rules={[
+                {
+                  validator: (_, v) => {
+                    // 如果已有回显或已上传新的，就通过
+                    if (form.getFieldValue("file")) return Promise.resolve();
+                    return Promise.reject(new Error("请上传 DLL 文件"));
+                  },
+                },
+              ]}
               tooltip={{
                 title: "支持扩展名： .dll",
                 icon: <InfoCircleOutlined />,
               }}
             >
-              {" "}
               <Upload
                 customRequest={handleUpload}
                 beforeUpload={beforeUpload}
-                accept=".dll"
-                maxCount={1}
+                accept=".xls,.xlsx, .docx, .dll"
                 fileList={fileList}
-                showUploadList={{ showRemoveIcon: false }}
+                maxCount={1}
+                showUploadList={false}
+                onRemove={() => {
+                  form.setFieldsValue({ file: undefined });
+                  setState({ fileList: [] });
+                }}
               >
                 <Button icon={<UploadOutlined />}>Upload</Button>
               </Upload>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="file" hidden>
+              <Input />
             </Form.Item>
           </Col>
         </Row>
