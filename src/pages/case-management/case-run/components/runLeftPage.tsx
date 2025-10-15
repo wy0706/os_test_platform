@@ -13,6 +13,7 @@ interface RunProps {
   breakpoints: any;
   onDataChange?: (newData: any[]) => void;
   onPonitChange: (value: any) => void;
+  onRowSelect?: (row: any) => void; // 把选中行数据回传给父组件
 }
 interface SelfCheckMessage {
   id: number;
@@ -31,14 +32,21 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     currentStatus,
     onDataChange,
     onPonitChange,
+    onRowSelect,
   } = props;
   const [state, setState] = useSetState<any>({
     isExpandAll: true,
     dataSource: [],
     expandedRowKeys: [],
+    selectedRowKey: null, // ✅ 当前仅选中一条
   });
-  const { isExpandAll, dataSource, expandedRowKeys } = state;
+  const { isExpandAll, dataSource, expandedRowKeys, selectedRowKey } = state;
 
+  const selectRow = (record: any) => {
+    const key = record.key || record.id;
+    setState({ selectedRowKey: key });
+    onRowSelect?.(record);
+  };
   useEffect(() => {
     const mockData = [
       {
@@ -295,9 +303,19 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
         dataSource={dataSource}
         rowKey={(record) => record.key || record.id}
         pagination={false}
+        rowClassName={(record) =>
+          selectedRowKey === (record.key || record.id) ? "row-selected" : ""
+        }
         onRow={(record) => ({
-          onClick: () => cancelBreakpoint(record.id),
-          onDoubleClick: () => setBreakpoint(record.id),
+          onClick: () => {
+            selectRow(record);
+            cancelBreakpoint(record.id);
+          },
+
+          onDoubleClick: () => {
+            selectRow(record);
+            setBreakpoint(record.id);
+          },
         })}
         expandable={{
           expandedRowKeys: expandedRowKeys,

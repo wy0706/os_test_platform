@@ -9,7 +9,7 @@ import {
   updateTypeAndModal,
 } from "@/services/equipment-management/equipment-library-edit.service";
 import { createOne } from "@/services/equipment-management/equipment-library.service";
-import { addPrefixToLevelKey, isArray } from "@/utils";
+import { addPrefixToLevelKey } from "@/utils";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -65,6 +65,7 @@ const PeripheralImport: React.FC = () => {
   const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [deviceConfigData, setDeviceConfigData] = useState<any[]>([]);
   const [channelConfigData, setChannelConfigData] = useState<any[]>([]);
+  const [selectedKeysState, setSelectedKeysState] = useState<React.Key[]>([]);
   // 树结构数据
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   // 展开的节点keys
@@ -344,64 +345,136 @@ const PeripheralImport: React.FC = () => {
       },
     },
   ];
-  // 树节点选择处理
-  const onSelect = async (selectedKeys: React.Key[], info: any) => {
-    const node = info.node as Node;
-    setState({
-      isSelfCheck: false,
-    });
-    if (selectedKeys.length == 0) {
-      setDeviceConfigData([]);
-      setChannelConfigData([]);
+
+  // const onSelect = async (keys: React.Key[], info: any) => {
+  //   const nextKey = info?.node?.key as string | undefined;
+  //   if (!nextKey) return;
+
+  //   // 试图取消选中（keys 为空）→ 不允许，直接忽略
+  //   if (selectedKeysState.length > 0 && keys.length === 0) {
+  //     return;
+  //   }
+
+  //   // 点击的是当前已选中的节点 → 不重复请求
+  //   if (selectedKeysState[0] === nextKey) {
+  //     return;
+  //   }
+
+  //   // 允许真正的“切换选中”
+  //   setSelectedKeysState([nextKey]);
+
+  //   // === 以下保持你的原逻辑（把 selectedKeys[0] 换成 nextKey）===
+  //   setState({ isSelfCheck: false });
+  //   setDeviceConfigData([]);
+  //   setChannelConfigData([]);
+  //   setSelectedDevice(nextKey);
+
+  //   const node = info.node as any;
+  //   if (!node?.level) {
+  //     message.error("节点层级信息缺失");
+  //     return;
+  //   }
+  //   if (node.level === 1) {
+  //     const { code, data, message: msg } = await getAllTypeAndModal({});
+  //     if (code !== 0) return message.error(msg || "操作失败");
+  //     setDeviceConfigData(data?.list_info1 || []);
+  //     setChannelConfigData([]);
+  //     return;
+  //   }
+  //   if (node.level === 2) {
+  //     const {
+  //       code,
+  //       data,
+  //       message: msg,
+  //     } = await getAllTypeAndModal({ type_code: nextKey });
+  //     if (code !== 0) return message.error(msg || "操作失败");
+  //     setDeviceConfigData(data?.list_info1 || []);
+  //     const list = Array.isArray(data?.list_info2)
+  //       ? data.list_info2.map((i: any) => ({
+  //           ...i,
+  //           list_indexmax: data?.list_indexmax || 0,
+  //         }))
+  //       : [];
+  //     setChannelConfigData(list);
+  //     return;
+  //   }
+  //   if (node.level === 3) {
+  //     const num = Number(String(nextKey).replace("child", ""));
+  //     const {
+  //       code,
+  //       data,
+  //       message: msg,
+  //     } = await getAllTypeAndModal({ id: num });
+  //     if (code !== 0) return message.error(msg || "操作失败");
+  //     const list = Array.isArray(data?.list_info2)
+  //       ? data.list_info2.map((i: any) => ({
+  //           ...i,
+  //           list_indexmax: data?.list_indexmax || 0,
+  //         }))
+  //       : [];
+  //     setDeviceConfigData(data?.list_info1 || []);
+  //     setChannelConfigData(list);
+  //   }
+  // };
+  // 1) 真正的异步处理函数：显式声明 Promise<void>，内部只用 `return;` 结束分支即可
+  const handleSelect = async (keys: React.Key[], info: any): Promise<void> => {
+    const nextKey = info?.node?.key as string | undefined;
+    if (!nextKey) return;
+
+    // 阻止取消选中
+    if (selectedKeysState.length > 0 && keys.length === 0) {
       return;
     }
-    setDeviceConfigData([]); //清空设备种类table
-    setChannelConfigData([]); //清空设备型号table
-    setSelectedDevice(selectedKeys[0] as string);
+    // 重复点击同一节点，不请求接口
+    if (selectedKeysState[0] === nextKey) {
+      return;
+    }
+
+    setSelectedKeysState([nextKey]);
+    setState({ isSelfCheck: false });
+    setDeviceConfigData([]);
+    setChannelConfigData([]);
+    setSelectedDevice(nextKey);
+
+    const node = info.node as any;
     if (!node?.level) {
-      // level 异常时直接返回
       message.error("节点层级信息缺失");
       return;
     }
-    if (node?.level == 1) {
+    if (node.level === 1) {
       const { code, data, message: msg } = await getAllTypeAndModal({});
       if (code !== 0) {
         message.error(msg || "操作失败");
         return;
       }
       setDeviceConfigData(data?.list_info1 || []);
-      setChannelConfigData([]); //清空设备型号table(一级不展示型号信息)
+      setChannelConfigData([]);
       return;
     }
-    if (node?.level == 2) {
+
+    if (node.level === 2) {
       const {
         code,
         data,
         message: msg,
-      } = await getAllTypeAndModal({ type_code: selectedKeys[0] });
+      } = await getAllTypeAndModal({ type_code: nextKey });
       if (code !== 0) {
         message.error(msg || "操作失败");
         return;
       }
       setDeviceConfigData(data?.list_info1 || []);
-
-      let list =
-        isArray(data?.list_info2) && data?.list_info2.length > 0
-          ? data.list_info2.map((item: any) => {
-              return {
-                ...item,
-                list_indexmax: data?.list_indexmax || 0,
-              };
-            })
-          : [];
-
-      console.log("list", list);
-
+      const list = Array.isArray(data?.list_info2)
+        ? data.list_info2.map((i: any) => ({
+            ...i,
+            list_indexmax: data?.list_indexmax || 0,
+          }))
+        : [];
       setChannelConfigData(list);
+      return;
     }
-    if (node?.level == 3) {
-      const num = Number(node.key.replace("child", ""));
 
+    if (node.level === 3) {
+      const num = Number(String(nextKey).replace("child", ""));
       const {
         code,
         data,
@@ -411,20 +484,21 @@ const PeripheralImport: React.FC = () => {
         message.error(msg || "操作失败");
         return;
       }
-      let list =
-        isArray(data?.list_info2) && data?.list_info2.length > 0
-          ? data.list_info2.map((item: any) => {
-              return {
-                ...item,
-                list_indexmax: data?.list_indexmax || 0,
-              };
-            })
-          : [];
+      const list = Array.isArray(data?.list_info2)
+        ? data.list_info2.map((i: any) => ({
+            ...i,
+            list_indexmax: data?.list_indexmax || 0,
+          }))
+        : [];
       setDeviceConfigData(data?.list_info1 || []);
       setChannelConfigData(list);
+      return;
     }
   };
 
+  const onSelect = (keys: React.Key[], info: any): void => {
+    void handleSelect(keys, info);
+  };
   // 树节点展开/收起处理
   const onExpand = (expandedKeys: React.Key[]) => {
     setExpandedKeys(expandedKeys);
@@ -776,8 +850,13 @@ const PeripheralImport: React.FC = () => {
   };
   // 自检
   const handleSelfCheck = () => {
-    // 如果没有文件 做出提示
+    //  程序化清空 Tree 的选中
+    setSelectedKeysState([]);
+    setSelectedDevice(""); // 如果右侧表格依赖它，顺便清一下
+    setDeviceConfigData([]); //清空设备种类表
+    // setChannelConfigData([]); // 可选
     console.log("treeData", treeData);
+    // 如果没有文件 做出提示
     if (!treeData[0].children || treeData[0].children.length == 0) {
       message.warning("文件为空，请添加设备配置！");
       return;
@@ -1080,6 +1159,7 @@ const PeripheralImport: React.FC = () => {
               treeData={treeData}
               onSelect={onSelect}
               expandedKeys={expandedKeys}
+              selectedKeys={selectedKeysState}
               onExpand={onExpand}
               titleRender={(node) => {
                 const menu = getContextMenu(node);

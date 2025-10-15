@@ -6,3 +6,23 @@
   background-color: red;
   border-radius: 50%;
 }
+/* 选中行高亮 */
+.row-selected {
+  background: #e6f7ff !important;
+}
+.ant-table-tbody > tr.row-selected:hover > td {
+  background: #e6f7ff !important;
+}
+/* 可选：左侧竖条强化选中感 */
+.row-selected > td:first-child {
+  position: relative;
+}
+// .row-selected > td:first-child::before {
+//   position: absolute;
+//   top: 0;
+//   bottom: 0;
+//   left: 0;
+//   width: 3px;
+//   background: #1890ff;
+//   content: "";
+// }

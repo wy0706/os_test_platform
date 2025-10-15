@@ -117,6 +117,7 @@ const Page: React.FC = () => {
       },
     ],
     disableClearAll: true, //取消所有断点是否可点击，如果没有断点不可点击
+    selectRowData: null, //左侧选中的单行数据
   });
   const {
     title,
@@ -249,6 +250,27 @@ const Page: React.FC = () => {
     });
     message.success("操作成功");
   };
+
+  const handleRowSelect = (values: any) => {
+    console.log(values);
+    setState({
+      selectRowData: { ...values },
+    });
+  };
+
+  const hanldeSinglTest = () => {
+    if (!state.selectRowData) {
+      message.warning("请选择数据后进行测试");
+      return;
+    }
+  };
+
+  const hanleContinue = () => {
+    if (!state.selectRowData) {
+      message.warning("请选择数据后进行测试");
+      return;
+    }
+  };
   return (
     <PageContainer
       // style={{ backgroundColor: "#fff" }}
@@ -291,11 +313,15 @@ const Page: React.FC = () => {
                 执行
               </Button>
               <Button icon={<StopOutlined />}>停止</Button>
-              <Button icon={<EnterOutlined />}>单项测试</Button>
+              <Button icon={<EnterOutlined />} onClick={hanldeSinglTest}>
+                单项测试
+              </Button>
               {/* 如果不是序列跳转的 ，就不展示div中的button */}
               {isShowAllBtn && (
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <Button icon={<CaretRightOutlined />}>继续</Button>
+                  <Button icon={<CaretRightOutlined />} onClick={hanleContinue}>
+                    继续
+                  </Button>
                   <Button icon={<PauseOutlined />}>暂停</Button>
                   <Button
                     disabled={disableClearAll}
@@ -369,6 +395,7 @@ const Page: React.FC = () => {
                 isSelfCheck={isSelfCheck}
                 isSelfChecking={isSelfChecking}
                 selfCheckMessages={selfCheckMessages}
+                onRowSelect={handleRowSelect}
                 data={dataSource}
                 currentStatus={currentStatus}
                 breakpoints={breakpoints}

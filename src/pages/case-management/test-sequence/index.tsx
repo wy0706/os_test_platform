@@ -830,7 +830,6 @@ const DemoPage: React.FC = () => {
         updateValue={addModalValue}
         onOk={(values) => {
           console.log(values);
-
           const { gender, name } = values;
           let titles = gender
             ? `${getSelectedNodePath(gender)} / ${name}`

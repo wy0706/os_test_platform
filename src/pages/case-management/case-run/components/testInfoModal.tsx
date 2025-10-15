@@ -61,7 +61,7 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
     >
       <Form {...layout} form={form} name="control-hooks">
         <Form.Item name="name" label="项目名称" rules={[{ required: true }]}>
-          <Input placeholder="输入项目名称" allowClear />
+          <Input placeholder="输入项目名称" allowClear disabled />
         </Form.Item>
         <Form.Item name="name1" label="样品名称">
           <Input placeholder="输入样品名称" allowClear />
