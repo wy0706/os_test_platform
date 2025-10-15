@@ -457,7 +457,7 @@ const Page: React.FC = () => {
         open={isAddModalOpen}
         type={addOptionType}
         updateValue={addEquipValue}
-        group_id={currentSelectedTypeId}
+        groupId={currentSelectedTypeId}
         onCancel={() => {
           setState({ isAddModalOpen: false, addEquipValue: {} });
         }}

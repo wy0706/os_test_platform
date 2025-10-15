@@ -26,7 +26,7 @@ interface SetMemberModalProps {
   onCancel?: () => void;
   type: string;
   updateValue?: any;
-  group_id: any;
+  groupId: any;
 }
 const { Option } = Select;
 
@@ -40,7 +40,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   onCancel,
   type,
   updateValue,
-  group_id,
+  groupId,
 }) => {
   const options = Array.from({ length: 20 }, (_, i) => ({
     label: String(i + 1),
@@ -103,7 +103,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }
       } else {
         form?.setFieldsValue({
-          group_id: group_id == "all" ? undefined : group_id,
+          group_id: groupId == "all" ? undefined : groupId,
         });
       }
     }
@@ -242,7 +242,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            {" "}
             <Form.Item
               rules={[{ required: true }]}
               name="is_active"
@@ -259,7 +258,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
         <Row gutter={[24, 24]}>
           <Col span={12}>
-            {" "}
             <Form.Item
               name="instr_model"
               label="设备型号"
@@ -267,9 +265,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             >
               <Input placeholder="输入设备型号" allowClear />
             </Form.Item>
-          </Col>{" "}
+          </Col>
           <Col span={12}>
-            {" "}
             <Form.Item
               name="interface"
               label="接口"
@@ -311,7 +308,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            {" "}
             <Form.Item
               name="defaultparas"
               label="默认参数"
@@ -326,7 +322,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         </Row>
         <Row gutter={[24, 24]}>
           <Col span={12}>
-            {" "}
             <Form.Item
               label="API DLL"
               name="apidll"
@@ -336,7 +331,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 icon: <InfoCircleOutlined />,
               }}
             >
-              {" "}
               <Upload
                 customRequest={handleUpload}
                 beforeUpload={beforeUpload}
