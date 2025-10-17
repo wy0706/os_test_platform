@@ -6,6 +6,9 @@ import {
   TreeNodeCreateRequest,
   TreeNodeUpdateRequest,
 } from "@/pages/demos/demo/schemas";
+import { request } from "@umijs/max";
+
+const baseUrl = "/testsequencetype";
 
 // 模拟数据
 const mockTreeData: TreeNode[] = [
@@ -175,6 +178,11 @@ const deleteNode = (nodes: TreeNode[], targetId: string): TreeNode[] => {
 // 存储当前数据（模拟数据库）
 let currentTreeData = [...mockTreeData];
 let currentTestData = [...mockTestData];
+
+enum BaseApi {
+  TestSequenceType = `/testsequencetype`,
+  TestSequence = "/testsequence",
+}
 
 // API 服务
 export class DemoService {
@@ -381,4 +389,75 @@ export class DemoService {
       data: undefined,
     };
   }
+}
+
+// 新数据
+
+/**
+ * 获取测试序列类
+ */
+export async function getTypeList() {
+  const result: any = await request<{}>(`${BaseApi.TestSequenceType}/getList`, {
+    method: "GET",
+  });
+  return result;
+}
+
+/**
+ * 创建测试序列类
+ * tigroup 类型名称
+ * sysoruser  用户或系统名称
+
+ */
+
+export async function createSequenceType(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequenceType}/create`, {
+    method: "POST",
+    data,
+  });
+  return result;
+}
+/**
+ * 编辑测试序列类 被编辑序列类ID
+ * sequencetype_id
+tigroup 类型名称
+
+ */
+export async function updateSequenceType(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequenceType}/edit`, {
+    method: "POST",
+    data,
+  });
+  return result;
+}
+/**
+ * 删除测试序列类
+ */
+
+export async function deleteSequenceType(id: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequenceType}/delete`, {
+    method: "DELETE",
+    params: { sequencetype_id: id },
+  });
+  return result;
+}
+/**
+ * 获取测试序列列表
+ *
+ * @param {Object} params 请求参数
+ * @param {string} params.sequence_name 测试序列名称，用于条件查询，支持模糊查询
+ * @param {string} params.TST 测试类型，包括pre/uut/post ，用于条件查询
+ * @param {string} params.tc_title 关联测试用例名称，用于条件查询，支持模糊查询
+ * @param {string} params.sequencetype_id 测试类型ID，获取测试序列所在的
+ * @param {string} params.is_published 是否发布，用于条件查询
+ * @param {string} params.sysoruser 获取测试序列所在的sys类型或user类
+ * page_size
+ * page_index
+ */
+export async function getSequenceList(params: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequence}/getList`, {
+    method: "GET",
+    params,
+  });
+  return result;
 }

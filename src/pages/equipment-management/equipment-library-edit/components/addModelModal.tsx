@@ -62,17 +62,18 @@ const AddModelModal: React.FC<SetMemberModalProps> = ({
     const { instr_name } = await form.validateFields();
     setSubmitLoading(true);
     try {
-      const {
-        code,
-        message: msg,
-        data,
-      } = await createModalOne({ instr_name: instr_name.label });
+      const { code, message: msg } = await createModalOne({
+        instr_name: instr_name.label,
+      });
       if (code !== 0) {
         message.error(msg || "操作失败");
         return;
       }
       let obj = modelList.find((item) => item.instr_id == instr_name.value);
-      onOk?.(obj);
+      onOk?.({
+        ...obj,
+        msg: msg || "设备型号添加成功",
+      });
     } catch (error) {
     } finally {
       setSubmitLoading(false);

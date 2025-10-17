@@ -1,12 +1,17 @@
-import { Form, Input, Modal, Select } from "antd";
+import {
+  createSequenceType,
+  updateSequenceType,
+} from "@/services/case-management/test-sequence.service";
+import { useSetState } from "ahooks";
+import { Form, Input, message, Modal, Select } from "antd";
 import { useEffect } from "react";
-
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
   type: string;
   updateValue?: any;
+  parentsId: any;
 }
 const { Option } = Select;
 
@@ -20,30 +25,58 @@ const AddLeftModal: React.FC<SetMemberModalProps> = ({
   onCancel,
   type,
   updateValue,
+  parentsId,
 }) => {
   const [form] = Form.useForm();
+
+  const [state, setState] = useSetState<any>({
+    submitLoading: false,
+  });
+  const { submitLoading } = state;
   useEffect(() => {
+    initData();
+  }, [open, type, updateValue]);
+  const initData = () => {
     if (open) {
       form?.resetFields();
-      console.log(updateValue);
-
-      updateValue && form?.setFieldsValue({ ...updateValue });
+      updateValue && form?.setFieldsValue({ tigroup: updateValue.name });
     }
-  }, [open, type, updateValue, form]);
-
-  const handleOk = () => {
-    console.log("111");
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  };
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    try {
+      setState({
+        submitLoading: true,
       });
+      if (type == "add") {
+        const { code, message: msg } = await createSequenceType({
+          sysoruser: parentsId,
+          ...values,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      } else {
+        const { code, message: msg } = await updateSequenceType({
+          ...values,
+          sequencetype_id: updateValue.rawKey,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      }
+      if (onOk) {
+        onOk({ ...values, parentsId });
+      }
+    } finally {
+      setState({
+        submitLoading: false,
+      });
+    }
   };
 
   return (
@@ -51,15 +84,17 @@ const AddLeftModal: React.FC<SetMemberModalProps> = ({
       title={type === "edit" ? "编辑序列" : "新建序列"}
       maskClosable={false}
       open={open}
+      confirmLoading={submitLoading}
       onCancel={() => {
         onCancel && onCancel();
       }}
+      afterClose={() => form?.resetFields()}
       styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="name" label="名称" rules={[{ required: true }]}>
+      <Form {...layout} form={form}>
+        <Form.Item name="tigroup" label="名称" rules={[{ required: true }]}>
           <Input placeholder="输入名称" maxLength={32} />
         </Form.Item>
       </Form>

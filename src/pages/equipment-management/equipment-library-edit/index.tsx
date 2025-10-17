@@ -90,6 +90,8 @@ const PeripheralImport: React.FC = () => {
     saveType: "save",
     open: false,
     btnType: "",
+    backLoading: false,
+    addLoading: false,
   });
 
   const {
@@ -111,6 +113,8 @@ const PeripheralImport: React.FC = () => {
     saveType,
     open,
     btnType,
+    backLoading,
+    addLoading,
   } = state;
   const params = useParams();
   const [searchParams] = useSearchParams();
@@ -346,87 +350,35 @@ const PeripheralImport: React.FC = () => {
     },
   ];
 
-  // const onSelect = async (keys: React.Key[], info: any) => {
-  //   const nextKey = info?.node?.key as string | undefined;
-  //   if (!nextKey) return;
+  const triggerOnSelectByKey = (key: string, force: boolean = false) => {
+    // 先从 treeData 找节点（包含 level）
+    let node = findNode(treeData, key) as any;
 
-  //   // 试图取消选中（keys 为空）→ 不允许，直接忽略
-  //   if (selectedKeysState.length > 0 && keys.length === 0) {
-  //     return;
-  //   }
+    // 保险：找不到就按 key 规则兜底一个 node（有 level 就行）
+    if (!node) {
+      const level = key === "instrument" ? 1 : key.startsWith("child") ? 3 : 2;
+      node = { key, level };
+    }
 
-  //   // 点击的是当前已选中的节点 → 不重复请求
-  //   if (selectedKeysState[0] === nextKey) {
-  //     return;
-  //   }
+    const info = { node };
+    void handleSelect([key], info, force);
+  };
 
-  //   // 允许真正的“切换选中”
-  //   setSelectedKeysState([nextKey]);
-
-  //   // === 以下保持你的原逻辑（把 selectedKeys[0] 换成 nextKey）===
-  //   setState({ isSelfCheck: false });
-  //   setDeviceConfigData([]);
-  //   setChannelConfigData([]);
-  //   setSelectedDevice(nextKey);
-
-  //   const node = info.node as any;
-  //   if (!node?.level) {
-  //     message.error("节点层级信息缺失");
-  //     return;
-  //   }
-  //   if (node.level === 1) {
-  //     const { code, data, message: msg } = await getAllTypeAndModal({});
-  //     if (code !== 0) return message.error(msg || "操作失败");
-  //     setDeviceConfigData(data?.list_info1 || []);
-  //     setChannelConfigData([]);
-  //     return;
-  //   }
-  //   if (node.level === 2) {
-  //     const {
-  //       code,
-  //       data,
-  //       message: msg,
-  //     } = await getAllTypeAndModal({ type_code: nextKey });
-  //     if (code !== 0) return message.error(msg || "操作失败");
-  //     setDeviceConfigData(data?.list_info1 || []);
-  //     const list = Array.isArray(data?.list_info2)
-  //       ? data.list_info2.map((i: any) => ({
-  //           ...i,
-  //           list_indexmax: data?.list_indexmax || 0,
-  //         }))
-  //       : [];
-  //     setChannelConfigData(list);
-  //     return;
-  //   }
-  //   if (node.level === 3) {
-  //     const num = Number(String(nextKey).replace("child", ""));
-  //     const {
-  //       code,
-  //       data,
-  //       message: msg,
-  //     } = await getAllTypeAndModal({ id: num });
-  //     if (code !== 0) return message.error(msg || "操作失败");
-  //     const list = Array.isArray(data?.list_info2)
-  //       ? data.list_info2.map((i: any) => ({
-  //           ...i,
-  //           list_indexmax: data?.list_indexmax || 0,
-  //         }))
-  //       : [];
-  //     setDeviceConfigData(data?.list_info1 || []);
-  //     setChannelConfigData(list);
-  //   }
-  // };
   // 1) 真正的异步处理函数：显式声明 Promise<void>，内部只用 `return;` 结束分支即可
-  const handleSelect = async (keys: React.Key[], info: any): Promise<void> => {
+  const handleSelect = async (
+    keys: React.Key[],
+    info: any,
+    force: boolean = false
+  ): Promise<void> => {
     const nextKey = info?.node?.key as string | undefined;
     if (!nextKey) return;
 
-    // 阻止取消选中
-    if (selectedKeysState.length > 0 && keys.length === 0) {
+    // 阻止取消选中（除非强制刷新）
+    if (!force && selectedKeysState.length > 0 && keys.length === 0) {
       return;
     }
-    // 重复点击同一节点，不请求接口
-    if (selectedKeysState[0] === nextKey) {
+    // 同一节点点击不请求（除非强制刷新）
+    if (!force && selectedKeysState[0] === nextKey) {
       return;
     }
 
@@ -631,24 +583,29 @@ const PeripheralImport: React.FC = () => {
   const isTreeUpdate = async (str: string) => {
     const { code, data, message: msg } = await treeIsUpdate();
     if (code === 0) {
-      if (str == "add") {
+      if (str === "add") {
         await addNewDataBase();
       } else {
         history.back();
       }
       return;
     }
+    // 弹窗前关闭 loading 状态
     setState({
       open: true,
+      addLoading: false,
+      backLoading: false,
     });
-    // message.error(msg || "操作失败");
   };
   // 操作按钮处理
   const handleAdd = async () => {
-    setState({
-      btnType: "add",
-    });
-    isTreeUpdate("add");
+    setState({ btnType: "add", addLoading: true });
+    try {
+      await isTreeUpdate("add");
+    } finally {
+      // 无论成功还是失败，都要关闭 loading
+      setState({ addLoading: false });
+    }
   };
   const handleAddOk = async () => {
     // 保存数据后创建新的临时库
@@ -692,7 +649,7 @@ const PeripheralImport: React.FC = () => {
     setSelectedDevice("");
     // 重置展开状态，只展开根节点
     setExpandedKeys(["instrument"]);
-    message.success("已新建");
+    message.success(msg || "新建成功");
   };
 
   const handleExport = (type: string) => {
@@ -715,12 +672,43 @@ const PeripheralImport: React.FC = () => {
       setExpandedKeys((prevKeys) => [...prevKeys, newNode.key, "instrument"]);
       return newData;
     });
-    message.success("设备种类添加成功");
+    message.success(values.msg || "设备种类添加成功");
     setState({
       isTypeModalOpen: false,
     });
+    // 强制刷新当前选中节点；若没有选中，就刷新根节点
+    triggerOnSelectByKey(selectedDevice || "instrument", true);
   };
+  // 添加型号成功
+  const handleAddModelSuccess = (values: any) => {
+    const newNode: TreeNode = {
+      title: values.instr_name,
+      key: `child${values.instr_id}`,
+      level: 3,
+    };
+    setTreeData((prevData) => {
+      const newData = addNode(prevData, oneModelNode.key, newNode);
+      // 更新展开的节点，确保新添加的节点和其父节点都展开
+      setExpandedKeys((prevKeys) => [
+        ...prevKeys,
+        newNode.key,
+        oneModelNode.key,
+        "instrument",
+      ]);
+      return newData;
+    });
+    message.success(values.msg || "设备型号添加成功");
+    setState({
+      isModelModalOpen: false,
+      oneModelNode: null,
+    });
 
+    // 强制刷新当前选中节点（优先选中项，其次用刚才的父种类）
+    triggerOnSelectByKey(
+      selectedDevice || oneModelNode?.key || "instrument",
+      true
+    );
+  };
   const handleDeleteAll = () => {
     Modal.confirm({
       title: (
@@ -748,45 +736,25 @@ const PeripheralImport: React.FC = () => {
         );
         // 删除所有子节点后，只保留根节点展开
         setExpandedKeys(["instrument"]);
+        setChannelConfigData([]);
+        setDeviceConfigData([]);
         message.success(msg || "操作成功");
       },
     });
   };
   const handleGoBack = async () => {
-    setState({
-      btnType: "back",
-    });
-    isTreeUpdate("back");
+    setState({ backLoading: true, btnType: "back" });
+    try {
+      await isTreeUpdate("back");
+    } finally {
+      setState({ backLoading: false });
+    }
   };
   // 添加型号
   const handleAddModel = (parentNode: TreeNode) => {
     setState({
       oneModelNode: parentNode,
       isModelModalOpen: true,
-    });
-  };
-  // 添加型号成功
-  const handleAddModelSuccess = (values: any) => {
-    const newNode: TreeNode = {
-      title: values.instr_name,
-      key: `child${values.instr_id}`,
-      level: 3,
-    };
-    setTreeData((prevData) => {
-      const newData = addNode(prevData, oneModelNode.key, newNode);
-      // 更新展开的节点，确保新添加的节点和其父节点都展开
-      setExpandedKeys((prevKeys) => [
-        ...prevKeys,
-        newNode.key,
-        oneModelNode.key,
-        "instrument",
-      ]);
-      return newData;
-    });
-    message.success("设备型号添加成功");
-    setState({
-      isModelModalOpen: false,
-      oneModelNode: null,
     });
   };
 
@@ -814,6 +782,8 @@ const PeripheralImport: React.FC = () => {
         setExpandedKeys((prevKeys) =>
           prevKeys.filter((key) => key !== node.key)
         );
+        setChannelConfigData([]);
+        setDeviceConfigData([]);
         message.success(msg || "操作成功");
       },
     });
@@ -844,6 +814,8 @@ const PeripheralImport: React.FC = () => {
         setExpandedKeys((prevKeys) =>
           prevKeys.filter((key) => key !== node.key)
         );
+        setChannelConfigData([]);
+        setDeviceConfigData([]);
         message.success(msg || "操作成功");
       },
     });
@@ -1119,7 +1091,7 @@ const PeripheralImport: React.FC = () => {
       header={{
         ghost: true,
         extra: [
-          <Button key="1" onClick={handleGoBack}>
+          <Button key="1" onClick={handleGoBack} loading={backLoading}>
             返回
           </Button>,
         ],
@@ -1129,7 +1101,11 @@ const PeripheralImport: React.FC = () => {
         {/* 操作栏 */}
         <Card className="operation-bar">
           <Space className="operation-buttons">
-            <Button icon={<PlusOutlined />} onClick={handleAdd}>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              loading={addLoading}
+            >
               新建
             </Button>
 

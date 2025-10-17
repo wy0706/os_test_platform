@@ -43,10 +43,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     userList: [], // 用户列表
     libList: [],
     moduleList: [],
-    loading: false,
     submitLoading: false,
   });
-  const { userList, libList, moduleList, loading, submitLoading } = state;
+  const { userList, libList, moduleList, submitLoading } = state;
   const [form] = Form.useForm();
   // 获取测试用例库
 

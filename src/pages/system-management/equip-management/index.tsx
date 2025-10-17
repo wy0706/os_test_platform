@@ -75,10 +75,10 @@ const Page: React.FC = () => {
       };
 
       let list = !isArray(data?.list_info)
-        ? []
+        ? [{ ...allItem }]
         : data?.list_info.length > 0
         ? [allItem, ...data?.list_info]
-        : [];
+        : [{ ...allItem }];
       setState({ equipTypeData: list });
     } catch {
       setState({ equipTypeData: [] });

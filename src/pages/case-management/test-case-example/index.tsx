@@ -407,7 +407,6 @@ const TestCaseExample: React.FC = () => {
                     className="tree-icon-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log("modudddd", module);
 
                       handleDeleteModule(module);
                     }}
@@ -557,7 +556,7 @@ const TestCaseExample: React.FC = () => {
               overflowX: "hidden",
             }}
           >
-            <Spin spinning={loading} tip="加载模块中...">
+            <Spin spinning={loading} tip="加载数据中...">
               {treeData.length > 0 ? (
                 <Tree
                   treeData={treeData}

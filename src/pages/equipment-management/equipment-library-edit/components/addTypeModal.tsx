@@ -72,7 +72,11 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
         return;
       }
       let obj = typeList.find((item) => item.type_code == values.type_code);
-      onOk?.(obj);
+      // onOk?.(obj);
+      onOk?.({
+        ...obj,
+        msg: msg || "设备种类添加成功",
+      });
     } catch (error) {
     } finally {
       setSubmitLoading(false);
