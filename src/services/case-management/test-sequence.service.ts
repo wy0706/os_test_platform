@@ -391,8 +391,6 @@ export class DemoService {
   }
 }
 
-// 新数据
-
 /**
  * 获取测试序列类
  */
@@ -458,6 +456,62 @@ export async function getSequenceList(params: any) {
   const result: any = await request<{}>(`${BaseApi.TestSequence}/getList`, {
     method: "GET",
     params,
+  });
+  return result;
+}
+
+/**
+ * 创建测试序列 
+ * sequence_name 测试序列名称
+TST 三阶段测试，包括pre/uut/post 
+tc_title 无	关联测试用例标题，发送用例ID和用例名称，是一组数据表现形式：【{id：，title:},{}】
+tigroup 测试序列类
+ */
+export async function createSequence(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequence}/create`, {
+    method: "POST",
+    data,
+  });
+  return result;
+}
+/**
+ * 编辑测试序列 
+ * 
+ * tigroup 测试序列类，可以做移动功能编辑（移动功能）
+sequence_name 序列名称
+tc_title 关联测试用例标题，发送用例ID和用例名称，是一组数据表现形式：【{id：，title:},{}】
+is_published 是否发布
+TST 三阶段测试，包括pre/uut/post
+
+ */
+export async function updateSequence(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequence}/edit`, {
+    method: "POST",
+    data,
+  });
+  return result;
+}
+/**
+ * 删除测试序列
+ * sequence_id  测试序列ID
+ */
+export async function deleteSequence(id: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequence}/delete`, {
+    method: "DELETE",
+    params: { sequence_id: id },
+  });
+  return result;
+}
+/**
+ * 复制测试序列
+ * sequence_name 序列名称
+tigroup 类型名称
+is_published 是否发布
+ */
+export async function copySequence(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TestSequence}/copy`, {
+    method: "POST",
+    data,
   });
   return result;
 }

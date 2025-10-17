@@ -1,4 +1,5 @@
 import {
+  deleteSequenceType,
   getSequenceList,
   getTypeList,
 } from "@/services/case-management/test-sequence.service";
@@ -42,6 +43,14 @@ const { Option } = Select;
 const DemoPage: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();
+  // const [treeData, setTreeData] = useState<TreeNode[]>([]);
+  // const [selectedNodeId, setSelectedNodeId] = useState<string>("1-1");
+  // const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  // const [originalNodeName, setOriginalNodeName] = useState<string>("");
+  // const [treeLoading, setTreeLoading] = useState(false);
+  // const [expandedKeys, setExpandedKeys] = useState<string[]>(["1", "2"]);
+
+  // const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
@@ -51,10 +60,10 @@ const DemoPage: React.FC = () => {
     leftOptionType: "add",
     updateValue: {},
     leftNodeValue: {},
-    isAddModalOpen: false, // 新增 modal
+    isAddModalOpen: false, //新增modal
     addModalValue: {},
-    addModalType: "add", // add | edit | save
-    optionType: "copy", // copy | remove
+    addModalType: "add", //默认是add add|edit|save
+    optionType: "copy", //默认是｜ copy|'remove'
     selectedNodeId: null,
     editingNodeId: null,
     treeData: [],
@@ -63,7 +72,6 @@ const DemoPage: React.FC = () => {
     expandedKeys: ["1", "2"],
     selectedRow: null,
   });
-
   const {
     title,
     isUpdateModalOpen,
@@ -132,6 +140,7 @@ const DemoPage: React.FC = () => {
       >
         <TableDropdown
           onSelect={(key: string) => {
+            console.log("key----", key);
             switch (key) {
               case "delete":
                 Modal.confirm({
@@ -170,6 +179,7 @@ const DemoPage: React.FC = () => {
                   isUpdateModalOpen: true,
                   optionType: "remove",
                 });
+
                 return;
               default:
                 return;
@@ -182,7 +192,7 @@ const DemoPage: React.FC = () => {
         />
       </div>,
     ],
-  } as const;
+  };
 
   // 递归查找节点
   const findNodeById = (nodes: TreeNode[], id: string): TreeNode | null => {
@@ -196,28 +206,136 @@ const DemoPage: React.FC = () => {
     return null;
   };
 
+  // 递归更新树数据
+  const updateTreeData = (
+    nodes: TreeNode[],
+    targetId: string,
+    updates: Partial<TreeNode>
+  ): TreeNode[] => {
+    return nodes.map((node) => {
+      if (node.id === targetId) {
+        return { ...node, ...updates };
+      }
+      if (node.children) {
+        return {
+          ...node,
+          children: updateTreeData(node.children, targetId, updates),
+        };
+      }
+      return node;
+    });
+  };
+
+  // 递归添加子节点
+  const addChildNode = (
+    nodes: TreeNode[],
+    parentId: string,
+    newNode: TreeNode
+  ): TreeNode[] => {
+    return nodes.map((node) => {
+      if (node.id === parentId) {
+        return {
+          ...node,
+          children: [...(node.children || []), newNode],
+        };
+      }
+      if (node.children) {
+        return {
+          ...node,
+          children: addChildNode(node.children, parentId, newNode),
+        };
+      }
+      return node;
+    });
+  };
+
+  // 递归删除节点
+  const deleteNode = (nodes: TreeNode[], targetId: string): TreeNode[] => {
+    return nodes.filter((node) => {
+      if (node.id === targetId) return false;
+      if (node.children) {
+        node.children = deleteNode(node.children, targetId);
+      }
+      return true;
+    });
+  };
+
   // 加载树数据
   const fetchModules = async () => {
     try {
-      setState({ treeLoading: true });
+      setState({
+        treeLoading: true,
+      });
       const { code, data, message: msg } = await getTypeList();
       if (code !== 0) {
         message.error(msg || "获取失败");
-        setState({ treeData: [] });
+        setState({
+          treeData: [],
+        });
         return;
       }
-      setState({ treeData: transformToMockTreeData(data) || [] });
+
+      setState({
+        treeData: transformToMockTreeData(data) || [],
+      });
     } catch (error) {
-      setState({ treeData: [] });
+      setState({
+        treeData: [],
+      });
       message.error("加载树数据失败");
     } finally {
-      setState({ treeLoading: false });
+      setState({
+        treeLoading: false,
+      });
     }
   };
 
-  // 删除节点（保留原有业务逻辑占位）
+  // 删除节点
   const handleDeleteNode = (record: any) => {
-    return; // 保持与原始代码一致，未改动业务流程
+    return;
+    console.log(record);
+
+    Modal.confirm({
+      title: (
+        <div>
+          <div>
+            确认删除序列类型{" "}
+            <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
+              {record.name}
+            </span>{" "}
+            吗？
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "#666",
+              marginTop: "8px",
+            }}
+          >
+            序列类型删除后不可恢复，同时删除类型下的测试序列
+          </div>
+        </div>
+      ),
+
+      onOk: async () => {
+        const { code, message: msg } = await deleteSequenceType(record.rawKey);
+
+        if (code === 0) {
+          // 如果删除的是当前选中的模块，则自动切换到“全部模块”
+          if (selectedNodeId == record.rawKey) {
+            setState({ selectedNodeId: record.parantId });
+          }
+          message.success(msg);
+          fetchModules(); // 刷新左侧模块树
+          // 刷新右侧表格
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
+        } else {
+          message.error(msg || "删除模块失败");
+        }
+      },
+    });
   };
 
   // 初始化加载树数据
@@ -225,80 +343,10 @@ const DemoPage: React.FC = () => {
     fetchModules();
   }, []);
 
-  // 切换节点展开/收起 —— 改为使用 setState & expandedKeys（来自 state）
-  const toggleExpanded = (nodeId: string) => {
-    setState((prev: any) => {
-      const exists = prev.expandedKeys?.includes(nodeId);
-      return {
-        expandedKeys: exists
-          ? prev.expandedKeys.filter((id: string) => id !== nodeId)
-          : [...(prev.expandedKeys || []), nodeId],
-      };
-    });
-  };
-
-  // 节点选中处理 —— 改为使用 setState & selectedNodeId（来自 state）
-  const handleNodeSelect = (nodeId: string) => {
-    setState({ selectedNodeId: nodeId });
-  };
-
-  // 当选中模块改变时，刷新表格数据
-  useEffect(() => {
-    actionRef.current?.reload();
-  }, [selectedNodeId]);
-
-  // 获取当前选中节点的路径 —— 修正参数使用 selectedId
-  const getSelectedNodePath = (selectedId: any) => {
-    const selectedNode = findNodeById(treeData, selectedId);
-    if (!selectedNode) return "";
-
-    // 找到父节点
-    const findParent = (
-      nodes: TreeNode[],
-      targetId: string
-    ): TreeNode | null => {
-      for (const node of nodes) {
-        if (node.children?.some((child) => child.id === targetId)) {
-          return node;
-        }
-        if (node.children) {
-          const found = findParent(node.children, targetId);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const parent = findParent(treeData, selectedId);
-    return parent ? `${parent.name} / ${selectedNode.name}` : selectedNode.name;
-  };
-
-  const handleRowClick = (record: any, index: number) => {
-    const name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
-    history.push({
-      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}&status=${record?.status}`,
-    });
-    // 将选中行写入 state
-    setState({ selectedRow: record });
-  };
-
-  const requestData: any = async (...args: any) => {
-    const params = transformParams({ params: args[0], sort: args[1] });
-    const { code, data, message: msg } = await getSequenceList({ ...params });
-    if (code !== 0) {
-      message.error(msg);
-      return { data: [], total: 0, success: false };
-    }
-    return {
-      data: data?.list || [],
-      total: data?.total_cnt,
-      success: code === 0,
-    };
-  };
-
-  // 渲染树节点 —— 使用来自 state 的 selectedNodeId / expandedKeys 等
+  // 渲染树节点
   const renderTreeNode = (node: TreeNode, level = 0) => {
     const isSelected = selectedNodeId === node.id;
+    const isEditing = editingNodeId === node.id;
     const isExpanded = expandedKeys.includes(node.id);
     const hasChildren = node.children && node.children.length > 0;
 
@@ -330,7 +378,7 @@ const DemoPage: React.FC = () => {
             {node.type === "folder" ? <FolderOutlined /> : <FileTextOutlined />}
           </div>
 
-          {/* 节点文本 */}
+          {/* 节点文本或输入框 */}
           <div className="node-label">
             <span title={node.name}>{node.name}</span>
           </div>
@@ -348,8 +396,9 @@ const DemoPage: React.FC = () => {
                   className="action-btn add-btn"
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log("新建", node);
                     setState({
-                      addLeftTypeId: node.name, // 若需要父级 ID，可替换为 node.id
+                      addLeftTypeId: node.name,
                       isLeftTreeModalOpen: true,
                       leftOptionType: "add",
                       leftNodeValue: {},
@@ -360,13 +409,14 @@ const DemoPage: React.FC = () => {
                 </button>
               )}
 
-              {/* item：删除/编辑按钮 */}
+              {/* 只有 item 时才有删除编辑按钮 */}
               {node.type === "item" && (
                 <>
                   <button
                     className="action-btn edit-btn"
                     onClick={(e) => {
                       e.stopPropagation();
+                      // startEditNode(node.id);
                       setState({
                         isLeftTreeModalOpen: true,
                         leftOptionType: "edit",
@@ -391,7 +441,7 @@ const DemoPage: React.FC = () => {
           )}
         </div>
 
-        {/* 子节点 */}
+        {/* 递归渲染子节点 */}
         {hasChildren && isExpanded && (
           <div className="children">
             {node.children!.map((child) => renderTreeNode(child, level + 1))}
@@ -400,12 +450,87 @@ const DemoPage: React.FC = () => {
       </div>
     );
   };
+  // 节点选中处理
+  const handleNodeSelect = (nodeId: string) => {
+    setSelectedNodeId(nodeId);
+  };
+
+  // 当选中模块改变时，刷新表格数据
+  useEffect(() => {
+    actionRef.current?.reload();
+  }, [selectedNodeId]);
+
+  // 切换节点展开/收起
+  const toggleExpanded = (nodeId: string) => {
+    // setExpandedKeys((prev) =>
+    //   prev.includes(nodeId)
+    //     ? prev.filter((id) => id !== nodeId)
+    //     : [...prev, nodeId]
+    // );
+    // setState((prev) => {
+    //   expandedKeys: prev.includes(nodeId)
+    //     ? prev.filter((id) => id !== nodeId)
+    //     : [...prev, nodeId]
+    // })
+  };
+
+  // 获取当前选中节点信息
+  const getSelectedNodePath = (selectedId: any) => {
+    const selectedNode = findNodeById(treeData, selectedId);
+    if (!selectedNode) return "";
+
+    // 找到父节点
+    const findParent = (
+      nodes: TreeNode[],
+      targetId: string
+    ): TreeNode | null => {
+      for (const node of nodes) {
+        if (node.children?.some((child) => child.id === targetId)) {
+          return node;
+        }
+        if (node.children) {
+          const found = findParent(node.children, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const parent = findParent(treeData, selectedNodeId);
+    return parent ? `${parent.name} / ${selectedNode.name}` : selectedNode.name;
+  };
+  const handleRowClick = (record: any, index: number) => {
+    console.log("点击的行数据:", record);
+    let name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
+    history.push({
+      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}&status=${record?.status}`,
+      // search: `?de=123&name=Tom`, // 这里用 search
+    });
+
+    // 更新选中的行
+    setSelectedRow(record);
+  };
+
+  const requestData: any = async (...args: any) => {
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getSequenceList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
+    }
+    return {
+      data: data?.list || [],
+      total: data?.total_cnt,
+      success: code === 0,
+    };
+  };
 
   return (
     <PageContainer>
       <div className="demo-container">
         {/* 左侧树结构 */}
         <div className="left-panel">
+          {/* <div className="tree-title">目录结构</div> */}
           <div className="tree-container">
             <Spin spinning={treeLoading} tip="加载数据中...">
               {treeData && treeData.length > 0 ? (
@@ -431,10 +556,56 @@ const DemoPage: React.FC = () => {
                   : schemasColumns
               }
               cardBordered
-              params={{ sysoruser: selectedNodeId }}
+              params={{
+                sysoruser: selectedNodeId,
+              }}
               request={requestData}
+              // headerTitle="测试数据"
+              // tooltip={getSelectedNodePath()}
+              // request={async (params) => {
+              //   try {
+              //     const response = await DemoService.getTestData({
+              //       categoryId: selectedNodeId,
+              //       searchText: params.name || "",
+              //       type: params.type || "",
+              //       page: params.current || 1,
+              //       pageSize: params.pageSize || 10,
+              //     });
+              //     if (response.code === 200) {
+              //       return {
+              //         data: response.data.list,
+              //         success: true,
+              //         total: response.data.total,
+              //       };
+              //     }
+              //     message.error(response.message);
+              //     return {
+              //       data: [],
+              //       success: false,
+              //       total: 0,
+              //     };
+              //   } catch (error) {
+              //     message.error("加载数据失败");
+              //     return {
+              //       data: [],
+              //       success: false,
+              //       total: 0,
+              //     };
+              //   }
+              // }}
               rowKey="id"
-              pagination={{ defaultPageSize: 10 }}
+              // search={{
+              //   labelWidth: "auto",
+              //   defaultCollapsed: false,
+              //   collapseRender: false,
+              // }}
+              pagination={{
+                defaultPageSize: 10,
+                // showSizeChanger: false,
+                // showQuickJumper: true,
+                // showTotal: (total, range) =>
+                //   `第 ${range[0]}-${range[1]} 条/共计 ${total} 条`,
+              }}
               toolBarRender={() =>
                 access["testDesign-edit"]
                   ? [
@@ -455,12 +626,17 @@ const DemoPage: React.FC = () => {
                     ]
                   : []
               }
-              options={{ reload: true, density: true, setting: true }}
+              options={{
+                reload: true,
+                density: true,
+                setting: true,
+              }}
               size="small"
               onRow={(record, index) =>
                 access["testDesign-edit"]
                   ? {
                       onClick: (e) => {
+                        // 检查点击的元素是否在操作栏内
                         const target = e.target as HTMLElement;
                         const isActionColumn =
                           target.closest(".ant-table-cell:last-child") ||
@@ -471,10 +647,14 @@ const DemoPage: React.FC = () => {
                           target.closest(".ant-dropdown-menu") ||
                           target.closest(".ant-dropdown-menu-item") ||
                           target.closest(".ant-dropdown-trigger");
+
+                        // 如果点击的是操作栏，则不跳转
                         if (isActionColumn) {
                           e.stopPropagation();
                           return;
                         }
+
+                        // 否则执行正常的行点击逻辑
                         handleRowClick(record, index || 0);
                       },
                       style: {
@@ -491,7 +671,6 @@ const DemoPage: React.FC = () => {
           </div>
         </div>
       </div>
-
       {/* 左侧树结构编辑新增 */}
       <AddLeftModal
         updateValue={leftNodeValue}
@@ -511,7 +690,7 @@ const DemoPage: React.FC = () => {
             addLeftTypeId: null,
             leftNodeValue: {},
           });
-          fetchModules();
+          fetchModules(); // 更新后刷新左侧模块数
           if (actionRef.current) {
             actionRef.current.reload();
           }
@@ -520,20 +699,23 @@ const DemoPage: React.FC = () => {
 
       {/* 复制移动 */}
       <EditModal
-        currentNode={selectedNodeId}
+        currentNode={selectedNodeId} //当前选中的树节点
         type={optionType}
         open={isUpdateModalOpen}
         updateValue={updateValue}
         onOk={(values) => {
-          setState({ isUpdateModalOpen: false });
+          setState({
+            isUpdateModalOpen: false,
+          });
           console.log("values", values);
         }}
         onCancel={() => {
-          setState({ isUpdateModalOpen: false });
+          setState({
+            isUpdateModalOpen: false,
+          });
         }}
       />
-
-      {/* 新建/编辑/另存为测试序列 */}
+      {/* 新建编辑另存为测试序列 */}
       <AddModal
         open={isAddModalOpen}
         onCancel={() => {
@@ -542,8 +724,9 @@ const DemoPage: React.FC = () => {
         type={addModalType}
         updateValue={addModalValue}
         onOk={(values) => {
+          console.log(values);
           const { gender, name } = values;
-          const titles = gender
+          let titles = gender
             ? `${getSelectedNodePath(gender)} / ${name}`
             : `${name}`;
           history.push(

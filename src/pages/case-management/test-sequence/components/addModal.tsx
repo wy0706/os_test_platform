@@ -1,4 +1,9 @@
-import { DemoService } from "@/services/case-management/test-sequence.service";
+import {
+  createSequence,
+  getTypeList,
+  updateSequence,
+} from "@/services/case-management/test-sequence.service";
+import { isArray } from "@/utils";
 import { useSetState } from "ahooks";
 import { Button, Form, Input, message, Modal, Select, TreeSelect } from "antd";
 import { useEffect } from "react";
@@ -32,6 +37,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     title: "add",
     isPlanModalOpen: false,
     selectTestData: [],
+    confirmLoading: false,
     columns: [
       {
         title: "名称",
@@ -50,63 +56,134 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       },
     ],
   });
-  const { treeData, title, isPlanModalOpen, selectTestData, columns } = state;
+  const {
+    treeData,
+    title,
+    isPlanModalOpen,
+    selectTestData,
+    columns,
+    confirmLoading,
+  } = state;
 
-  // 加载树数据
+  //  序列类型
   const loadTreeData = async () => {
     try {
-      const response = await DemoService.getTreeData();
-      if (response.code === 200) {
-        let list =
-          response.data.length > 0 &&
-          response.data.map((item) => ({
-            ...item,
-            selectable: false,
-          }));
+      const { code, data, message: msg } = await getTypeList();
+
+      if (code !== 0) {
+        message.error(msg || "获取序列类型失败");
         setState({
-          treeData: list || [],
+          treeData: [],
         });
-      } else {
-        message.error(response.message);
+        return;
       }
+
+      // const mapToTree = (list: any[] = []): any =>
+      //   list.map((it) => ({
+      //     title: it.title ?? it.name ?? it.text ?? "-", // 兜底
+      //     key: it.key ?? it.id ?? it.rawKey, // 兜底
+      //     value: it.key ?? it.id ?? it.rawKey, // 有些 TreeSelect 会用到
+      //     selectable: false,
+      //     children: isArray(it.children) ? mapToTree(it.children) : undefined,
+      //     ...it,
+      //   }));
+      // const list = isArray(data) ? mapToTree(data) : [];
+
+      let list =
+        isArray(data) && data.length > 0
+          ? data.map((item) => ({
+              ...item,
+              selectable: false,
+            }))
+          : [];
+      setState({
+        treeData: list,
+      });
+      console.log("list", list);
     } catch (error) {
-      message.error("加载树数据失败");
-    } finally {
-      // setTreeLoading(false);
+      setState({
+        treeData: [],
+      });
+    }
+  };
+
+  const initData = async () => {
+    if (!open) return;
+
+    const name = type === "add" ? "新建" : type === "edit" ? "编辑" : "另存为";
+    setState({ title: name });
+    form.resetFields();
+    await loadTreeData();
+
+    // ✅ 新建/另存为时，若有 currentNode，默认选中该类型
+    if (type !== "edit" && currentNode) {
+      // label 可以等加载完后从 treeData 查一次
+      const findLabel = (nodes: any[]): any => {
+        for (const n of nodes) {
+          if (String(n.key) === String(currentNode)) return n.title;
+          if (n.children) {
+            const got = findLabel(n.children);
+            if (got) return got;
+          }
+        }
+      };
+      const label = findLabel(treeData) || "";
+      form.setFieldsValue({ tigroup: { value: currentNode, label } });
+    }
+
+    if (type === "edit" && updateValue) {
+      console.log("wwww", updateValue);
+      form.setFieldsValue({ ...updateValue });
+      setState({
+        selectTestData: updateValue?.tc_title || [],
+      });
     }
   };
 
   useEffect(() => {
-    const name = type === "add" ? "新建" : type == "edit" ? "编辑" : "另存为";
-    setState({ title: name });
-    if (open) {
-      loadTreeData();
-      form?.resetFields();
-      console.log("updateValue", updateValue);
-
-      updateValue &&
-        form?.setFieldsValue({ ...updateValue, gender: currentNode });
-    }
+    initData();
   }, [open, updateValue]);
 
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
-    console.log(values);
-  };
+  const handleOk = async () => {
+    const values = await form.validateFields();
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk({ ...values, lists: selectTestData });
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+    try {
+      setState({
+        confirmLoading: true,
       });
+
+      if (type == "add") {
+        values["tigroup"] = values.tigroup?.label ?? "";
+        const { code, message: msg } = await createSequence({ ...values });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      }
+      if (type == "edit") {
+        console.log("value", values);
+
+        const { code, message: msg } = await updateSequence({
+          sequence_id: updateValue.sequence_id,
+          ...values,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      }
+      if (onOk) {
+        onOk({ ...values, lists: selectTestData });
+      }
+    } finally {
+      setState({
+        confirmLoading: false,
+      });
+    }
   };
 
   return (
@@ -120,34 +197,53 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             selectTestData: [],
           });
           onCancel && onCancel();
+          form?.resetFields();
         }}
         styles={{ body: { padding: 20 } }}
         width={"50%"}
         onOk={handleOk}
+        confirmLoading={confirmLoading}
       >
-        <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-          <Form.Item name="name" label="序列名称" rules={[{ required: true }]}>
+        <Form {...layout} form={form}>
+          <Form.Item
+            name="sequence_name"
+            label="序列名称"
+            rules={[{ required: true }]}
+          >
             <Input placeholder="输入序列名称" maxLength={32} />
           </Form.Item>
 
           {type == "edit" && (
-            <Form.Item name="status" label="是否发布">
+            <Form.Item
+              name="is_published"
+              label="是否发布"
+              rules={[{ required: true }]}
+            >
               <Select placeholder="选择是否发布">
-                <Option value="success">✓</Option>
-                <Option value="error">✗</Option>
+                <Option value="True">✓</Option>
+                <Option value="False">✗</Option>
               </Select>
             </Form.Item>
           )}
 
           {type != "edit" && (
-            <Form.Item name="gender" label="序列类型">
+            <Form.Item
+              name="tigroup"
+              label="序列类型"
+              rules={[{ required: true }]}
+            >
               <TreeSelect
-                fieldNames={{ label: "name", value: "id" }}
+                labelInValue
+                fieldNames={{ label: "title", value: "key" }}
                 showSearch
+                treeNodeFilterProp="title"
                 style={{ width: "100%" }}
-                styles={{
-                  popup: { root: { maxHeight: 400, overflow: "auto" } },
-                }}
+                listHeight={400}
+                filterTreeNode={(input, treeNode) =>
+                  String(treeNode?.title ?? "")
+                    .toLowerCase()
+                    .includes(String(input).toLowerCase())
+                }
                 placeholder="选择序列类型"
                 allowClear
                 treeDefaultExpandAll
@@ -156,14 +252,18 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           )}
 
-          <Form.Item name="type" label="测试流程">
-            <Select placeholder="选择测试流程">
-              <Option value="Pre测试">Pre测试</Option>
-              <Option value="UUT测试">UUT测试</Option>
-              <Option value="Post测试">Post测试</Option>
+          <Form.Item name="TST" label="测试流程" rules={[{ required: true }]}>
+            <Select placeholder="选择测试流程" allowClear>
+              <Option value="Pre">Pre测试</Option>
+              <Option value="UUT">UUT测试</Option>
+              <Option value="Post">Post测试</Option>
             </Select>
           </Form.Item>
-          <Form.Item name="testSequence" label="关联测试用例">
+          <Form.Item
+            name="tc_title"
+            label="关联测试用例"
+            rules={[{ required: true, message: "请选择关联测试用例" }]}
+          >
             <div
               style={{
                 display: "flex",
@@ -233,9 +333,13 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }}
         selectData={selectTestData}
         onOk={(values) => {
-          console.log("values", values);
+          console.log("values======", values);
           setState({
             selectTestData: values,
+          });
+          form?.setFieldsValue({
+            tc_title: values,
+            // values && values.length > 0 ? JSON.stringify(values) : null,
           });
           setState({
             isPlanModalOpen: false,

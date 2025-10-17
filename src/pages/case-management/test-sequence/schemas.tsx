@@ -1,11 +1,3 @@
-// export interface TreeNode {
-//   id: string;
-//   name: string;
-//   type: "folder" | "item";
-//   parentId?: string;
-//   children?: TreeNode[];
-// }
-
 export interface TestItem {
   id: string;
   name: string;
@@ -43,61 +35,51 @@ export const schemasTitle: any = {
   value: "testCaseExample",
 };
 export const schemasColumns: any = [
-  // {
-  //   title: "序号",
-  //   dataIndex: "index",
-  //   valueType: "index",
-  //   width: 80,
-  // },
   {
     title: "名称",
-    dataIndex: "name",
-    // sorter: true,
+    dataIndex: "sequence_name",
     ellipsis: true,
   },
   {
     title: "类型",
-    dataIndex: "type",
+    dataIndex: "TST",
     ellipsis: true,
-    // sorter: true,
     valueType: "select",
     fieldProps: {
       options: [
-        { label: "Pre测试", value: "Pre测试" },
-        { label: "UUT测试", value: "UUT测试" },
-        { label: "Post测试", value: "Post测试" },
+        { label: "Pre", value: "Pre测试" },
+        { label: "UUT", value: "UUT测试" },
+        { label: "Post", value: "Post测试" },
       ],
     },
   },
   {
     title: "关联测试用例",
-    dataIndex: "name2",
-    // sorter: true,
+    dataIndex: "tc_title",
     ellipsis: true,
+    render: (_: any, record: any) => {
+      const list = record.tc_title;
+      if (Array.isArray(list) && list.length > 0) {
+        return list.map((item) => item.title).join("、");
+      }
+      return null;
+    },
   },
   {
     title: "是否发布",
-    dataIndex: "status",
-    key: "status",
+    dataIndex: "is_published",
     width: 100,
-    //   hideInSearch: true,
     valueType: "select",
     valueEnum: {
-      success: {
+      True: {
         text: "✓",
         status: "Success",
       },
-      error: {
+      False: {
         text: "✗",
         status: "Error",
       },
     },
-    // fieldProps: {
-    //   options: [
-    //     { label: "是", value: "success" },
-    //     { label: "否", value: "error" },
-    //   ],
-    // },
   },
 ];
 export type TreeNode =

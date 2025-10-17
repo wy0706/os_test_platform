@@ -4,6 +4,7 @@ import {
   getTypeList,
 } from "@/services/case-management/test-sequence.service";
 import { deleteOne } from "@/services/task-management/test-requirement.service";
+import { transformParams } from "@/utils/params";
 import {
   CopyOutlined,
   DeleteOutlined,
@@ -11,17 +12,24 @@ import {
   FolderOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { history, useAccess } from "@umijs/max";
-
-import { transformParams } from "@/utils/params";
 import {
   ActionType,
   PageContainer,
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
+import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Empty, message, Modal, Select, Spin, Tree } from "antd";
+import {
+  Button,
+  Divider,
+  Empty,
+  message,
+  Modal,
+  Select,
+  Spin,
+  Tree,
+} from "antd";
 import React, { useEffect, useRef } from "react";
 import AddLeftModal from "./components/addLeftModal";
 import AddModal from "./components/addModal";
@@ -30,7 +38,6 @@ import "./index.less";
 import {
   schemasColumns,
   schemasTitle,
-  TestItem,
   transformToMockTreeData,
   TreeNode,
 } from "./schemas";
@@ -268,18 +275,6 @@ const DemoPage: React.FC = () => {
     fetchModules();
   }, []);
 
-  // 切换节点展开/收起 —— 改为使用 setState & expandedKeys（来自 state）
-  const toggleExpanded = (nodeId: string) => {
-    setState((prev: any) => {
-      const exists = prev.expandedKeys?.includes(nodeId);
-      return {
-        expandedKeys: exists
-          ? prev.expandedKeys.filter((id: string) => id !== nodeId)
-          : [...(prev.expandedKeys || []), nodeId],
-      };
-    });
-  };
-
   // 节点选中处理 —— 改为使用 setState & selectedNodeId（来自 state）
   const handleNodeSelect = (nodeId: string) => {
     setState({ selectedNodeId: nodeId });
@@ -287,7 +282,7 @@ const DemoPage: React.FC = () => {
 
   // // 当选中模块改变时，刷新表格数据
   useEffect(() => {
-    // actionRef.current?.reload();
+    actionRef.current?.reload();
   }, [sysoruser, sequencetype_id]);
 
   // 获取当前选中节点的路径 —— 修正参数使用 selectedId
@@ -319,15 +314,18 @@ const DemoPage: React.FC = () => {
   const handleRowClick = (record: any, index: number) => {
     const name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
     history.push({
-      pathname: `/case-management/test-sequence-edit/${record.id}?name=${name}&status=${record?.status}`,
+      pathname: `/case-management/test-sequence-edit/${record.sequence_id}?name=${name}&status=${record?.status}`,
     });
     // 将选中行写入 state
     setState({ selectedRow: record });
   };
 
   const requestData: any = async (...args: any) => {
-    const params = transformParams({ params: args[0], sort: args[1] });
+    if (!args[0]?.sysoruser) return;
+    const params = transformParams({ params: args[0] });
+
     const { code, data, message: msg } = await getSequenceList({ ...params });
+
     if (code !== 0) {
       message.error(msg);
       return { data: [], total: 0, success: false };
@@ -382,8 +380,8 @@ const DemoPage: React.FC = () => {
               <>
                 {module.type == "folder" ? (
                   <Button
-                    style={{ color: "#999" }}
-                    type="text"
+                    // style={{ color: "#999" }}
+                    type="link"
                     onClick={(e) => {
                       e.stopPropagation();
                       setState({
@@ -399,8 +397,7 @@ const DemoPage: React.FC = () => {
                 ) : (
                   <>
                     <Button
-                      style={{ color: "#999" }}
-                      type="text"
+                      type="link"
                       onClick={(e) => {
                         e.stopPropagation();
                         setState({
@@ -412,8 +409,9 @@ const DemoPage: React.FC = () => {
                     >
                       <EditOutlined />
                     </Button>
+                    <Divider type="vertical" />
                     <Button
-                      type="text"
+                      type="link"
                       danger
                       onClick={(e) => {
                         e.stopPropagation();
@@ -455,6 +453,8 @@ const DemoPage: React.FC = () => {
     const clickedNode = info.node;
     const nodeData = (clickedNode as any)?.dataRef ?? clickedNode;
     const parent = isParentNode(clickedNode);
+    console.log("ndoeData", nodeData);
+
     let parmas = {
       selectedNodeId: clickedKey, //选中的节点
       selectedRow: nodeData,
@@ -468,7 +468,7 @@ const DemoPage: React.FC = () => {
       selectedNodeId: clickedKey, //选中的节点
       selectedRow: nodeData,
       sysoruser: parent ? clickedKey : nodeData.parentId || null,
-      sequencetype_id: parent ? null : nodeData.rawkey,
+      sequencetype_id: parent ? null : nodeData.rawKey,
     });
   };
   return (
@@ -505,7 +505,7 @@ const DemoPage: React.FC = () => {
         {/* 右侧列表 */}
         <div className="right-panel">
           <div className="panel-content">
-            <ProTable<TestItem>
+            <ProTable<any>
               actionRef={actionRef}
               columns={
                 access["testDesign-edit"]
@@ -514,11 +514,11 @@ const DemoPage: React.FC = () => {
               }
               cardBordered
               params={{
-                sysoruser: selectedNodeId,
+                sysoruser: sysoruser,
                 sequencetype_id: sequencetype_id,
               }}
-              // request={requestData}
-              rowKey="id"
+              request={requestData}
+              rowKey={(row) => String(row?.sequence_id)}
               pagination={{ defaultPageSize: 10 }}
               toolBarRender={() =>
                 access["testDesign-edit"]
@@ -565,7 +565,7 @@ const DemoPage: React.FC = () => {
                       style: {
                         cursor: "pointer",
                         backgroundColor:
-                          selectedRow?.id === record.id
+                          selectedRow?.sequence_id === record.sequence_id
                             ? "#e6f7ff"
                             : "transparent",
                       },
@@ -611,7 +611,9 @@ const DemoPage: React.FC = () => {
         updateValue={updateValue}
         onOk={(values) => {
           setState({ isUpdateModalOpen: false });
-          console.log("values", values);
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         }}
         onCancel={() => {
           setState({ isUpdateModalOpen: false });
@@ -624,16 +626,26 @@ const DemoPage: React.FC = () => {
         onCancel={() => {
           setState({ isAddModalOpen: false });
         }}
+        currentNode={state.sequencetype_id}
         type={addModalType}
         updateValue={addModalValue}
         onOk={(values) => {
-          const { gender, name } = values;
-          const titles = gender
-            ? `${getSelectedNodePath(gender)} / ${name}`
-            : `${name}`;
-          history.push(
-            `/case-management/test-sequence-edit/add?name=${titles}`
-          );
+          if (addModalType == "edit") {
+            setState({ isAddModalOpen: false });
+            if (actionRef.current) {
+              actionRef.current.reload();
+            }
+          } else {
+            console.log("values", values);
+
+            // const { gender, name } = values;
+            // const titles = gender
+            //   ? `${getSelectedNodePath(gender)} / ${name}`
+            //   : `${name}`;
+            // history.push(
+            //   `/case-management/test-sequence-edit/add?name=${titles}`
+            // );
+          }
         }}
       />
     </PageContainer>

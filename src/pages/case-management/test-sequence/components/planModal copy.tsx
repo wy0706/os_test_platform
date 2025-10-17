@@ -14,7 +14,7 @@ import React, { useEffect, useRef } from "react";
 interface ModalProps {
   open: boolean;
   onCancel: () => void;
-  onOk?: (values: any) => void;
+  onOk?: (values: any[]) => void;
   selectData: any[];
 }
 
@@ -36,18 +36,22 @@ const PlanModal: React.FC<ModalProps> = ({
 }) => {
   const actionRef = useRef<ActionType>();
 
-  // const [selectedKeys, setSelectedKeys] = useState<string[]>(["all"]);
-  // const [useCases, setUseCases] = useState<UseCase[]>([]); // 用例列表
-  // const [selectedUseCases, setSelectedUseCases] = useState<any[]>([]); // 已选中的用例
-  // const [treeData, setTreeData] = useState<any>([]);
-  const [state, setState] = useSetState<any>({
+  const [state, setState] = useSetState<{
+    module_id: string | null;
+    lib_id: string | null;
+    selectedKeys: string[];
+    useCases: UseCase[];
+    selectedUseCases: UseCase[];
+    treeData: DataNode[];
+  }>({
     module_id: null,
     lib_id: null,
-    selectedKeys: "all",
+    selectedKeys: ["all"],
     useCases: [],
     selectedUseCases: [],
     treeData: [],
   });
+
   const {
     module_id,
     lib_id,
@@ -56,96 +60,13 @@ const PlanModal: React.FC<ModalProps> = ({
     selectedUseCases,
     treeData,
   } = state;
-  // 模拟用例数据
-  const mockUseCases: UseCase[] = [
-    {
-      id: "1",
-      title: "DEMO-1",
-      description: "订单成功提交",
-      importance: "P1",
-      checked: false,
-      libraryId: "library1",
-      moduleId: "module1-1",
-    },
-    {
-      id: "2",
-      title: "DEMO-2",
-      description: "提交订单时可以修改收货地址",
-      importance: "P0",
-      checked: false,
-      libraryId: "library1",
-      moduleId: "module1-1",
-    },
-    {
-      id: "3",
-      title: "DEMO-3 ",
-      description: "购物车支持修改商品数量",
-      importance: "P1",
-      checked: false,
-      libraryId: "library1",
-      moduleId: "module1-2",
-    },
-    {
-      id: "4",
-      title: "DEMO-4 ",
-      description: "购物车支持批量删除商品",
-      importance: "P1",
-      checked: false,
-      libraryId: "library1",
-      moduleId: "module1-2",
-    },
-    {
-      id: "5",
-      title: "DEMO-5 ",
-      description: "从购物车点击商品可进入商品详情页面",
-      importance: "P1",
-      checked: false,
-      libraryId: "library2",
-      moduleId: "module2-1",
-    },
-    {
-      id: "6",
-      title: "DEMO-6 ",
-      description: "切换商品分类",
-      importance: "P2",
-      checked: false,
-      libraryId: "library2",
-      moduleId: "module2-1",
-    },
-    {
-      id: "7",
-      title: "DEMO-7 ",
-      description: "商品搜索功能",
-      importance: "P2",
-      checked: false,
-      libraryId: "library2",
-      moduleId: "module2-2",
-    },
-    {
-      id: "8",
-      title: "DEMO-8 ",
-      description: "商品信息页面展示",
-      importance: "P1",
-      checked: false,
-      libraryId: "library3",
-      moduleId: "module3-1",
-    },
-    {
-      id: "9",
-      title: "DEMO-9 ",
-      description: "商品列表翻页",
-      importance: "P1",
-      checked: false,
-      libraryId: "library3",
-      moduleId: "module3-2",
-    },
-  ];
+
+  // 转换接口返回的库/模块为 Tree 数据
   const transformToTreeData = (libs: any[]): DataNode[] => {
     return libs.map((lib) => ({
       title: lib.name,
       key: `library${lib.id}`,
       icon: <FolderOpenOutlined />,
-      // 自定义字段，后面好取
       libId: lib.id,
       children:
         lib.module_list?.map((mod: any) => ({
@@ -153,31 +74,33 @@ const PlanModal: React.FC<ModalProps> = ({
           key: `module${mod.id}`,
           icon: <FileOutlined />,
           moduleId: mod.id,
-          // 在模块节点上挂父库 id
           parentLibId: lib.id,
         })) || [],
     }));
   };
-  useEffect(() => {
-    if (open) {
-      fetchData();
-    }
 
-    setState({
-      selectedUseCases: selectData.map((item) => item.id),
-    });
-  }, [open]);
   useEffect(() => {
-    actionRef.current?.reload();
-  }, [module_id, lib_id]);
-  const fetchData = async () => {
+    initData();
+  }, [open]);
+
+  const initData = async () => {
+    if (!open) return;
+    await fetchData();
+    // 初始已选用例
     setState({
-      useCases: mockUseCases,
+      selectedUseCases: selectData as UseCase[],
     });
+  };
+
+  useEffect(() => {
+    // 切换模块时刷新表格
+    actionRef.current?.reload();
+  }, [module_id, lib_id, open]);
+
+  const fetchData = async () => {
     const { code, data } = await getModuleOptions();
     if (code === 0) {
       const libs = data?.lib_list || [];
-      // 最外层加一个“全部用例”
       const tree: DataNode[] = [
         {
           title: "全部用例",
@@ -186,52 +109,46 @@ const PlanModal: React.FC<ModalProps> = ({
         },
         ...transformToTreeData(libs),
       ];
-
-      setState({
-        treeData: tree,
-      });
+      setState({ treeData: tree });
     } else {
-      setState({
-        treeData: [],
-      });
+      setState({ treeData: [] });
     }
-    console.log("cde", data);
-
-    setState({ selectedUseCases: [] });
   };
 
+  // 点击 Tree 节点
   const handleTreeSelect = async (keys: React.Key[], info: any) => {
-    // 如果本次点击的是已选中的节点，就不要清空，保持原来
-    if (keys.length === 0) {
-      // info.node.key 就是你点击的那个节点的 key
-
-      setState({
-        selectedKeys: [info.node.key as string],
-      });
-    } else {
-      setState({
-        selectedKeys: keys as string[],
-      });
-    }
     const selectedKey = (keys.length ? keys[0] : info.node.key) as string;
+    setState({ selectedKeys: [selectedKey] }); // 强制单选
+
     let lib_id: string | null = null;
     let module_id: string | null = null;
-
     if (selectedKey.startsWith("module")) {
       module_id = selectedKey.replace("module", "");
-      lib_id = info.node.parentLibId; // 父库 id
+      lib_id = info.node.parentLibId;
     } else if (selectedKey.startsWith("library")) {
       lib_id = selectedKey.replace("library", "");
     }
 
-    setState({
-      lib_id,
-      module_id,
-    });
+    setState({ lib_id, module_id });
   };
 
-  // 获取测试用例
+  // // 获取测试用例数据
+  // const getCaseLists: any = async (...args: any) => {
+  //   let params = transformParams({ params: args[0], sort: args[1] });
+  //   const { code, data, message: msg } = await getCaseList({ ...params });
+  //   if (code !== 0) {
+  //     message.error(msg);
+  //     return { data: [], total: 0, success: false };
+  //   }
+  //   // 保存当前模块数据（供 rowSelection 合并使用）
+  //   setState({ useCases: data?.list || [] });
 
+  //   return {
+  //     data: data?.list || [],
+  //     total: data?.total_cnt,
+  //     success: code === 0,
+  //   };
+  // };
   // 获取测试用例数据
   const getCaseLists: any = async (...args: any) => {
     let params = transformParams({ params: args[0], sort: args[1] });
@@ -240,20 +157,30 @@ const PlanModal: React.FC<ModalProps> = ({
       message.error(msg);
       return { data: [], total: 0, success: false };
     }
+    const list = data?.list || [];
+
+    // 关键：根据当前表格数据过滤选中项
+    const filteredSelected = (state.selectedUseCases || []).filter((uc) =>
+      list.some((row: UseCase) => row.id === uc.id)
+    );
+    console.log("filteredSelected", filteredSelected);
+
+    setState({
+      useCases: list,
+      selectedUseCases: filteredSelected, // 若都不在当前表格里，这里会变成 []
+    });
+
     return {
-      data: data?.list || [],
+      data: list,
       total: data?.total_cnt,
       success: code === 0,
     };
   };
 
+  // 确认
   const handleConfirm = () => {
-    // const selectedItems = mockUseCases.filter((uc) =>
-    //   // selectedUseCases.includes(uc.id)
-    // );
-    // console.log("selectedItems", selectedItems);
-
-    onOk?.(1);
+    // 直接传 UseCase[] 给 onOk
+    onOk?.(selectedUseCases);
   };
 
   const columns: ProColumns<UseCase>[] = [
@@ -261,23 +188,17 @@ const PlanModal: React.FC<ModalProps> = ({
       title: "标题",
       dataIndex: "title",
       key: "tc_title",
-      // render: (dom, record) => (
-      //   <div>
-      //     <span style={{ marginRight: 5 }}>{record.title}</span>
-      //     <span>{record.description}</span>
-      //   </div>
-      // ),
+      render: (dom, record) => (
+        <div>
+          <span style={{ marginRight: 5 }}>{record.title}</span>
+          <span>{record.description}</span>
+        </div>
+      ),
     },
     {
       title: "重要程度",
       dataIndex: "importance",
       hideInSearch: true,
-      // sorter: true,
-      // render: (dom, record) => (
-      //   <Tag color={record.importance === "P1" ? "#f50" : "#2db7f5"}>
-      //     {record.importance}
-      //   </Tag>
-      // ),
     },
   ];
 
@@ -286,9 +207,7 @@ const PlanModal: React.FC<ModalProps> = ({
       <Modal
         title="用例规划"
         open={open}
-        onCancel={() => {
-          onCancel && onCancel();
-        }}
+        onCancel={onCancel}
         maskClosable={false}
         onOk={handleConfirm}
         width={1200}
@@ -342,30 +261,39 @@ const PlanModal: React.FC<ModalProps> = ({
 
             {/* 表格 */}
             <div style={{ flex: 1, overflow: "auto" }}>
-              <ProTable
+              <ProTable<UseCase>
                 columns={columns}
-                params={{
-                  module_id,
-                  lib_id,
-                }}
+                params={{ module_id, lib_id }}
                 actionRef={actionRef}
-                // dataSource={useCases}
-                cardBordered
-                pagination={{
-                  pageSize: 10,
-                }}
                 request={getCaseLists}
                 rowKey="id"
                 options={false}
                 toolBarRender={false}
+                cardBordered
+                pagination={{ pageSize: 10 }}
                 rowSelection={{
-                  onChange: (selectedRowKeys, selectedRows) => {},
+                  // ⭐受控选中
+                  selectedRowKeys: selectedUseCases.map((item) => item.id),
+                  onChange: (
+                    currentSelectedKeys: React.Key[],
+                    selectedRows: UseCase[]
+                  ) => {
+                    // 当前模块选中的 UseCase 对象
+                    const currentViewSelected = selectedRows;
+                    // 其他模块已选中的对象
+                    const otherViewSelected = selectedUseCases.filter(
+                      (item: UseCase) =>
+                        !useCases.some((uc: UseCase) => uc.id === item.id)
+                    );
+                    // 合并
+                    const allSelected = [
+                      ...otherViewSelected,
+                      ...currentViewSelected,
+                    ];
+                    setState({ selectedUseCases: allSelected });
+                  },
                 }}
-                tableAlertRender={({
-                  selectedRowKeys,
-                  selectedRows,
-                  onCleanSelected,
-                }) => {
+                tableAlertRender={({ selectedRowKeys }) => {
                   return <div>当前页面已选择 {selectedRowKeys.length} 项</div>;
                 }}
               />
@@ -389,16 +317,14 @@ const PlanModal: React.FC<ModalProps> = ({
                 </span>{" "}
                 个用例
                 {selectedUseCases.length > 0 && (
-                  <>
-                    <Button
-                      type="link"
-                      size="small"
-                      // onClick={() => setSelectedUseCases([])}
-                      style={{ marginLeft: "8px" }}
-                    >
-                      清空所有选择
-                    </Button>
-                  </>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setState({ selectedUseCases: [] })}
+                    style={{ marginLeft: "8px" }}
+                  >
+                    清空所有选择
+                  </Button>
                 )}
               </div>
             </div>

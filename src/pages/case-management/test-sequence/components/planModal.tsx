@@ -80,19 +80,22 @@ const PlanModal: React.FC<ModalProps> = ({
   };
 
   useEffect(() => {
-    if (open) {
-      fetchData();
-      // 初始已选用例
-      setState({
-        selectedUseCases: selectData as UseCase[],
-      });
-    }
+    initData();
   }, [open]);
+
+  const initData = async () => {
+    if (!open) return;
+    await fetchData();
+    // 初始已选用例
+    setState({
+      selectedUseCases: selectData as UseCase[],
+    });
+  };
 
   useEffect(() => {
     // 切换模块时刷新表格
     actionRef.current?.reload();
-  }, [module_id, lib_id]);
+  }, [module_id, lib_id, open]);
 
   const fetchData = async () => {
     const { code, data } = await getModuleOptions();
@@ -125,10 +128,26 @@ const PlanModal: React.FC<ModalProps> = ({
     } else if (selectedKey.startsWith("library")) {
       lib_id = selectedKey.replace("library", "");
     }
-
     setState({ lib_id, module_id });
   };
 
+  // // 获取测试用例数据
+  // const getCaseLists: any = async (...args: any) => {
+  //   let params = transformParams({ params: args[0], sort: args[1] });
+  //   const { code, data, message: msg } = await getCaseList({ ...params });
+  //   if (code !== 0) {
+  //     message.error(msg);
+  //     return { data: [], total: 0, success: false };
+  //   }
+  //   // 保存当前模块数据（供 rowSelection 合并使用）
+  //   setState({ useCases: data?.list || [] });
+
+  //   return {
+  //     data: data?.list || [],
+  //     total: data?.total_cnt,
+  //     success: code === 0,
+  //   };
+  // };
   // 获取测试用例数据
   const getCaseLists: any = async (...args: any) => {
     let params = transformParams({ params: args[0], sort: args[1] });
@@ -137,12 +156,23 @@ const PlanModal: React.FC<ModalProps> = ({
       message.error(msg);
       return { data: [], total: 0, success: false };
     }
+    const list = data?.list || [];
+    console.log("获取测试用例数据", selectedUseCases, selectData);
+    console.log("list", list);
 
-    // 保存当前模块数据（供 rowSelection 合并使用）
-    setState({ useCases: data?.list || [] });
+    // 关键：根据当前表格数据过滤选中项
+    const filteredSelected = (selectData || []).filter((uc) =>
+      list.some((row: UseCase) => row.id === uc.id)
+    );
+    console.log("filteredSelected====", filteredSelected);
+
+    setState({
+      useCases: list,
+      selectedUseCases: filteredSelected, // 若都不在当前表格里，这里会变成 []
+    });
 
     return {
-      data: data?.list || [],
+      data: list,
       total: data?.total_cnt,
       success: code === 0,
     };

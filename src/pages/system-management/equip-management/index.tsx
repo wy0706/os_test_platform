@@ -417,7 +417,6 @@ const Page: React.FC = () => {
             headerTitle="添加设备"
             pagination={{
               pageSize: 10,
-              onChange: (page) => requestData,
             }}
             toolBarRender={() =>
               access["systemManagement-edit"]
