@@ -8,8 +8,6 @@ import {
 } from "@/pages/demos/demo/schemas";
 import { request } from "@umijs/max";
 
-const baseUrl = "/testsequencetype";
-
 // 模拟数据
 const mockTreeData: TreeNode[] = [
   {

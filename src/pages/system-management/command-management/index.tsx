@@ -2,6 +2,7 @@ import {
   deleteOne,
   getList,
 } from "@/services/system-management/command-management.service";
+import { transformParams } from "@/utils/params";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -10,7 +11,7 @@ import {
 } from "@ant-design/pro-components";
 import { useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal, Switch } from "antd";
+import { Button, message, Modal } from "antd";
 import React, { useRef } from "react";
 import AddModal from "./components/addModal";
 import { schemasTitle } from "./schemas";
@@ -18,7 +19,6 @@ const Page: React.FC = () => {
   const access = useAccess();
 
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
@@ -28,17 +28,19 @@ const Page: React.FC = () => {
   const { title, isUpdateModalOpen, updateValue, optionType } = state;
 
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [{ id: 1, title: "测试数据", createTime: "2025-10-09" }],
-        total: 1,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
     }
+    return {
+      data: data?.list || [],
+      total: data?.total_cnt,
+      success: code === 0,
+    };
   };
+
   const operationColumn = {
     title: "操作",
     valueType: "option",
@@ -69,7 +71,7 @@ const Page: React.FC = () => {
           Modal.confirm({
             title: "确认删除吗？",
             onOk: async () => {
-              await deleteOne(record.id);
+              await deleteOne(record.command_id);
               if (actionRef.current) {
                 actionRef.current.reload();
               }
@@ -84,48 +86,59 @@ const Page: React.FC = () => {
   const schemasColumns: any = [
     {
       title: "命令名称",
-      dataIndex: "title",
+      dataIndex: "testcommand",
       ellipsis: true,
     },
     {
       title: "ID",
-      dataIndex: "id",
+      dataIndex: "command_id",
       ellipsis: true,
       hideInSearch: true,
     },
     {
       title: "设备类型",
-      dataIndex: "type",
+      dataIndex: "device_type",
       hideInSearch: true,
       ellipsis: true,
     },
     {
       title: "是否激活",
-      dataIndex: "status",
-      ellipsis: true,
+      dataIndex: "active",
+      // ellipsis: true,
       hideInSearch: true,
-      render: (text: any, record: any) => {
-        return (
-          <Switch
-            // checked={Boolean(record.title2)}
-            size="small"
-            // onChange={(checked) => {
-            //   console.log("checked", checked);
-            // }}
-          />
-        );
+      valueEnum: {
+        1: {
+          text: "✓",
+          status: "Success",
+        },
+        0: {
+          text: "✗",
+          status: "Error",
+        },
       },
+      // render: (text: any, record: any) => {
+      //   return (
+      //     <Switch
+      //       disabled
+      //       checked={!!record.active} // ✅ 更简洁安全
+      //       size="small"
+      //       style={{
+      //         backgroundColor: !!record.active ? "#52c41a" : "#ff4d4f", // ✅ 绿色 / 红色
+      //       }}
+      //     />
+      //   );
+      // },
     },
     {
       title: "添加时间",
-      dataIndex: "createTime",
+      dataIndex: "create_time",
       ellipsis: true,
       sorter: true,
       hideInSearch: true,
     },
     {
       title: "添加时间",
-      dataIndex: "createTime",
+      dataIndex: "creat_time",
       hideInTable: true,
       valueType: "date",
     },
@@ -142,10 +155,9 @@ const Page: React.FC = () => {
         actionRef={actionRef}
         cardBordered
         request={requestData}
-        rowKey="id"
+        rowKey="command_id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
         headerTitle={title.label}
         toolBarRender={() =>
@@ -176,7 +188,6 @@ const Page: React.FC = () => {
           setState({ isUpdateModalOpen: false, updateValue: {} });
         }}
         onOk={(values) => {
-          console.log("values", values);
           setState({ isUpdateModalOpen: false, updateValue: {} });
           if (actionRef.current) {
             actionRef.current.reload();

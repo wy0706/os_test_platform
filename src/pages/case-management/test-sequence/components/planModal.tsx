@@ -84,12 +84,18 @@ const PlanModal: React.FC<ModalProps> = ({
   }, [open]);
 
   const initData = async () => {
-    if (!open) return;
+    if (!open) {
+      setState({
+        selectedUseCases: [],
+      });
+      return;
+    }
     await fetchData();
-    // 初始已选用例
-    setState({
-      selectedUseCases: selectData as UseCase[],
-    });
+    // 初始注入 selectData -> selectedUseCases（不要让 getCaseLists 再过滤掉）
+    setState((prev) => ({
+      ...prev,
+      selectedUseCases: (selectData as UseCase[]) || [],
+    }));
   };
 
   useEffect(() => {
@@ -130,57 +136,35 @@ const PlanModal: React.FC<ModalProps> = ({
     }
     setState({ lib_id, module_id });
   };
-
-  // // 获取测试用例数据
-  // const getCaseLists: any = async (...args: any) => {
-  //   let params = transformParams({ params: args[0], sort: args[1] });
-  //   const { code, data, message: msg } = await getCaseList({ ...params });
-  //   if (code !== 0) {
-  //     message.error(msg);
-  //     return { data: [], total: 0, success: false };
-  //   }
-  //   // 保存当前模块数据（供 rowSelection 合并使用）
-  //   setState({ useCases: data?.list || [] });
-
-  //   return {
-  //     data: data?.list || [],
-  //     total: data?.total_cnt,
-  //     success: code === 0,
-  //   };
-  // };
   // 获取测试用例数据
   const getCaseLists: any = async (...args: any) => {
-    let params = transformParams({ params: args[0], sort: args[1] });
+    const params = transformParams({ params: args[0], sort: args[1] });
     const { code, data, message: msg } = await getCaseList({ ...params });
     if (code !== 0) {
       message.error(msg);
       return { data: [], total: 0, success: false };
     }
     const list = data?.list || [];
-    console.log("获取测试用例数据", selectedUseCases, selectData);
-    console.log("list", list);
-
-    // 关键：根据当前表格数据过滤选中项
-    const filteredSelected = (selectData || []).filter((uc) =>
-      list.some((row: UseCase) => row.id === uc.id)
-    );
-    console.log("filteredSelected====", filteredSelected);
-
-    setState({
+    // 仅更新当前页数据；不要覆盖 selectedUseCases（避免初始选择被清掉）
+    setState((prev) => ({
+      ...prev,
       useCases: list,
-      selectedUseCases: filteredSelected, // 若都不在当前表格里，这里会变成 []
-    });
+    }));
 
     return {
       data: list,
       total: data?.total_cnt,
-      success: code === 0,
+      success: true,
     };
   };
 
   // 确认
   const handleConfirm = () => {
     // 直接传 UseCase[] 给 onOk
+    if (selectedUseCases.length == 0) {
+      message.warning("请选择数据");
+      return;
+    }
     onOk?.(selectedUseCases);
   };
 
@@ -273,25 +257,27 @@ const PlanModal: React.FC<ModalProps> = ({
                 cardBordered
                 pagination={{ pageSize: 10 }}
                 rowSelection={{
-                  // ⭐受控选中
+                  preserveSelectedRowKeys: true, // ✅ 跨页/切换筛选保留
                   selectedRowKeys: selectedUseCases.map((item) => item.id),
                   onChange: (
                     currentSelectedKeys: React.Key[],
                     selectedRows: UseCase[]
                   ) => {
-                    // 当前模块选中的 UseCase 对象
+                    // 当前页新选择
                     const currentViewSelected = selectedRows;
-                    // 其他模块已选中的对象
+
+                    // 其他页之前已选但当前页中不存在的
                     const otherViewSelected = selectedUseCases.filter(
                       (item: UseCase) =>
                         !useCases.some((uc: UseCase) => uc.id === item.id)
                     );
-                    // 合并
-                    const allSelected = [
-                      ...otherViewSelected,
-                      ...currentViewSelected,
-                    ];
-                    setState({ selectedUseCases: allSelected });
+
+                    setState({
+                      selectedUseCases: [
+                        ...otherViewSelected,
+                        ...currentViewSelected,
+                      ],
+                    });
                   },
                 }}
                 tableAlertRender={({ selectedRowKeys }) => {

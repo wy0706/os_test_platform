@@ -1,3 +1,4 @@
+import { getCmdTreeList } from "@/services/case-management/test-sequence-edit.service";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -7,6 +8,7 @@ import {
   FolderOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
+
 import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Card, Modal, Tree, Typography, message } from "antd";
@@ -175,6 +177,7 @@ const Process: React.FC<ProcessProps> = ({
     selectedRowData: [],
     selectType: "COMMAND", //默认展示测试命令 COMMAND | INPUT |OUT
     paramType: "", // 参数表单数据
+    cmdTreeList: [],
   });
   const {
     isProcessModalOpen,
@@ -187,7 +190,27 @@ const Process: React.FC<ProcessProps> = ({
     selectedRowData,
     selectType,
     paramType,
+    cmdTreeList,
   } = state;
+
+  const getTreeData = async () => {
+    try {
+      const { code, data, message: msg } = await getCmdTreeList();
+      if (code !== 0) {
+        message.error(msg || "获取命令失败");
+        setState({
+          cmdTreeList: [],
+        });
+        return;
+      }
+      console.log("data", data);
+    } catch (error) {
+      setState({
+        cmdTreeList: [],
+      });
+    }
+  };
+
   // const [selectType, setType] = useState("COMMAND");
   // const [paramType, setParamType] = useState<any>("");
   // 获取所有树节点的keys用于默认展开
@@ -382,6 +405,7 @@ const Process: React.FC<ProcessProps> = ({
   }, [data, selectedRowIndex, processedTreeData]);
   // 初始化时处理树形数据并设置默认展开全部
   useEffect(() => {
+    getTreeData();
     // 为mockTreeData添加图标
     const dataWithIcons = addIconsToTreeData(mockTreeData);
 

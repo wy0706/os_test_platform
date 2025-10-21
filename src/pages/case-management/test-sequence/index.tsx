@@ -20,16 +20,7 @@ import {
 } from "@ant-design/pro-components";
 import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import {
-  Button,
-  Divider,
-  Empty,
-  message,
-  Modal,
-  Select,
-  Spin,
-  Tree,
-} from "antd";
+import { Button, Divider, Empty, message, Modal, Spin, Tree } from "antd";
 import React, { useEffect, useRef } from "react";
 import AddLeftModal from "./components/addLeftModal";
 import AddModal from "./components/addModal";
@@ -42,9 +33,7 @@ import {
   TreeNode,
 } from "./schemas";
 
-const { Option } = Select;
-
-const DemoPage: React.FC = () => {
+const TestSequence: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();
 
@@ -253,16 +242,28 @@ const DemoPage: React.FC = () => {
       onOk: async () => {
         const { code, message: msg } = await deleteSequenceType(record.rawKey);
         if (code === 0) {
-          // 如果删除的是当前选中的模块，则自动切换到“全部模块”
-          if (selectedNodeId == record.rawKey) {
-            setState({ selectedNodeId: record.parantId });
+          // // 如果删除的是当前选中的模块，则自动切换到“全部模块”
+          // if (selectedNodeId == record.rawKey) {
+          //   setState({
+          //     selectedNodeId: record.parantId,
+          //     sysoruser: record.parantId,
+          //     sequencetype_id: null,
+          //   });
+          // }
+          const isDeletingSelected =
+            String(selectedNodeId) === String(record.rawKey);
+          const parentId = record.parentId ?? record.parantId ?? null;
+          if (isDeletingSelected) {
+            setState((prev: any) => ({
+              ...prev,
+              selectedNodeId: parentId, // Tree 的受控选中
+              sysoruser: parentId, // 父节点 -> 视为“父级/类别”，用于列表查询
+              sequencetype_id: null,
+              selectedRow: null,
+            }));
           }
           message.success(msg);
-          fetchModules(); // 刷新左侧模块树
-          // 刷新右侧表格
-          if (actionRef.current) {
-            actionRef.current.reload();
-          }
+          await fetchModules(); // 刷新左侧模块树
         } else {
           message.error(msg || "删除模块失败");
         }
@@ -275,12 +276,7 @@ const DemoPage: React.FC = () => {
     fetchModules();
   }, []);
 
-  // 节点选中处理 —— 改为使用 setState & selectedNodeId（来自 state）
-  const handleNodeSelect = (nodeId: string) => {
-    setState({ selectedNodeId: nodeId });
-  };
-
-  // // 当选中模块改变时，刷新表格数据
+  // 当选中模块改变时，刷新表格数据
   useEffect(() => {
     actionRef.current?.reload();
   }, [sysoruser, sequencetype_id]);
@@ -312,9 +308,11 @@ const DemoPage: React.FC = () => {
   };
 
   const handleRowClick = (record: any, index: number) => {
-    const name = `${getSelectedNodePath(selectedNodeId)} / ${record.name}`;
+    const name = `${getSelectedNodePath(selectedNodeId)} / ${
+      record.sequence_name
+    }`;
     history.push({
-      pathname: `/case-management/test-sequence-edit/${record.sequence_id}?name=${name}&status=${record?.status}`,
+      pathname: `/case-management/test-sequence-edit/${record.sequence_id}?name=${name}&status=${record?.is_published}&selectedId=${selectedNodeId}`,
     });
     // 将选中行写入 state
     setState({ selectedRow: record });
@@ -453,16 +451,6 @@ const DemoPage: React.FC = () => {
     const clickedNode = info.node;
     const nodeData = (clickedNode as any)?.dataRef ?? clickedNode;
     const parent = isParentNode(clickedNode);
-    console.log("ndoeData", nodeData);
-
-    let parmas = {
-      selectedNodeId: clickedKey, //选中的节点
-      selectedRow: nodeData,
-      sysoruser: parent ? clickedKey : nodeData.parentId || null,
-      sequencetype_id: parent ? null : nodeData.rawKey,
-    };
-    console.log("pppp", parmas);
-
     // 更新选中态
     setState({
       selectedNodeId: clickedKey, //选中的节点
@@ -636,15 +624,13 @@ const DemoPage: React.FC = () => {
               actionRef.current.reload();
             }
           } else {
-            console.log("values", values);
-
-            // const { gender, name } = values;
-            // const titles = gender
-            //   ? `${getSelectedNodePath(gender)} / ${name}`
-            //   : `${name}`;
-            // history.push(
-            //   `/case-management/test-sequence-edit/add?name=${titles}`
-            // );
+            const { tigroup, sequence_name } = values;
+            const titles = tigroup
+              ? `${getSelectedNodePath(tigroup)} / ${sequence_name}`
+              : `${sequence_name}`;
+            history.push(
+              `/case-management/test-sequence-edit/add?name=${titles}selectedId=${selectedNodeId}`
+            );
           }
         }}
       />
@@ -652,4 +638,4 @@ const DemoPage: React.FC = () => {
   );
 };
 
-export default DemoPage;
+export default TestSequence;

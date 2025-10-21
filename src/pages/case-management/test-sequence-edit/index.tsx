@@ -121,7 +121,7 @@ const Page: React.FC = () => {
     let release =
       params.id === "add"
         ? false
-        : searchParams.get("status") === "success"
+        : searchParams.get("status") === "True"
         ? true
         : false;
 

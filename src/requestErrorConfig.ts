@@ -115,7 +115,7 @@ export const errorConfig: RequestConfig = {
             message.error(`${NETWORK_ERROR_TEXT.REQUESTTIMEOUT}`);
             return;
           default:
-            message.error(`${error.response.data?.message}`);
+            message.error(`${error.response.data?.message}` || "Error");
             return;
         }
       } else if (error.request) {

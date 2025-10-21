@@ -1,9 +1,8 @@
+import { getInstrumentType } from "@/services/equipment-management/equipment-library-edit.service";
 import {
   createOne,
   updateOne,
 } from "@/services/system-management/command-management.service";
-
-import { getCmdTreeList } from "@/services/case-management/test-sequence-edit.service";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
 import {
@@ -43,11 +42,15 @@ function encodeCompact(
         .filter(Boolean)
         .join("/")
     )
-    .filter((seg) => seg !== "");
+    .filter((seg) => seg !== ""); // 忽略空行
   return rowStrs.join(",");
 }
 
-/** 解码（带选项） */
+/** 解码（带选项）：
+ * - ensureOneWhenEmpty: 当原串为空时是否至少返回一空行（默认 true）
+ * - appendBlank: 是否总在末尾追加一行空行（默认 false；编辑态禁用，新增态如需可启用）
+ * 例："1/2,11" -> [{types:['1','2']},{types:['11']}]
+ */
 function decodeCompact(
   s?: string,
   opts: { ensureOneWhenEmpty?: boolean; appendBlank?: boolean } = {
@@ -55,7 +58,8 @@ function decodeCompact(
     appendBlank: false,
   }
 ): { types: string[] }[] {
-  const ensureOneWhenEmpty = opts.ensureOneWhenEmpty ?? true;
+  const ensureOneWhenEmpty =
+    opts.ensureOneWhenEmpty === undefined ? true : opts.ensureOneWhenEmpty;
   const appendBlank = !!opts.appendBlank;
 
   if (!s || !s.trim()) {
@@ -91,18 +95,46 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   const [form] = Form.useForm();
   const [state, setState] = useSetState<any>({
     confirmLoading: false,
-    equipTypeList: [] as any[],
+    equipTypeList: [],
   });
   const { confirmLoading, equipTypeList } = state;
 
-  const fetchTypeData = async () => {
+  // const initData = useCallback(() => {
+  //   if (!open) return;
+  //   form.resetFields();
+
+  //   if (type === "edit") {
+  //     const legacy = updateValue || {};
+  //     // 编辑态：不追加空行
+  //     const inRows = decodeCompact(legacy?.Inpara_type, {
+  //       ensureOneWhenEmpty: true,
+  //       appendBlank: false,
+  //     });
+  //     const outRows = decodeCompact(legacy?.outpara_type, {
+  //       ensureOneWhenEmpty: true,
+  //       appendBlank: false,
+  //     });
+
+  //     form.setFieldsValue({
+  //       ...legacy,
+  //       inTypeRows: inRows,
+  //       outTypeRows: outRows,
+  //       Inpara_uint: legacy?.Inpara_uint,
+  //       outpara_uint: legacy?.outpara_uint,
+  //     });
+  //   }
+  // }, [open, type, updateValue, form]);
+
+  const fetchTypeData: any = async () => {
     try {
-      const { code, data } = await getCmdTreeList();
+      const { code, data } = await getInstrumentType({ route: 1 });
       if (code !== 0) {
         setState({ equipTypeList: [] });
         return;
       }
-      setState({ equipTypeList: data || [] });
+      console.log("data?.list_info ", data?.list_info);
+
+      setState({ equipTypeList: data?.list_info || [] });
     } catch {
       setState({ equipTypeList: [] });
     }
@@ -110,16 +142,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   useEffect(() => {
     initData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, type, updateValue]);
-
   const initData = async () => {
     if (!open) return;
     form.resetFields();
     await fetchTypeData();
-
     if (type === "edit") {
       const legacy = updateValue || {};
+      // 编辑态：不追加空行
       const inRows = decodeCompact(legacy?.Inpara_type, {
         ensureOneWhenEmpty: true,
         appendBlank: false,
@@ -131,41 +161,36 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
       form.setFieldsValue({
         ...legacy,
-        // labelInValue：编辑态回填 {label, value}
-        device_type: {
-          label: legacy?.device_type ?? "",
-          value: legacy?.group_id ?? "",
-        },
         inTypeRows: inRows,
         outTypeRows: outRows,
-        // Inpara_uint: legacy?.Inpara_uint,
-        // outpara_uint: legacy?.outpara_uint,
+        Inpara_uint: legacy?.Inpara_uint,
+        outpara_uint: legacy?.outpara_uint,
       });
     }
   };
+  // useEffect(() => {
+  //   initData();
+  // }, [initData]);
 
   const handleOk = async () => {
+    // 严格校验（如要无校验可改 getFieldsValue）
     const values = await form.validateFields();
-
     const inTypeRows = values.inTypeRows || [];
     const outTypeRows = values.outTypeRows || [];
-
     const inCompact = encodeCompact(inTypeRows); // "1/2,11" 或 ""
     const outCompact = encodeCompact(outTypeRows); // "1" 或 ""
-    const dt = values.device_type; // labelInValue 结构
 
     const payload = {
       ...values,
-      // 设备类型（安全读取）
-      device_type: dt?.label ?? "",
-      device_type_id: dt?.value ?? "",
+      device_type: values.device_type.label || "",
+      device_type_id: values.device_type.value || "",
       // 只传后端需要的字段
       inTypeRows: undefined,
       outTypeRows: undefined,
       Inpara_type: inCompact || undefined,
       outpara_type: outCompact || undefined,
     };
-    // console.log("payload", payload);
+    console.log("payload", payload);
 
     try {
       setState({ confirmLoading: true });
@@ -202,6 +227,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         {...layout}
         form={form}
         name="control-hooks"
+        // 新建态：给 1 行空行即可；不额外 append 空行，避免视觉上的“多一个”
         initialValues={{
           inTypeRows: [{ types: [] }],
           outTypeRows: [{ types: [] }],
@@ -210,7 +236,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           outpara_uint: undefined,
         }}
       >
-        {/* ---------- 基础信息 ---------- */}
+        {/* ---------- 基础信息（你原本的必填保持不变） ---------- */}
         <Row gutter={[24, 24]}>
           <Col span={12}>
             <Form.Item
@@ -237,20 +263,28 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             >
               <Select
                 showSearch
-                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
                 labelInValue
                 placeholder="选择所属设备类型"
                 allowClear
               >
                 {equipTypeList.map((item: any) => (
-                  <Option value={item.id} key={item.name}>
-                    {item.name}
+                  <Option value={item.group_id} key={item.group_id}>
+                    {item.group_name}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
           </Col>
-
+          {/* <Col span={12}>
+            <Form.Item name="group_id" label="所属设备类型编码">
+              <Input placeholder="系统自动分配" disabled />
+            </Form.Item>
+          </Col> */}
           <Col span={12}>
             <Form.Item
               name="active"
@@ -271,7 +305,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           输入参数
         </Divider>
 
-        <Row gutter={[24, 8]} align="stretch">
+        <Row gutter={[24, 8]}>
           {/* 左：输入类型（多行 + 每行多选；非必填） */}
           <Col span={16}>
             <Space align="center" style={{ marginBottom: 8 }}>
@@ -304,22 +338,22 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                       key={field.key}
                       gutter={[12, 0]}
                       align="middle"
-                      style={{ marginBottom: 12 }} // 每行间距
+                      style={{ marginBottom: 12 }} // ✅ 每行间距
                     >
                       <Col
                         flex="auto"
-                        style={{ display: "flex", alignItems: "center" }}
+                        style={{ display: "flex", alignItems: "center" }} // ✅ 行内垂直居中
                       >
                         <Form.Item
                           {...field}
                           name={[field.name, "types"]}
                           fieldKey={[field.fieldKey!, "types"]}
-                          style={{ flex: 1, marginBottom: 0 }} // 行内居中对齐
+                          style={{ flex: 1, marginBottom: 0 }} // ✅ 去掉 Form.Item 默认底边距
                           rules={[]}
                         >
                           <Select
                             mode="multiple"
-                            placeholder="选择输入类型"
+                            placeholder="选择一个或多个输入类型（同一行用“/”拼接）"
                             allowClear
                             options={outAndInParams}
                           />
@@ -331,7 +365,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "flex-end",
-                        }}
+                        }} // ✅ 删除按钮与 Select 垂直居中
                       >
                         {allFields.length > 1 && (
                           <Button
@@ -351,21 +385,15 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.List>
           </Col>
 
-          {/* 右：输入单位 —— 垂直居中 */}
-          <Col span={8} style={{ display: "flex" }}>
-            <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-              <Form.Item
-                label="输入参数单位"
-                name="Inpara_unit"
-                style={{ marginBottom: 0, width: "100%" }}
-              >
-                <Select
-                  placeholder="选择输入参数单位"
-                  allowClear
-                  options={paramUnits}
-                />
-              </Form.Item>
-            </div>
+          {/* 右：输入单位（非必填、与类型无关联） */}
+          <Col span={8}>
+            <Form.Item label="输入参数单位" name="Inpara_uint" rules={[]}>
+              <Select
+                placeholder="选择输入参数单位"
+                allowClear
+                options={paramUnits}
+              />
+            </Form.Item>
           </Col>
         </Row>
 
@@ -374,7 +402,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           输出参数
         </Divider>
 
-        <Row gutter={[24, 8]} align="stretch">
+        <Row gutter={[24, 8]}>
           {/* 左：输出类型（多行 + 每行多选；非必填） */}
           <Col span={16}>
             <Space align="center" style={{ marginBottom: 8 }}>
@@ -400,7 +428,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 新增
               </Button>
             </Space>
-
             <Form.List name="outTypeRows">
               {(fields, { remove }) => (
                 <>
@@ -409,22 +436,22 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                       key={field.key}
                       gutter={[12, 0]}
                       align="middle"
-                      style={{ marginBottom: 12 }}
+                      style={{ marginBottom: 12 }} // 每行之间的垂直间距
                     >
                       <Col
                         flex="auto"
-                        style={{ display: "flex", alignItems: "center" }}
+                        style={{ display: "flex", alignItems: "center" }} // 行内垂直居中
                       >
                         <Form.Item
                           {...field}
                           name={[field.name, "types"]}
                           fieldKey={[field.fieldKey!, "types"]}
-                          style={{ flex: 1, marginBottom: 0 }}
+                          style={{ flex: 1, marginBottom: 0 }} // 去掉默认底边距
                           rules={[]}
                         >
                           <Select
                             mode="multiple"
-                            placeholder="选择输出类型"
+                            placeholder="选择一个或多个输出类型（同一行用“/”拼接）"
                             allowClear
                             options={outAndInParams}
                           />
@@ -436,7 +463,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "flex-end",
-                        }}
+                        }} // 删除按钮与 Select 垂直居中
                       >
                         {allFields.length > 1 && (
                           <Button
@@ -456,21 +483,15 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             </Form.List>
           </Col>
 
-          {/* 右：输出单位 —— 垂直居中 */}
-          <Col span={8} style={{ display: "flex" }}>
-            <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-              <Form.Item
-                label="输出参数单位"
-                name="outpara_unit"
-                style={{ marginBottom: 0, width: "100%" }}
-              >
-                <Select
-                  placeholder="选择输出参数单位"
-                  allowClear
-                  options={paramUnits}
-                />
-              </Form.Item>
-            </div>
+          {/* 右：输出单位（非必填、与类型无关联） */}
+          <Col span={8}>
+            <Form.Item label="输出参数单位" name="outpara_uint" rules={[]}>
+              <Select
+                placeholder="选择输出参数单位"
+                allowClear
+                options={paramUnits}
+              />
+            </Form.Item>
           </Col>
         </Row>
 

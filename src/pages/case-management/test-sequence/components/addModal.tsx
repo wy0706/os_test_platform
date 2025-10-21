@@ -99,7 +99,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       setState({
         treeData: list,
       });
-      console.log("list", list);
     } catch (error) {
       setState({
         treeData: [],
@@ -132,10 +131,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     }
 
     if (type === "edit" && updateValue) {
-      console.log("wwww", updateValue);
       form.setFieldsValue({ ...updateValue });
+
+      let list = (updateValue?.tc_title || []).map((row: any) => ({
+        ...row,
+        id: Number(row.id),
+      }));
       setState({
-        selectTestData: updateValue?.tc_title || [],
+        selectTestData: list,
       });
     }
   };
@@ -164,8 +167,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         message.success(msg || "操作成功");
       }
       if (type == "edit") {
-        console.log("value", values);
-
         const { code, message: msg } = await updateSequence({
           sequence_id: updateValue.sequence_id,
           ...values,
@@ -333,13 +334,14 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }}
         selectData={selectTestData}
         onOk={(values) => {
-          console.log("values======", values);
           setState({
             selectTestData: values,
           });
+
           form?.setFieldsValue({
-            tc_title: values,
-            // values && values.length > 0 ? JSON.stringify(values) : null,
+            tc_title: isArray(values)
+              ? values.map((item) => ({ id: item.id, title: item.title }))
+              : [],
           });
           setState({
             isPlanModalOpen: false,
