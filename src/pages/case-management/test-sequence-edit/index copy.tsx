@@ -1,11 +1,6 @@
-import {
-  getCmdList,
-  getConditonList,
-  getResultList,
-  getTempList,
-} from "@/services/case-management/test-sequence-edit.service";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 
+import { getList } from "@/services/task-management/test-requirement.service";
 import {
   BarsOutlined,
   BookOutlined,
@@ -30,7 +25,6 @@ import ResultPage from "./components/result";
 import TemporaryVariables from "./components/temporaryVariables";
 import "./index.less";
 import {
-  ApiResp,
   mockConditionsData,
   mockProcessData,
   mockResultTable,
@@ -41,6 +35,7 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     tabActiveKey: "1",
+
     isRunModalOpen: false, //
     tabItems: [
       {
@@ -64,6 +59,7 @@ const Page: React.FC = () => {
         icon: <FunctionOutlined />,
       },
     ],
+
     tabData: {
       tab1: [],
       tab2: [],
@@ -91,7 +87,6 @@ const Page: React.FC = () => {
     autoId: null,
     isSaveAsModalOpen: false, //另存为
     addModalType: "",
-    selectedId: null,
   });
   const {
     title,
@@ -109,7 +104,6 @@ const Page: React.FC = () => {
     autoId,
     isSaveAsModalOpen,
     addModalType,
-    selectedId,
   } = state;
   const tabDataMap: Record<string, any> = {
     tab1: mockProcessData,
@@ -117,15 +111,13 @@ const Page: React.FC = () => {
     tab3: mockResultTable,
     tab4: mockTempTable,
   };
-  // ★ 可选：避免快速切 tab 产生竞态
-  const latestReqKeyRef = useRef<string | null>(null);
   const params = useParams();
   const [searchParams] = useSearchParams();
   // 初始化：只加载 tab1
   useEffect(() => {
-    // if (params.id !== "add") {
-    handleTabChange("1");
-    // }
+    if (params.id !== "add") {
+      handleTabChange("1");
+    }
     let release =
       params.id === "add"
         ? false
@@ -137,71 +129,44 @@ const Page: React.FC = () => {
       title: params.id === "add" ? "" : searchParams.get("name") || "",
       isRelease: release,
       autoId: params.id,
-      selectedId: searchParams.get("selectedId"),
     });
   }, [params.id]);
 
-  const fetchers: Record<
-    string,
-    (args: { id: string }) => Promise<ApiResp<any>>
-  > = {
-    "1": () => getCmdList(),
-    "2": () => getConditonList(),
-    "3": () => getResultList(),
-    "4": () => getTempList(),
-  };
   const handleTabChange = async (key: string) => {
     setState({ tabActiveKey: key });
-    if (params.id === "add") return;
 
-    const tabKey = `tab${key}` as keyof typeof state.tabData;
-    if (state.loaded[tabKey]) return;
-
-    latestReqKeyRef.current = key;
-
-    try {
-      const fetcher = fetchers[key];
-      if (!fetcher) return;
-
-      const resp = await fetcher({ id: String(params.id) });
-      console.log("res", resp);
-
-      // 判断返回格式
-      if (resp?.code === 0 && Array.isArray(resp?.data?.lib_list)) {
-        const data = resp.data.lib_list;
-        // 只更新最新一次请求
-        if (latestReqKeyRef.current === key) {
-          setState((prev: any) => ({
-            tabData: { ...prev.tabData, [tabKey]: data },
-            loaded: { ...prev.loaded, [tabKey]: true },
-            selectedRowKeys: {
-              ...prev.selectedRowKeys,
-              [tabKey]: data.length ? 0 : -1,
-            },
-          }));
-        }
-      } else {
-        // 请求失败或返回结构不符 → 清空
-        message.error(resp?.message || "接口返回异常");
-        setState((prev: any) => ({
-          tabData: { ...prev.tabData, [tabKey]: [] },
-          loaded: { ...prev.loaded, [tabKey]: true },
-          selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
+    if (params.id !== "add" && !state.loaded[`tab${key}`]) {
+      try {
+        // 假设 getList 接口可以根据 key 获取不同数据
+        await getList({ tab: key });
+        setState((prev) => ({
+          tabData: {
+            ...prev.tabData,
+            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+          },
+          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          selectedRowKeys: {
+            ...prev.selectedRowKeys,
+            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
+          },
+        }));
+      } catch (e) {
+        setState((prev) => ({
+          tabData: {
+            ...prev.tabData,
+            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+          },
+          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          selectedRowKeys: {
+            ...prev.selectedRowKeys,
+            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
+          },
         }));
       }
-    } catch (err: any) {
-      // 网络错误等异常 → 清空表格
-      message.error(err?.message || "请求失败");
-      setState((prev: any) => ({
-        tabData: { ...prev.tabData, [tabKey]: [] },
-        loaded: { ...prev.loaded, [tabKey]: true },
-        selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
-      }));
     }
   };
-
   const goList = () => {
-    history.push(`/case-management/test-sequence?id=${selectedId}`);
+    history.push("/case-management/test-sequence");
   };
   const handleGoBack = () => {
     if (isRelease) {
@@ -352,7 +317,7 @@ const Page: React.FC = () => {
         {/* 主要内容区域 */}
         <div className="test-content" style={{ paddingLeft: 10 }}>
           <Tabs
-            activeKey={tabActiveKey}
+            defaultActiveKey={tabActiveKey}
             items={tabItems}
             onChange={handleTabChange}
           />
@@ -361,7 +326,7 @@ const Page: React.FC = () => {
             className="main-info
           "
           >
-            {tabActiveKey === "1" && (
+            {tabActiveKey == 1 && (
               <Process
                 data={tabData.tab1}
                 selectedRowIndex={selectedRowKeys.tab1}
@@ -377,7 +342,7 @@ const Page: React.FC = () => {
                 }}
               />
             )}
-            {tabActiveKey === "2" && (
+            {tabActiveKey == 2 && (
               <Conditions
                 data={tabData.tab2}
                 selectedRowIndex={selectedRowKeys.tab2}
@@ -393,7 +358,7 @@ const Page: React.FC = () => {
                 }}
               />
             )}
-            {tabActiveKey === "3" && (
+            {tabActiveKey == 3 && (
               <ResultPage
                 data={tabData.tab3}
                 selectedRowIndex={selectedRowKeys.tab3}
@@ -409,7 +374,7 @@ const Page: React.FC = () => {
                 }}
               />
             )}
-            {tabActiveKey === "4" && (
+            {tabActiveKey == 4 && (
               <TemporaryVariables
                 data={tabData.tab4}
                 selectedRowIndex={selectedRowKeys.tab4}

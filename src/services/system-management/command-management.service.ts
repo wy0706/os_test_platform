@@ -78,7 +78,7 @@ export async function getOne(command_id: any) {
  */
 export async function updateOne(data: any) {
   const result: any = await request<{}>(`${baseUrl}/editinpar`, {
-    method: "POST",
+    method: "PUT",
     data: data,
   });
   return result;

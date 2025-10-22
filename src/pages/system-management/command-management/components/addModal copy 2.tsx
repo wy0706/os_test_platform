@@ -102,11 +102,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         setState({ equipTypeList: [] });
         return;
       }
-      const topLevel = (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-      }));
-      setState({ equipTypeList: topLevel });
+      setState({ equipTypeList: data || [] });
     } catch {
       setState({ equipTypeList: [] });
     }
@@ -142,8 +138,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         },
         inTypeRows: inRows,
         outTypeRows: outRows,
-        Inpara_unit: legacy?.Inpara_unit,
-        outpara_unit: legacy?.Outara_Unit ?? legacy?.Outara_unit ?? "",
+        // Inpara_uint: legacy?.Inpara_uint,
+        // outpara_uint: legacy?.outpara_uint,
       });
     }
   };
@@ -210,6 +206,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           inTypeRows: [{ types: [] }],
           outTypeRows: [{ types: [] }],
           active: 1,
+          Inpara_uint: undefined,
+          outpara_uint: undefined,
         }}
       >
         {/* ---------- 基础信息 ---------- */}
@@ -245,7 +243,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 allowClear
               >
                 {equipTypeList.map((item: any) => (
-                  <Option value={item.id} key={item.key}>
+                  <Option value={item.id} key={item.name}>
                     {item.name}
                   </Option>
                 ))}
@@ -300,21 +298,22 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.List name="inTypeRows">
               {(fields, { remove }) => (
                 <>
-                  {fields.map(({ key, name }, _, allFields) => (
+                  {fields.map((field, _, allFields) => (
                     <Row
-                      key={key}
+                      key={field.key}
                       gutter={[12, 0]}
                       align="middle"
-                      style={{ marginBottom: 12 }}
+                      style={{ marginBottom: 12 }} // 每行间距
                     >
                       <Col
                         flex="auto"
                         style={{ display: "flex", alignItems: "center" }}
                       >
-                        {/* 不要再 {...field}，也不要再用 fieldKey */}
                         <Form.Item
-                          name={[name, "types"]}
-                          style={{ flex: 1, marginBottom: 0 }}
+                          {...field}
+                          name={[field.name, "types"]}
+                          fieldKey={[field.fieldKey!, "types"]}
+                          style={{ flex: 1, marginBottom: 0 }} // 行内居中对齐
                           rules={[]}
                         >
                           <Select
@@ -338,7 +337,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                             danger
                             type="text"
                             icon={<DeleteOutlined />}
-                            onClick={() => remove(name)}
+                            onClick={() => remove(field.name)}
                             aria-label="删除输入类型行"
                             title="删除输入类型行"
                           />
@@ -404,9 +403,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
             <Form.List name="outTypeRows">
               {(fields, { remove }) => (
                 <>
-                  {fields.map(({ key, name }, _, allFields) => (
+                  {fields.map((field, _, allFields) => (
                     <Row
-                      key={key}
+                      key={field.key}
                       gutter={[12, 0]}
                       align="middle"
                       style={{ marginBottom: 12 }}
@@ -416,7 +415,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                         style={{ display: "flex", alignItems: "center" }}
                       >
                         <Form.Item
-                          name={[name, "types"]}
+                          {...field}
+                          name={[field.name, "types"]}
+                          fieldKey={[field.fieldKey!, "types"]}
                           style={{ flex: 1, marginBottom: 0 }}
                           rules={[]}
                         >
@@ -441,7 +442,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                             danger
                             type="text"
                             icon={<DeleteOutlined />}
-                            onClick={() => remove(name)}
+                            onClick={() => remove(field.name)}
                             aria-label="删除输出类型行"
                             title="删除输出类型行"
                           />

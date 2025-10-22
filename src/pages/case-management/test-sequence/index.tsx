@@ -1,3 +1,4 @@
+import { createTempLib } from "@/services/case-management/test-sequence-edit.service";
 import {
   deleteSequenceType,
   getSequenceList,
@@ -18,7 +19,7 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
-import { history, useAccess } from "@umijs/max";
+import { history, useAccess, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Divider, Empty, message, Modal, Spin, Tree } from "antd";
 import React, { useEffect, useRef } from "react";
@@ -30,7 +31,6 @@ import {
   schemasColumns,
   schemasTitle,
   transformToMockTreeData,
-  TreeNode,
 } from "./schemas";
 
 const TestSequence: React.FC = () => {
@@ -82,7 +82,7 @@ const TestSequence: React.FC = () => {
     sequencetype_id,
     sysoruser,
   } = state;
-
+  const initialSelectIdRef = useRef(false);
   const operationColumn = {
     title: "操作",
     valueType: "option",
@@ -181,20 +181,9 @@ const TestSequence: React.FC = () => {
       </div>,
     ],
   } as const;
+  const [searchParams] = useSearchParams();
 
-  // 递归查找节点
-  const findNodeById = (nodes: TreeNode[], id: string): TreeNode | null => {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      if (node.children) {
-        const found = findNodeById(node.children, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  // 加载树数据
+  // 拉取树数据并在首次加载时根据 URL ?id=xxx 自动选中
   const fetchModules = async () => {
     try {
       setState({ treeLoading: true });
@@ -204,7 +193,44 @@ const TestSequence: React.FC = () => {
         setState({ treeData: [] });
         return;
       }
-      setState({ treeData: transformToMockTreeData(data) || [] });
+
+      const mockTree = transformToMockTreeData(data) || [];
+      setState({ treeData: mockTree });
+
+      // 仅首次进入时尝试选中 ?id=
+      if (!initialSelectIdRef.current) {
+        initialSelectIdRef.current = true; // 标记已执行
+        const urlId = searchParams.get("id");
+
+        if (urlId) {
+          const node = findNodeByKey(mockTree, urlId);
+          if (node) {
+            const parentId = node.parentId ?? node.parantId ?? null;
+            const parent = isParentNode(node);
+            const toExpand = getAncestorKeys(mockTree, String(node.rawKey));
+
+            setState({
+              selectedNodeId: String(node.rawKey),
+              expandedKeys: Array.from(
+                new Set([...(state.expandedKeys || []), ...toExpand])
+              ),
+              selectedRow: node,
+              sysoruser: parent
+                ? String(node.rawKey)
+                : parentId
+                ? String(parentId)
+                : null,
+              sequencetype_id: parent ? null : String(node.rawKey),
+            });
+          }
+
+          // ✅ 清理 URL 参数，只保留基础路径
+          const currentPath = window.location.pathname + window.location.search;
+          const url = new URL(window.location.href);
+          url.searchParams.delete("id");
+          history.replace(url.pathname + url.search); // 不触发刷新
+        }
+      }
     } catch (error) {
       setState({ treeData: [] });
       message.error("加载树数据失败");
@@ -279,38 +305,45 @@ const TestSequence: React.FC = () => {
   // 当选中模块改变时，刷新表格数据
   useEffect(() => {
     actionRef.current?.reload();
-  }, [sysoruser, sequencetype_id]);
+  }, [state.sysoruser, state.sequencetype_id]);
 
-  // 获取当前选中节点的路径 —— 修正参数使用 selectedId
-  const getSelectedNodePath = (selectedId: any) => {
-    const selectedNode = findNodeById(treeData, selectedId);
-    if (!selectedNode) return "";
-
-    // 找到父节点
-    const findParent = (
-      nodes: TreeNode[],
-      targetId: string
-    ): TreeNode | null => {
-      for (const node of nodes) {
-        if (node.children?.some((child) => child.id === targetId)) {
-          return node;
-        }
-        if (node.children) {
-          const found = findParent(node.children, targetId);
-          if (found) return found;
-        }
+  // 在树里按 rawKey 查找节点
+  const findNodeByKey = (nodes: any[], key: string): any | null => {
+    for (const n of nodes) {
+      if (String(n.rawKey) === String(key)) return n;
+      if (n.children?.length) {
+        const hit = findNodeByKey(n.children, key);
+        if (hit) return hit;
       }
-      return null;
-    };
-
-    const parent = findParent(treeData, selectedId);
-    return parent ? `${parent.name} / ${selectedNode.name}` : selectedNode.name;
+    }
+    return null;
   };
 
-  const handleRowClick = (record: any, index: number) => {
-    const name = `${getSelectedNodePath(selectedNodeId)} / ${
-      record.sequence_name
-    }`;
+  // 获取某节点到根的祖先 rawKey 路径（用于展开）
+  const getAncestorKeys = (nodes: any[], targetKey: string): string[] => {
+    const path: string[] = [];
+    const dfs = (list: any[], stack: string[]) => {
+      for (const n of list) {
+        const next = [...stack, String(n.rawKey)];
+        if (String(n.rawKey) === String(targetKey)) {
+          path.push(...next);
+          return true;
+        }
+        if (n.children?.length && dfs(n.children, next)) return true;
+      }
+      return false;
+    };
+    dfs(nodes, []);
+    return path;
+  };
+  const handleRowClick = async (record: any, index: number) => {
+    const { code, message: msg } = await createTempLib(record.sequence_id);
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
+    }
+
+    const name = `${record.TIGroup} / ${record.sequence_name}`;
     history.push({
       pathname: `/case-management/test-sequence-edit/${record.sequence_id}?name=${name}&status=${record?.is_published}&selectedId=${selectedNodeId}`,
     });
@@ -433,7 +466,7 @@ const TestSequence: React.FC = () => {
     }));
   };
 
-  const treeDataDemo = renderTreeData(treeData) || [];
+  const treeDataList = renderTreeData(treeData) || [];
 
   // 根据节点结构/类型综合判断是否父级
   const isParentNode = (node: any) => {
@@ -451,12 +484,13 @@ const TestSequence: React.FC = () => {
     const clickedNode = info.node;
     const nodeData = (clickedNode as any)?.dataRef ?? clickedNode;
     const parent = isParentNode(clickedNode);
+    const parentId = nodeData.parentId ?? nodeData.parantId ?? null;
     // 更新选中态
     setState({
       selectedNodeId: clickedKey, //选中的节点
       selectedRow: nodeData,
-      sysoruser: parent ? clickedKey : nodeData.parentId || null,
-      sequencetype_id: parent ? null : nodeData.rawKey,
+      sysoruser: parent ? clickedKey : parentId ? String(parentId) : null,
+      sequencetype_id: parent ? null : String(nodeData.rawKey),
     });
   };
   return (
@@ -466,9 +500,9 @@ const TestSequence: React.FC = () => {
         <div className="left-panel">
           <div className="tree-container">
             <Spin spinning={treeLoading} tip="加载数据中...">
-              {treeDataDemo.length > 0 ? (
+              {treeDataList.length > 0 ? (
                 <Tree
-                  treeData={treeDataDemo}
+                  treeData={treeDataList}
                   selectedKeys={[selectedNodeId]}
                   defaultExpandAll
                   onSelect={handleTreeSelect}
@@ -625,9 +659,7 @@ const TestSequence: React.FC = () => {
             }
           } else {
             const { tigroup, sequence_name } = values;
-            const titles = tigroup
-              ? `${getSelectedNodePath(tigroup)} / ${sequence_name}`
-              : `${sequence_name}`;
+            const titles = `${tigroup}/${sequence_name}`;
             history.push(
               `/case-management/test-sequence-edit/add?name=${titles}selectedId=${selectedNodeId}`
             );

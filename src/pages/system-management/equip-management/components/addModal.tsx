@@ -131,7 +131,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       };
       setState({ fileList: [newFile] });
 
-      form.setFieldsValue({ apidll: data });
+      form.setFieldsValue({ apidll: data.file });
       message.success("上传成功");
       onSuccess?.(data, file);
     } catch (err) {
@@ -168,11 +168,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       }
       values.defaultparas = str;
     }
-    console.log({ ...values, instr_id: updateValue.instr_id });
 
     if (type == "add") {
-      // 因为现在上传没有返回地址appdll先写死
-      values.apidll = "PBZ20_20.dll";
       const { code, message: msg } = await addModelOne(values);
       if (code !== 0) {
         message.error(msg || "操作失败");

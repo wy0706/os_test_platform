@@ -130,7 +130,6 @@ export const mockTreeData = [
   {
     title: "testCommand",
     key: "testCommand",
-
     children: [
       {
         title: "AC_SOURCE",
@@ -148,7 +147,6 @@ export const mockTreeData = [
         title: "RS232 Device",
 
         key: "RS232_Device",
-
         children: [
           {
             title: "ReadESR_Acw",
@@ -395,3 +393,75 @@ export const mockTempTable = [
     visible: "success",
   },
 ];
+import { FileTextOutlined, FolderOutlined } from "@ant-design/icons";
+
+/**
+ * 将后端返回的命令数据结构转换成 antd Tree 所需格式：
+ * 统一为 { title, key, children }
+ * 并自动补充图标
+ *
+ * @param {Array} data - 后端返回的数据（包含 id, name, command_list 等）
+ * @returns {Array} treeData - 转换并带图标的树结构
+ */
+export const buildCommandTreeData = (data: any[]): any[] => {
+  if (!Array.isArray(data) || data.length === 0) {
+    // 如果为空或类型不对，直接返回空数组
+    return [];
+  }
+
+  try {
+    // 1转换为标准树结构
+    const transformed = data.map((group) => {
+      const { id, name, command_list } = group || {};
+
+      // 如果 group 或 name 缺失，跳过
+      if (!id || !name) return null;
+
+      // 生成子节点
+      const children = Array.isArray(command_list)
+        ? command_list
+            .filter((cmd) => cmd && cmd.command_id && cmd.command_name)
+            .map((cmd) => ({
+              title: cmd.command_name,
+              // key: `${cmd.command_id}`,
+              key: cmd.command_name,
+              id: cmd.command_id,
+              icon: <FileTextOutlined />,
+              ...cmd,
+            }))
+        : [];
+
+      return {
+        title: name,
+        id: id,
+        key: name,
+        // key: `type-${id}`,
+        icon: <FolderOutlined />,
+        children,
+      };
+    });
+
+    // 过滤掉无效项
+    return transformed.filter(Boolean);
+  } catch (error) {
+    console.error("❌ buildCommandTreeData 转换失败:", error);
+    return [];
+  }
+};
+
+// types.ts（可内联在同文件上方）
+export type ApiResp<T = any> = {
+  code: number;
+  data?: { lib_list?: T[] };
+  message?: string; // 如果后端有错误信息
+};
+
+// 抽取函数：成功返回 list[]，否则抛错
+export function pickList<T = any>(resp: ApiResp<T>, fallbackMsg?: string): T[] {
+  console.log("resp", resp);
+  if (resp && resp.code === 0) {
+    return resp?.data?.lib_list ?? [];
+  }
+  const msg = resp?.message || fallbackMsg || "接口返回异常";
+  throw new Error(msg);
+}

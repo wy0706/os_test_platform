@@ -151,6 +151,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   const handleOk = async () => {
     const values = await form.validateFields();
+    console.log(values);
 
     try {
       setState({
@@ -159,6 +160,12 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
       if (type == "add") {
         values["tigroup"] = values.tigroup?.label ?? "";
+
+        if (!values.tigroup) {
+          message.warning("请选择序列类型");
+          return;
+        }
+
         const { code, message: msg } = await createSequence({ ...values });
         if (code !== 0) {
           message.error(msg || "操作失败");
@@ -177,9 +184,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }
         message.success(msg || "操作成功");
       }
-      if (onOk) {
-        onOk({ ...values, lists: selectTestData });
-      }
     } finally {
       setState({
         confirmLoading: false,
@@ -197,9 +201,10 @@ const AddModal: React.FC<SetMemberModalProps> = ({
           setState({
             selectTestData: [],
           });
-          onCancel && onCancel();
           form?.resetFields();
+          onCancel && onCancel();
         }}
+        afterClose={() => {}}
         styles={{ body: { padding: 20 } }}
         width={"50%"}
         onOk={handleOk}

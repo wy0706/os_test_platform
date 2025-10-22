@@ -78,7 +78,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
   }, [open]);
   // 初始数据源
   const [dataSource, setDataSource] = useState<ParamItem[]>(initialData || []);
-  console.log("dataSource", dataSource);
+  // console.log("dataSource", dataSource);
 
   // 获取下拉选项（模拟数据）
   const getSelectOptions = (conditionType: number) => {

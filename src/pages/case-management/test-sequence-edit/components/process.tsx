@@ -1,11 +1,12 @@
-import { getCmdTreeList } from "@/services/case-management/test-sequence-edit.service";
+import {
+  getCmdTreeList,
+  insertCmd,
+} from "@/services/case-management/test-sequence-edit.service";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
-  FileTextOutlined,
-  FolderOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 
@@ -13,7 +14,7 @@ import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Card, Modal, Tree, Typography, message } from "antd";
 import React, { useEffect } from "react";
-import { mockTreeData } from "../schemas";
+import { buildCommandTreeData } from "../schemas";
 import "./index.less";
 import ParamForm from "./paramForm";
 import ProcessModal from "./processModal";
@@ -141,26 +142,6 @@ interface ProcessProps {
   selectedRowIndex?: any;
 }
 
-// 动态为树形数据添加图标的函数
-const addIconsToTreeData = (treeData: any[]): any[] => {
-  return treeData.map((node) => {
-    const newNode = { ...node };
-
-    // 根据是否有children来决定图标类型
-    if (node.children && node.children.length > 0) {
-      // 有子节点的是文件夹图标
-      newNode.icon = <FolderOutlined />;
-      // 递归处理子节点
-      newNode.children = addIconsToTreeData(node.children);
-    } else {
-      // 没有子节点的是文档图标
-      newNode.icon = <FileTextOutlined />;
-    }
-
-    return newNode;
-  });
-};
-
 const Process: React.FC<ProcessProps> = ({
   data,
   selectedRowIndex,
@@ -199,14 +180,21 @@ const Process: React.FC<ProcessProps> = ({
       if (code !== 0) {
         message.error(msg || "获取命令失败");
         setState({
-          cmdTreeList: [],
+          processedTreeData: [],
         });
         return;
       }
-      console.log("data", data);
+      let treeList = buildCommandTreeData(data || []);
+      console.log("tree", treeList);
+
+      const allKeys = getAllTreeKeys(treeList);
+      setState({
+        processedTreeData: treeList,
+        expandedKeys: allKeys,
+      });
     } catch (error) {
       setState({
-        cmdTreeList: [],
+        processedTreeData: [],
       });
     }
   };
@@ -406,16 +394,6 @@ const Process: React.FC<ProcessProps> = ({
   // 初始化时处理树形数据并设置默认展开全部
   useEffect(() => {
     getTreeData();
-    // 为mockTreeData添加图标
-    const dataWithIcons = addIconsToTreeData(mockTreeData);
-
-    // 默认展开所有节点
-    const allKeys = getAllTreeKeys(dataWithIcons);
-
-    setState({
-      processedTreeData: dataWithIcons,
-      expandedKeys: allKeys,
-    });
   }, []);
 
   // 表格列定义
@@ -630,7 +608,7 @@ const Process: React.FC<ProcessProps> = ({
   };
 
   // 通用插入函数，供双击和按钮点击使用
-  const insertTreeNode = (nodeKey: string, nodeTitle: string) => {
+  const insertTreeNode = async (nodeKey: string, nodeTitle: string) => {
     if (data.length > 299) {
       message.warning("表格中的命令数量已达到最大限度，不可插入");
       return;
@@ -649,12 +627,28 @@ const Process: React.FC<ProcessProps> = ({
     const insertIndex =
       selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
     const newTableData = [...data];
+
+    const params = {
+      seq_id: insertIndex + 1, //序号
+      testcommand: nodeKey,
+    };
+    const { code, data: infos, message: msg } = await insertCmd(params);
+
+    if (code !== 0) {
+      message.error(msg || "操作失败");
+      return;
+    }
+    console.log("insertIndex", insertIndex);
+
     newTableData.splice(insertIndex, 0, newRowData);
 
     // 更新序号
     newTableData.forEach((item, index) => {
       item.sequence = index + 1;
     });
+
+    console.log("newTableData", newTableData);
+
     // 通知父组件更新数据 & 当前选中行
     onChange?.(newTableData, insertIndex);
     setState({ selectedRowData: newRowData });
@@ -707,6 +701,7 @@ const Process: React.FC<ProcessProps> = ({
   // 处理树节点双击事件，在选中行下方插入新行
   const handleTreeDoubleClick = (keys: any[], info: any) => {
     console.log("双击", keys);
+    console.log("info", info);
 
     if (keys.length === 0) return;
     const clickedNodeKey = keys[0];
@@ -850,7 +845,6 @@ const Process: React.FC<ProcessProps> = ({
             className="command-tree"
           />
         </Card>
-        :
       </div>
       <ParamForm
         type={paramType}

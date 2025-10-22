@@ -71,7 +71,12 @@ const Page: React.FC = () => {
           Modal.confirm({
             title: "确认删除吗？",
             onOk: async () => {
-              await deleteOne(record.command_id);
+              const { code, message: msg } = await deleteOne(record.command_id);
+              if (code !== 0) {
+                message.error(msg || "操作失败");
+                return;
+              }
+              message.success(msg || "操作成功");
               if (actionRef.current) {
                 actionRef.current.reload();
               }
