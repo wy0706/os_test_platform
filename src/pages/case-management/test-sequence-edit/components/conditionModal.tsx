@@ -1,7 +1,17 @@
-import { Col, Form, Input, InputNumber, Modal, Row, Select } from "antd";
-import { useEffect, useState } from "react";
+import { updateOneCondition } from "@/services/case-management/test-sequence-edit.service";
+import { useSetState } from "ahooks";
+import {
+  Col,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Row,
+  Select,
+} from "antd";
+import { useEffect } from "react";
 import { dataTypeOptions, precisionOptions, unitOptions } from "./schemas";
-
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -9,7 +19,6 @@ interface SetMemberModalProps {
   type: string;
   updateValue?: any;
 }
-const { Option } = Select;
 
 const ConditionsModal: React.FC<SetMemberModalProps> = ({
   open,
@@ -18,90 +27,122 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
-  const [title, setTitle] = useState("新建");
-  const [treeData, setTreeData] = useState<any>([]);
-  const [selectedDataType, setSelectedDataType] = useState<string>("");
-  const [selectEdittype, setEditType] = useState<string>("");
-  // 加载树数据
-
-  useEffect(() => {
-    if (open) {
-      console.log("updateValue", updateValue);
-      form?.resetFields();
-      if (updateValue) {
-        form?.setFieldsValue({ ...updateValue });
-        setSelectedDataType(updateValue.dataType || "");
-        setEditType(updateValue.editType || "");
-      } else {
-        setSelectedDataType("");
-        setEditType("");
-      }
-    }
-  }, [open, type, updateValue]);
-
-  // 判断是否需要显示精度选项
-  const shouldShowPrecision = (dataType: string) => {
-    return ["Float", "Float[]", "LoadVector"].includes(dataType);
-  };
-
-  // 判断是否需要启用数组大小字段
-  const shouldEnableArraySize = (dataType: string) => {
-    return ["Float[]", "int[]", "bytearray"].includes(dataType);
-  };
-
-  // 判断是否可以编辑最大值最小值
-  const canEditMinMaxValue = (dataType: string) => {
-    // 数组类型和特定类型不可以编辑最小值和最大值
-    return ![
-      "Float[]",
-      "int[]",
-      "bytearray",
-      // "bytes",
-      // "str",
-      // "LineInVector",
-      // "LoadVector",
-    ].includes(dataType);
-  };
-  // 是否可以选择编辑类型
-
-  const canSeletctEditType = (dataType: string) => {
-    return !["int", "int[]"].includes(dataType);
-  };
-  // 判断是否可以编辑默认值
-  const canEditDefaultValue = (dataType: string) => {
-    // 数组类型不可以编辑默认值
-    return !["Float[]", "int[]", "bytearray"].includes(dataType);
-  };
-
-  // 处理数据类型变化
-  const handleDataTypeChange = (value: string) => {
-    setSelectedDataType(value);
-    // 如果不支持精度的类型，清空精度字段
-    // if (!shouldShowPrecision(value)) {
-    //   form.setFieldValue("precision", undefined);
-    // }
-  };
-
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
-    console.log(values);
+  const [state, setState] = useSetState<{
+    selectedDataType: number | null;
+    selectEdittype: number | null;
+    confirmLoading: boolean;
+  }>({
+    selectedDataType: null,
+    selectEdittype: null,
+    confirmLoading: false,
+  });
+
+  const { selectedDataType, selectEdittype, confirmLoading } = state;
+
+  // ---------- helpers ----------
+  const toNum = (v: any): number | undefined =>
+    v === null || v === undefined || v === "" ? undefined : Number(v);
+
+  const shouldShowPrecision = (dataType?: number | null) =>
+    [0, 10].includes(Number(dataType));
+
+  // 是否启用数组大小
+  const shouldEnableArraySize = (dataType?: number | null) =>
+    [10, 11, 12].includes(Number(dataType));
+
+  // 最小/最大值是否可编辑（数组与特定类型不允许）
+  const canEditMinMaxValue = (dataType?: number | null) =>
+    ![10, 11, 12].includes(Number(dataType));
+
+  // 只有 data_type 为 1(int) 或 11(int[]) 时可选择编辑类型，其它都禁用
+  const shouldDisableEditType = (dataType?: number | null) =>
+    ![1, 11].includes(Number(dataType));
+
+  // 数组类型不可以编辑默认值
+  const canEditDefaultValue = (dataType?: number | null) =>
+    ![10, 11, 12].includes(Number(dataType));
+
+  const handleDataTypeChange = (value: number | string) => {
+    setState({ selectedDataType: Number(value) });
+    // 如果不支持精度，可以选择清空精度
+    // form.setFieldValue("precision", undefined);
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-        // 可以在这里添加用户提示
+  useEffect(() => {
+    initData();
+  }, [open, type, updateValue]);
+
+  const initData = () => {
+    if (!open) return;
+    form.resetFields();
+    if (updateValue) {
+      // 把可能的字符串数字统一转为 number，且保留 0
+      const patched = {
+        ...updateValue,
+        data_type: toNum(updateValue?.data_type),
+        edit_type: toNum(updateValue?.edit_type),
+        min_value: updateValue?.min_value,
+        max_value: updateValue?.max_value,
+        default_value: updateValue?.default_value,
+        precision: toNum(updateValue?.precision),
+        array_size: toNum(updateValue?.array_size),
+        visibility: toNum(updateValue?.visibility),
+      };
+
+      form.setFieldsValue(patched);
+      setState({
+        selectedDataType: patched.data_type ?? null,
+        selectEdittype: patched.edit_type ?? null,
       });
+    } else {
+      setState({
+        selectedDataType: null,
+        selectEdittype: null,
+      });
+    }
   };
+
+  const handleOk = async () => {
+    try {
+      // setState({ confirmLoading: true });
+      const values = await form.validateFields();
+      const normalized = {
+        ...values,
+        condition_id: updateValue.condition_id,
+        data_type: toNum(values.data_type),
+        edit_type: toNum(values.edit_type),
+        precision: toNum(values.precision),
+        array_size: toNum(values.array_size),
+        visibility: toNum(values.visibility),
+      };
+      console.log("normalized", normalized);
+
+      const { code, message: msg } = await updateOneCondition({
+        ...normalized,
+      });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+
+      onOk?.(normalized);
+    } catch (e) {
+    } finally {
+      setState({ confirmLoading: false });
+    }
+  };
+
+  // 若外部 options 里 value 可能为字符串，这里保证传入数字
+  const numericDataTypeOptions =
+    dataTypeOptions?.map((o: any) => ({ ...o, value: Number(o.value) })) ??
+    dataTypeOptions;
+
+  const numericPrecisionOptions =
+    precisionOptions?.map((o: any) => ({ ...o, value: Number(o.value) })) ??
+    precisionOptions;
 
   return (
     <Modal
@@ -109,33 +150,27 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       open={open}
       onCancel={() => {
-        onCancel && onCancel();
+        form.resetFields();
+        onCancel?.();
       }}
+      confirmLoading={confirmLoading}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
+      width="50%"
       onOk={handleOk}
     >
-      <Form
-        form={form}
-        name="control-hooks"
-        onFinish={onFinish}
-        layout="vertical"
-      >
+      <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item
-              name="extensionName"
-              label="扩展名"
-              // rules={[{ required: true }]}
-            >
+            <Form.Item name="extension_name" label="扩展名">
               <Input placeholder="输入扩展名" maxLength={32} />
             </Form.Item>
           </Col>
+
           <Col span={12}>
             <Form.Item
-              name="variableName"
+              name="variable_name"
               label="变量名"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "请输入变量名" }]}
             >
               <Input placeholder="输入变量名" maxLength={32} />
             </Form.Item>
@@ -143,47 +178,50 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
 
           <Col span={12}>
             <Form.Item
-              name="dataType"
+              name="data_type"
               label="数据类型"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "请选择数据类型" }]}
             >
               <Select
                 placeholder="选择数据类型"
-                options={dataTypeOptions}
+                options={numericDataTypeOptions}
                 onChange={handleDataTypeChange}
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            {/* 数据类型为int int[]时支持选择 编辑类型 */}
-            <Form.Item name="editType" label="编辑类型">
-              <Select
-                placeholder="选择编辑类型"
-                disabled={canSeletctEditType(selectedDataType)}
-                onChange={(value) => {
-                  setEditType(value);
-                }}
-              >
-                <Option value="EditBox">EditBox</Option>
-                <Option value="ComboList">ComboList</Option>
-              </Select>
-            </Form.Item>
-          </Col>
 
-          <Col span={12}>
-            <Form.Item name="precision" label="精度">
-              <Select
-                placeholder="选择精度"
-                options={precisionOptions}
-                disabled={!shouldShowPrecision(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
+          {!shouldDisableEditType(selectedDataType) ? (
+            <Col span={12}>
+              <Form.Item name="edit_type" label="编辑类型">
+                <Select
+                  placeholder="选择编辑类型"
+                  onChange={(value) => {
+                    setState({ selectEdittype: Number(value) });
+                  }}
+                  options={[
+                    { label: "EditBox", value: 0 },
+                    { label: "ComboList", value: 1 },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          ) : null}
+
+          {shouldShowPrecision(selectedDataType) ? (
+            <Col span={12}>
+              <Form.Item name="precision" label="精度">
+                <Select
+                  placeholder="选择精度"
+                  options={numericPrecisionOptions}
+                />
+              </Form.Item>
+            </Col>
+          ) : null}
 
           {canEditMinMaxValue(selectedDataType) && (
             <Col span={12}>
-              <Form.Item name="minValue" label="最小值">
-                <Input placeholder="输入最小值" />
+              <Form.Item name="min_value" label="最小值">
+                <Input placeholder="输入最小值" allowClear />
               </Form.Item>
             </Col>
           )}
@@ -193,90 +231,69 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               <Select placeholder="选择单位" options={unitOptions} />
             </Form.Item>
           </Col>
-          {/* 如果是int editbox默认值为输入框
-              如果int combolist 默认值为选择框，选择框的内容为枚举项目
-          */}
+
+          {/* int + EditBox 显示输入框；int + ComboList 显示选择框 */}
           {canEditMinMaxValue(selectedDataType) && (
             <Col span={12}>
               <Form.Item
-                name="defaultValue"
+                name="default_value"
                 label="默认值"
                 rules={[
-                  { required: true },
-                  // ({ getFieldValue }) => ({
-                  //   validator(_, value) {
-                  //     const min = getFieldValue("minValue");
-                  //     const max = getFieldValue("maxValue");
-
-                  //     // 只在数值类型时校验
-                  //     if (value !== undefined && value !== "" && !isNaN(value)) {
-                  //       const num = Number(value);
-                  //       if (
-                  //         min !== undefined &&
-                  //         min !== "" &&
-                  //         num < Number(min)
-                  //       ) {
-                  //         return Promise.reject(
-                  //           new Error(
-                  //             "当前default参数设置超出min和max范围，请重新设置"
-                  //           )
-                  //         );
-                  //       }
-                  //       if (
-                  //         max !== undefined &&
-                  //         max !== "" &&
-                  //         num > Number(max)
-                  //       ) {
-                  //         return Promise.reject(
-                  //           new Error(
-                  //             "当前default参数设置超出min和max范围，请重新设置"
-                  //           )
-                  //         );
-                  //       }
-                  //     }
-                  //     return Promise.resolve();
-                  //   },
-                  // }),
+                  {
+                    required: selectEdittype === 0 && true,
+                    message: "请设置默认值",
+                  },
                 ]}
               >
-                {selectedDataType !== "int" ||
-                (selectedDataType == "int" && selectEdittype == "EditBox") ? (
+                {selectedDataType !== 1 ||
+                (selectedDataType === 1 && selectEdittype === 0) ? (
                   <Input
+                    allowClear
                     placeholder="默认值"
                     disabled={!canEditDefaultValue(selectedDataType)}
                   />
                 ) : (
-                  <Select>
-                    <Option value="1">aa</Option>
-                    <Option value="2">bb</Option>
-                  </Select>
+                  <Select
+                    allowClear
+                    placeholder="选择默认值"
+                    options={
+                      [
+                        // { label: "aa", value: "1" },
+                        // { label: "bb", value: "2" },
+                      ]
+                    }
+                  />
                 )}
               </Form.Item>
             </Col>
           )}
 
-          <Col span={12}>
-            <Form.Item name="arraySize" label="数组大小">
-              <InputNumber
-                style={{ width: "100%" }}
-                disabled={!shouldEnableArraySize(selectedDataType)}
-              />
-            </Form.Item>
-          </Col>
+          {shouldEnableArraySize(selectedDataType) ? (
+            <Col span={12}>
+              <Form.Item name="array_size" label="数组大小">
+                <InputNumber style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+          ) : null}
+
           {canEditMinMaxValue(selectedDataType) && (
             <Col span={12}>
-              <Form.Item name="maxValue" label="最大值">
-                <Input placeholder="输入最大值" />
+              {/* 修正字段名：max_value（原来写成 mix_value 导致无法回显/提交） */}
+              <Form.Item name="max_value" label="最大值">
+                <Input placeholder="输入最大值" allowClear />
               </Form.Item>
             </Col>
           )}
 
           <Col span={12}>
-            <Form.Item name="visible" label="是否可见">
-              <Select placeholder="选择是否可见">
-                <Option value="success">✓</Option>
-                <Option value="error">✗</Option>
-              </Select>
+            <Form.Item name="visibility" label="是否可见">
+              <Select
+                placeholder="选择是否可见"
+                options={[
+                  { label: "✓", value: 1 },
+                  { label: "✗", value: 0 },
+                ]}
+              />
             </Form.Item>
           </Col>
         </Row>

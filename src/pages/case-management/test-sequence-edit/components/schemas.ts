@@ -10,15 +10,15 @@ export const schemas = {
 };
 // 数据类型
 export const dataTypeOptions = [
-  { value: "Float", label: "Float" },
-  { value: "int", label: "int" },
-  { value: "bytes", label: "bytes" },
+  { value: 0, label: "Float" },
+  { value: 1, label: "int" },
+  { value: 2, label: "bytes" },
   {
-    value: "Float[]",
+    value: 10,
     label: "Float[]",
   },
   {
-    value: "int[]",
+    value: 11,
     label: "int[]",
   },
   // {
@@ -26,10 +26,10 @@ export const dataTypeOptions = [
   //   label: "bytearray",
   // },
   {
-    value: "bytearray",
+    value: 12,
     label: "bytearray",
   },
-  { value: "str", label: "str" },
+  { value: 43, label: "str" },
   // { value: "LineInVector", label: "LineInVector" },
   // {
   //   value: "LoadVector",
@@ -38,12 +38,12 @@ export const dataTypeOptions = [
 ];
 // 精度
 export const precisionOptions = [
-  { value: "0.1", label: "0.1" },
-  { value: "0.2", label: "0.2" },
-  { value: "0.3", label: "0.3" },
-  { value: "0.4", label: "0.4" },
-  { value: "0.5", label: "0.5" },
-  { value: "0.6", label: "0.6" },
+  { value: 1, label: 1 },
+  { value: 2, label: 2 },
+  { value: 3, label: 3 },
+  { value: 4, label: 4 },
+  { value: 5, label: 5 },
+  { value: 6, label: 6 },
 ];
 // 可见
 export const visibleOptions = [

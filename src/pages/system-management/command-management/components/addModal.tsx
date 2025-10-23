@@ -143,7 +143,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         inTypeRows: inRows,
         outTypeRows: outRows,
         Inpara_unit: legacy?.Inpara_unit,
-        outpara_unit: legacy?.Outara_Unit ?? legacy?.Outara_unit ?? "",
+        outpara_unit: legacy?.outara_unit ?? "",
       });
     }
   };
@@ -245,7 +245,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 allowClear
               >
                 {equipTypeList.map((item: any) => (
-                  <Option value={item.id} key={item.key}>
+                  <Option value={item.id} key={item.id}>
                     {item.name}
                   </Option>
                 ))}

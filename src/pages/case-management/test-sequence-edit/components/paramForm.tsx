@@ -1,7 +1,12 @@
 import {
+  getInParaList,
+  getOutParaList,
+} from "@/services/case-management/test-sequence-edit.service";
+import {
   Form,
   Input,
   InputNumber,
+  message,
   Modal,
   Select,
   Table,
@@ -29,6 +34,7 @@ interface ParamFormProps {
   onCancel?: () => void;
   onOk?: (values: any) => void;
   initialData?: ParamItem[];
+  updateValue: any;
 }
 
 const ParamForm: React.FC<ParamFormProps> = ({
@@ -37,6 +43,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
   onOk,
   initialData,
   type,
+  updateValue,
 }) => {
   const [form] = Form.useForm();
   const [title, setTitle] = useState("");
@@ -54,9 +61,10 @@ const ParamForm: React.FC<ParamFormProps> = ({
   ];
 
   useEffect(() => {
+    initData();
     if (open) {
-      const name = type === "INPUT" ? "输入" : "输出";
-      setTitle(`${name}参数`);
+      console.log("updateValue", updateValue);
+
       // 输入参数支持的类型
       let op1 = [
         { value: 1, label: "测试条件" }, //输入参数
@@ -75,7 +83,31 @@ const ParamForm: React.FC<ParamFormProps> = ({
 
       setTestConditionOptions(type === "INPUT" ? op1 : op2);
     }
-  }, [open]);
+  }, [open, updateValue]);
+
+  const initData = async () => {
+    if (open) {
+      form?.resetFields();
+      const ApiFn = type === "INPUT" ? getInParaList : getOutParaList;
+      try {
+        if (!updateValue.testcommand) {
+          message.warning("缺少命令参数");
+          return;
+        }
+        const {
+          code,
+          data,
+          message: msg,
+        } = await ApiFn(updateValue.testcommand);
+        if (code !== 0) {
+          message.error(msg || "获取参数失败");
+          onCancel?.();
+          return;
+        }
+      } catch (e) {}
+    }
+  };
+
   // 初始数据源
   const [dataSource, setDataSource] = useState<ParamItem[]>(initialData || []);
   // console.log("dataSource", dataSource);
@@ -484,15 +516,16 @@ const ParamForm: React.FC<ParamFormProps> = ({
       });
   };
   const handleCancel = () => {
+    form?.resetFields();
     onCancel?.();
-    form.resetFields();
   };
   return (
     <Modal
       open={open}
       onCancel={handleCancel}
       onOk={handleOk}
-      title={title}
+      destroyOnHidden
+      title={type === "INPUT" ? "输入参数" : "输出参数"}
       width={900}
       okText="确定"
       cancelText="取消"
@@ -504,9 +537,8 @@ const ParamForm: React.FC<ParamFormProps> = ({
         },
       }}
     >
-      <div>
+      {/* <div>
         <div className="param-content">
-          {/* 输入参数 */}
           <div className="param-section" style={{ marginBottom: 15 }}>
             <div className="param-section-title">
               <Text strong>
@@ -526,7 +558,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
             ))}
           </div>
         </div>
-      </div>
+      </div> */}
       <Form form={form} layout="vertical" size="small">
         {/* <div style={{ marginBottom: 16 }}>
           <div

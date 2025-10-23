@@ -1,9 +1,6 @@
 import {
   createOneCondition,
-  deleteConditon,
   getConditonList,
-  moveDownCondition,
-  moveUpCondition,
 } from "@/services/case-management/test-sequence-edit.service";
 import {
   ArrowDownOutlined,
@@ -20,7 +17,6 @@ import ConditionModal from "./conditionModal";
 import EditTypeModal from "./editTypeModal";
 import "./index.less";
 import { parseOptionString } from "./schemas";
-
 interface ConditionsProps {
   data: any[]; //table数据
   onChange?: (data: any, selectedRowIndex: number) => void;
@@ -38,7 +34,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     projectOption: [], //数组类型int[]并且CombiList ，把枚举项目转换成数组（符合select的）
     tableData: [] as any[],
     totalCount: 0,
-    selectedSeqId: null as number | null, // ⭐ 主锚（使用 condition_id）
+    selectedSeqId: null as number | null, // ⭐ 主锚
     selectedRowIndex: -1, // 仅用于渲染高亮
     selectedRowData: null as any,
     // 请求中的行
@@ -74,7 +70,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     editTypeData,
     dataTypeData,
   } = state;
-
   const columns: any = [
     {
       title: "序号",
@@ -84,6 +79,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "扩展名",
       dataIndex: "extension_name",
+      // key: "extensionName",
     },
     {
       title: "变量名",
@@ -92,7 +88,8 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "数据类型",
       dataIndex: "data_type",
-      render: (text: any, record: any) => {
+      // 0:Float 1:int 2:bytes 10:Float[] 11:int[] 12:bytearray 43:str
+      render: (text: any, record: any, index: any) => {
         return record.data_type === 10 ||
           record.data_type === 11 ||
           record.data_type === 12 ? (
@@ -108,6 +105,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
                 setState({
                   projectOption: options,
                 });
+                // record.optionStr = "aa=1,bb=3,ff=5"
               }
             }}
           >
@@ -121,13 +119,12 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "编辑类型",
       dataIndex: "edit_type",
-      render: (text: any, record: any) => {
-        return record.edit_type === 1 ? (
+      render: (text: any, record: any, index: any) => {
+        return record.editType === 1 ? (
           <a
             onClick={() => {
               setState({
                 isEditTypeModalOpen: true,
-                editValue: { ...record },
               });
             }}
           >
@@ -153,6 +150,15 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "精度",
       dataIndex: "precision",
+
+      // render: (text: any, record: any) => {
+      //   // 只有当数据类型为 Float、Float[] 或 LoadVector 时才显示精度
+      //   const shouldShow =
+      //     record.dataType === "Float" ||
+      //     record.dataType === "Float[]" ||
+      //     record.dataType === "LoadVector";
+      //   return shouldShow ? text : "-";
+      // },
     },
     {
       title: "枚举项目",
@@ -170,6 +176,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       title: "可见",
       dataIndex: "visibility",
       valueType: "select",
+      // key: "visible",
       valueEnum: {
         1: {
           text: "✓",
@@ -180,20 +187,29 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           status: "Error",
         },
       },
+      // editable: () => true,
     },
     {
       title: "操作",
       valueType: "option",
       key: "option",
-      width: 140,
-      render: (text: any, record: { id: any }, index: number) => {
+      width: 130,
+      fixed: "right",
+      render: (
+        text: any,
+        record: { id: any },
+        index: number,
+        action: { startEditable: (arg0: any) => void }
+      ) => {
+        const currentTableData = data || [];
         const isFirst = index === 0;
-        const isLast = index === tableData.length - 1;
+        const isLast = index === currentTableData.length - 1;
 
         return [
           <a
             key="editable"
             onClick={() => {
+              // action?.startEditable?.(record.id);
               setState({ isEditModalOpen: true, editValue: record });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
@@ -202,9 +218,10 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="up"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (!isFirst) {
-                moveRow(record, index, "up");
+                moveRow(index, "up");
               }
             }}
             style={{
@@ -218,9 +235,10 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="down"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (!isLast) {
-                moveRow(record, index, "down");
+                moveRow(index, "down");
               }
             }}
             style={{
@@ -234,8 +252,9 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="delete"
-            onClick={() => {
-              deleteRow(record, index);
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteRow(index);
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -245,7 +264,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       },
     },
   ];
-
   const conditionRef = useRef<ActionType>();
   // 数组设置弹框的表格数据
   const [arrayTableData, setArrayTableData] = useState<any[]>([]);
@@ -256,82 +274,68 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       initializeArrayTableData();
     }
   }, [isPrecisionModalOpen, precisionValue]);
-  const moveRow = async (
-    record: any,
-    index: number,
-    direction: "up" | "down"
-  ) => {
-    const APiFn = direction === "up" ? moveUpCondition : moveDownCondition;
-    const delta = direction === "up" ? -1 : 1;
 
-    try {
-      setState({ busyRow: { type: "move", key: record?.condition_id } });
-      const { code, message: msg } = await APiFn({
-        condition_id: record.condition_id,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      message.success(msg || "操作成功");
+  const moveRow = (index: number, direction: "up" | "down") => {
+    const newData = [...data];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-      // 若移动的是当前选中行，预判下一次选中的 seq_id
-      if (state.selectedSeqId === record.condition_id) {
-        setState({ selectedSeqId: record.condition_id + delta });
-      }
-      afterMutate();
-    } catch (e: any) {
-      message.error(e?.message || "操作失败");
-    } finally {
-      setState({ busyRow: null });
+    if (targetIndex < 0 || targetIndex >= newData.length) return;
+
+    [newData[index], newData[targetIndex]] = [
+      newData[targetIndex],
+      newData[index],
+    ];
+
+    newData.forEach((item, i) => {
+      item.sequence = i + 1;
+    });
+    // 更新选中行
+    let newSelected = selectedRowIndex;
+    if (selectedRowIndex === index) {
+      newSelected = targetIndex;
+    } else if (selectedRowIndex === targetIndex) {
+      newSelected = index;
     }
-  };
 
-  const deleteRow = async (row: any, index: number) => {
+    onChange?.(newData, newSelected);
+  };
+  // 删除行
+  const deleteRow = (index: number) => {
     Modal.confirm({
       title: "确认删除吗？",
-      onOk: async () => {
-        try {
-          setState({ busyRow: { type: "delete", key: row?.condition_id } });
-          const { code, message: msg } = await deleteConditon(row.condition_id);
-          if (code !== 0) {
-            message.error(msg || "操作失败");
-            return;
-          }
-          message.success("删除成功");
+      onOk: () => {
+        const newData = [...data];
+        newData.splice(index, 1);
+        newData.forEach((item, newIndex) => {
+          item.sequence = newIndex + 1;
+        });
 
-          // 如果删除的是选中行，预先调整选中 seq_id：优先选中“下一条”，否则“上一条”
-          if (state.selectedSeqId === row.condition_id) {
-            const isLast = index === state.tableData.length - 1;
-            const nextSeqId = isLast ? row.condition_id - 1 : row.condition_id; // 中间删：下一条补位则 seq_id 不变
-            setState({ selectedSeqId: nextSeqId >= 1 ? nextSeqId : null });
-          }
-          afterMutate();
-        } catch (e: any) {
-          message.error(e?.message || "操作失败");
-        } finally {
-          setState({ busyRow: null });
+        message.success("删除成功");
+
+        // 删除后更新选中行索引
+        let newSelected = selectedRowIndex;
+        if (newData.length === 0) {
+          newSelected = -1;
+        } else if (selectedRowIndex >= newData.length) {
+          newSelected = newData.length - 1;
         }
+
+        onChange?.(newData, newSelected);
       },
     });
   };
-  // 点击行
-  const handleRowClick = (record: any, index: number) => {
-    setState({
-      selectedSeqId: record?.condition_id ?? null,
-      selectedRowIndex: index,
-      selectedRowData: record,
-    });
-  };
 
-  // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
+  // 点击行
+  const handleRowClick = (_record: any, index: number) => {
+    onChange?.(data, index);
+  };
+  // 插入新行
   const handleInsertClick = async () => {
-    const lastId = state.tableData?.length
-      ? Math.max(
-          ...state.tableData.map((r: any) => Number(r.condition_id) || 0)
-        )
+    // 以 seq_id 为锚：在当前选中行之后插入；若无选中则追加到末尾
+    const lastSeq = state.tableData?.length
+      ? Math.max(...state.tableData.map((r: any) => Number(r.seq_id) || 0))
       : 0;
-    const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
+    const targetSeqId = (state.selectedSeqId ?? lastSeq) + 1;
 
     try {
       setState({ busyRow: { type: "insert" } });
@@ -384,14 +388,17 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
   // 解析数组字符串，如 "0, 0, 0, 0, ff, ff, ff, ff" 或 "1, 1" 或者 1 或者"1"
   const parseArrayString = (arrayString: string) => {
     if (arrayString === undefined || arrayString === null) return [];
+    // 统一转为字符串
     const str = String(arrayString).trim();
     if (!str) return [];
+    // 如果包含逗号，按逗号切分
     if (str.includes(",")) {
       return str
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean);
     }
+    // 如果没有逗号，直接返回单个元素数组
     return [str];
   };
 
@@ -409,6 +416,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     if (!precisionValue) return null;
     const arraySize = precisionValue.arraySize || 1; //数组
 
+    // 动态生成表格列
     const columns = [
       {
         title: "",
@@ -423,13 +431,17 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         key: `col${index}`,
         width: 120,
         render: (text: string, record: any) => {
+          // 规则：不可编辑条件
           const isDisabled =
+            // bytearray 的 Min / Max 不可编辑
             (precisionValue.dataType === "bytearray" &&
               (record.key === "MinValue" || record.key === "MaxValue")) ||
+            // int[] + ComboList 的 Min / Max 不可编辑
             (precisionValue.dataType === "int[]" &&
               precisionValue.editType === "ComboList" &&
               (record.key === "MinValue" || record.key === "MaxValue"));
 
+          // int[] + ComboList 的 DefaultValue → 用 Select
           const useSelect =
             precisionValue.dataType === "int[]" &&
             precisionValue.editType === "ComboList" &&
@@ -458,12 +470,40 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
               size="small"
               style={{
                 textAlign: "center",
+                // backgroundColor: isDisabled ? "#f5f5f5" : "white",
               }}
               // disabled={isDisabled}
             />
           );
         },
       })),
+      // ...Array.from({ length: arraySize }, (_, index) => ({
+      //   title: `${index + 1}`,
+      //   dataIndex: `col${index}`,
+      //   key: `col${index}`,
+      //   width: 80,
+      //   render: (text: string, record: any) => {
+      //     // 当数据类型为 bytearray 时，最大值和最小值不可编辑
+      //     const isDisabled =
+      //       precisionValue.dataType === "bytearray" &&
+      //       (record.key === "MinValue" || record.key === "MaxValue");
+
+      //     return (
+      //       <Input
+      //         value={text}
+      //         onChange={(e) =>
+      //           handleArrayCellChange(record.key, `col${index}`, e.target.value)
+      //         }
+      //         size="small"
+      //         style={{
+      //           textAlign: "center",
+      //           backgroundColor: isDisabled ? "#f5f5f5" : "white",
+      //         }}
+      //         disabled={isDisabled}
+      //       />
+      //     );
+      //   },
+      // })),
     ];
 
     return (
@@ -500,6 +540,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
   // 处理数组设置弹框确定按钮
   const handleArrayModalConfirm = () => {
     try {
+      // 将表格数据转换回字符串格式
       const arraySize = precisionValue.arraySize || 1;
 
       const minRow = arrayTableData.find((row) => row.key === "MinValue");
@@ -508,15 +549,19 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         (row) => row.key === "DefaultValue"
       );
 
+      // 检查必需的行数据是否存在
       if (!minRow || !maxRow || !defaultRow) {
         message.error("数据不完整，请检查数组设置");
         return;
       }
+      // 对于 bytearray 类型，最大值和最小值保持原值不变
       let minValue, maxValue;
       if (precisionValue.dataType === "bytearray") {
+        // 保持原来的最大值和最小值
         minValue = precisionValue.minValue || "";
         maxValue = precisionValue.maxValue || "";
       } else {
+        // 其他类型正常更新
         minValue = Array.from(
           { length: arraySize },
           (_, i) => minRow?.[`col${i}`] || ""
@@ -532,6 +577,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         (_, i) => defaultRow?.[`col${i}`] || ""
       ).join(", ");
 
+      // 更新主表格数据
       const newData = data.map((item: any) => {
         if (item.id === precisionValue.id) {
           return {
@@ -544,6 +590,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         return item;
       });
 
+      // 通知父组件更新数据
       onChange?.(newData, selectedRowIndex);
       setState({ isPrecisionModalOpen: false, projectOption: [] });
       message.success("数组设置保存成功");
@@ -568,7 +615,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       success: code === 0,
     };
   };
-
   const handleTableLoad = (ds: any[]) => {
     setState({ tableData: ds, totalCount: ds?.length || 0 });
     if (!ds.length) {
@@ -580,37 +626,16 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       return;
     }
 
+    // 优先用 selectedSeqId 精准命中；命不中再兜底到 selectedRowIndex 或 0
     let idx = -1;
     if (selectedSeqId != null) {
-      idx = ds.findIndex(
-        (r) => String(r?.condition_id) === String(selectedSeqId) // ✅ 用 condition_id 对齐
-      );
+      idx = ds.findIndex((r) => String(r?.seq_id) === String(selectedSeqId));
     }
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     }
     handleRowClick(ds[idx], idx);
-  };
-
-  const clearUpdateValue = (type: string) => {
-    //type为condition是表示ConditionModal
-    // 为editType 表示EditTypeModal
-    setState({
-      editValue: {},
-    });
-    switch (type) {
-      case "condition":
-        setState({ isEditModalOpen: false });
-        return;
-      case "editType":
-        setState({
-          isEditTypeModalOpen: false,
-        });
-        return;
-      default:
-        return;
-    }
   };
   return (
     <div className="conditions-page">
@@ -619,7 +644,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         actionRef={conditionRef}
         request={requestData}
         onLoad={handleTableLoad}
-        rowKey={(row) => String(row?.condition_id)}
+        rowKey="condition_id"
         search={false}
         pagination={false}
         size="small"
@@ -661,6 +686,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
             key="submit"
             type="primary"
             onClick={() => {
+              // 确定按钮的处理逻辑
               handleArrayModalConfirm();
             }}
           >
@@ -670,33 +696,46 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       >
         {renderArraySettingTable()}
       </Modal>
-
       <ConditionModal
         open={isEditModalOpen}
-        onCancel={() => clearUpdateValue("condition")}
+        onCancel={() => setState({ isEditModalOpen: false })}
         type="edit"
         updateValue={editValue}
         onOk={(values) => {
-          clearUpdateValue("condition");
-          afterMutate();
+          const newData = data.map((item: any) =>
+            item.id === editValue.id ? { ...item, ...values } : item
+          );
+          // 通知父组件更新数据
+          onChange?.(newData, selectedRowIndex);
+
+          // 关闭弹框
+          setState({ isEditModalOpen: false });
+
+          message.success("保存成功");
         }}
       />
-
       <EditTypeModal
         open={isEditTypeModalOpen}
-        onCancel={() => clearUpdateValue("editType")}
-        onOk={(values: any) => {
-          clearUpdateValue("editType");
-          afterMutate();
+        onCancel={() => {
+          setState({
+            isEditTypeModalOpen: false,
+          });
         }}
+        onOk={(values: any) => {
+          console.log("values", values);
+          setState({
+            isEditTypeModalOpen: false,
+          });
+        }}
+        // 模拟后端返回的默认数据
         updateValue={{
-          ...editValue,
-          // project: [
-          //   // { first: "aa", last: "3" },
-          //   // { first: "bb", last: "4" },
-          // ],
+          project: [
+            { first: "aa", last: "3" },
+            { first: "bb", last: "4" },
+          ],
         }}
       />
+      {/* <Modal title="编辑测试条件" open={isEditModalOpen}></Modal> */}
     </div>
   );
 };

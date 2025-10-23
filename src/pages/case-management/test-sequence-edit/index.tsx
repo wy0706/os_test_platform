@@ -152,13 +152,57 @@ const Page: React.FC = () => {
   };
   const handleTabChange = async (key: string) => {
     setState({ tabActiveKey: key });
-    if (params.id === "add") return;
+    // if (params.id === "add") return;
 
+    // const tabKey = `tab${key}` as keyof typeof state.tabData;
+    // if (state.loaded[tabKey]) return;
+
+    // latestReqKeyRef.current = key;
+
+    // try {
+    //   const fetcher = fetchers[key];
+    //   if (!fetcher) return;
+
+    //   const resp = await fetcher({ id: String(params.id) });
+    //   console.log("res", resp);
+
+    //   // 判断返回格式
+    //   if (resp?.code === 0 && Array.isArray(resp?.data?.lib_list)) {
+    //     const data = resp.data.lib_list;
+    //     // 只更新最新一次请求
+    //     if (latestReqKeyRef.current === key) {
+    //       setState((prev: any) => ({
+    //         tabData: { ...prev.tabData, [tabKey]: data },
+    //         loaded: { ...prev.loaded, [tabKey]: true },
+    //         selectedRowKeys: {
+    //           ...prev.selectedRowKeys,
+    //           [tabKey]: data.length ? 0 : -1,
+    //         },
+    //       }));
+    //     }
+    //   } else {
+    //     // 请求失败或返回结构不符 → 清空
+    //     message.error(resp?.message || "接口返回异常");
+    //     setState((prev: any) => ({
+    //       tabData: { ...prev.tabData, [tabKey]: [] },
+    //       loaded: { ...prev.loaded, [tabKey]: true },
+    //       selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
+    //     }));
+    //   }
+    // } catch (err: any) {
+    //   // 网络错误等异常 → 清空表格
+    //   message.error(err?.message || "请求失败");
+    //   setState((prev: any) => ({
+    //     tabData: { ...prev.tabData, [tabKey]: [] },
+    //     loaded: { ...prev.loaded, [tabKey]: true },
+    //     selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
+    //   }));
+    // }
+  };
+
+  const getData = async (key: string) => {
     const tabKey = `tab${key}` as keyof typeof state.tabData;
     if (state.loaded[tabKey]) return;
-
-    latestReqKeyRef.current = key;
-
     try {
       const fetcher = fetchers[key];
       if (!fetcher) return;
@@ -199,7 +243,6 @@ const Page: React.FC = () => {
       }));
     }
   };
-
   const goList = () => {
     history.push(`/case-management/test-sequence?id=${selectedId}`);
   };
@@ -305,6 +348,10 @@ const Page: React.FC = () => {
       console.log("执行保存操作");
     }
   };
+
+  const handleDataChange = (key: string) => {
+    getData(key);
+  };
   return (
     <PageContainer
       header={{
@@ -361,7 +408,7 @@ const Page: React.FC = () => {
             className="main-info
           "
           >
-            {tabActiveKey === "1" && (
+            {/* {tabActiveKey === "1" && (
               <Process
                 data={tabData.tab1}
                 selectedRowIndex={selectedRowKeys.tab1}
@@ -376,7 +423,8 @@ const Page: React.FC = () => {
                   }));
                 }}
               />
-            )}
+            )} */}
+            {tabActiveKey === "1" && <Process />}
             {tabActiveKey === "2" && (
               <Conditions
                 data={tabData.tab2}

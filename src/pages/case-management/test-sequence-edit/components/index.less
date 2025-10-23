@@ -23,7 +23,8 @@
 
     .param-explanation-card {
       box-sizing: border-box;
-      height: 200px;
+      min-height: 100px;
+      max-height: 150px;
       overflow-y: auto;
     }
 
@@ -31,7 +32,6 @@
       flex: 1;
       box-sizing: border-box;
       min-height: 0; // 确保flex子元素可以正确计算高度
-      // margin-bottom: 10px;
       overflow-y: auto;
       .command-tree {
         // 特殊样式：选中的节点

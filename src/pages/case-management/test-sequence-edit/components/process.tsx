@@ -1,122 +1,42 @@
 import {
-  getCmdTreeList,
-  insertCmd,
-} from "@/services/case-management/test-sequence-edit.service";
-import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-
-import { ProTable } from "@ant-design/pro-components";
+import { ActionType, ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Card, Modal, Tree, Typography, message } from "antd";
-import React, { useEffect } from "react";
+import { Button, Card, Empty, Modal, Tree, Typography, message } from "antd";
+import React, { useEffect, useRef } from "react";
+
+import {
+  deleteCmd,
+  getCmdList,
+  getCmdTreeList,
+  getCommentOne,
+  insertCmd,
+  moveDownCmd,
+  moveUpCmd,
+} from "@/services/case-management/test-sequence-edit.service";
+
 import { buildCommandTreeData } from "../schemas";
 import "./index.less";
 import ParamForm from "./paramForm";
 import ProcessModal from "./processModal";
-const { Title, Text } = Typography;
-// 模拟参数解释数据
-const mockParamExplanation = {
-  1: {
-    title: "输入参数: 1个参数",
-    params: [
-      {
-        name: "Parameter: sendcom_0",
-        type: "字符串终止符",
-        dataType: "string",
-        description: "设置232字符串终止符参数",
-      },
-    ],
-    outputParams: "输出参数: 1个参数",
-  },
-  2: {
-    title: "输入参数: 2个参数",
-    params: [
-      {
-        name: "Parameter: Port_Index",
-        type: "端口索引",
-        dataType: "integer",
-        description: "串口端口号",
-      },
-      {
-        name: "Parameter: sendcom",
-        type: "发送命令",
-        dataType: "string",
-        description: "发送的字符串格式",
-      },
-    ],
-    outputParams: "输出参数: 1个参数",
-  },
-  3: {
-    title: "输入参数: 2个参数",
-    params: [
-      {
-        name: "Parameter: Port_Index",
-        type: "端口索引",
-        dataType: "integer",
-        description: "串口端口号 (值: 1)",
-      },
-      {
-        name: "Parameter: Timeout",
-        type: "超时时间",
-        dataType: "integer",
-        description: "响应超时时间 (值: 10000)",
-      },
-    ],
-    outputParams: "输出参数: 1个参数",
-  },
-  4: {
-    title: "输入参数: 2个参数",
-    params: [
-      {
-        name: "Parameter: ESR_Acw_Index",
-        type: "绝缘阻抗类别",
-        dataType: "integer",
-        description: "ESR ACW索引参数",
-      },
-      {
-        name: "Parameter: ESR_Test_Items",
-        type: "安规测试项目",
-        dataType: "Float[]",
-        description: "测试项目数组",
-      },
-    ],
-    outputParams: "输出参数: 1个参数",
-  },
-  5: {
-    title: "输入参数: 2个参数",
-    params: [
-      {
-        name: "Parameter: Index",
-        type: "数据索引",
-        dataType: "integer",
-        description: "数据读取起始索引",
-      },
-      {
-        name: "Parameter: Count",
-        type: "数据数量",
-        dataType: "integer",
-        description: "读取数据的数量",
-      },
-    ],
-    outputParams: "输出参数: 1个参数",
-  },
-};
+
+const { Text } = Typography;
+
 const mockFormData = [
   {
     id: "1",
-    name: "stepCon2", //名称
-    unit: "", //单位
+    name: "stepCon2",
+    unit: "",
     dataType: "字符串终止符 (string)",
     type: "",
-    conditionType: 1, //输入参数还是输出参数 1，表示输入 2表示输出
+    conditionType: 1,
     description: "设置232字符串终止符参数",
   },
-
   {
     id: "3",
     name: "sendString",
@@ -136,87 +56,73 @@ const mockFormData = [
     type: "",
   },
 ];
+
+// ===== 组件开始 =====
 interface ProcessProps {
-  data: any[]; //table数据
-  onChange?: (data: any, selectedRowIndex: number) => void;
-  selectedRowIndex?: any;
+  selectedRowIndex?: number; // 如需受控可保留；否则可不传
 }
 
-const Process: React.FC<ProcessProps> = ({
-  data,
-  selectedRowIndex,
-  onChange,
-}) => {
+const Process: React.FC<ProcessProps> = () => {
+  const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
+    // 状态
     isProcessModalOpen: false,
     isparamShow: false,
     updateValue: {},
-    selectedTreeKeys: [], //选中的树节点
-    selectedCommand: "", //当前选中的命令
+    paramValue: {},
+
+    // 树
     processedTreeData: [],
     expandedKeys: [],
-    selectedRowData: [],
-    selectType: "COMMAND", //默认展示测试命令 COMMAND | INPUT |OUT
-    paramType: "", // 参数表单数据
-    cmdTreeList: [],
+    selectedTreeKeys: [] as React.Key[],
+    selectedCommand: "",
+
+    // 表格 / 选中：以 seq_id 作为唯一主标记
+    tableData: [] as any[],
+    totalCount: 0,
+    selectedSeqId: null as number | null, // ⭐ 主锚
+    selectedRowIndex: -1, // 仅用于渲染高亮
+    selectedRowData: null as any,
+    paramType: "",
+    // 请求中的行
+    busyRow: null as null | {
+      type: "insert" | "update" | "delete" | "move";
+      key?: any;
+    },
+    paramExplanation: null,
   });
+
   const {
     isProcessModalOpen,
-    updateValue,
     isparamShow,
-    selectedTreeKeys,
-    selectedCommand,
+    updateValue,
     processedTreeData,
     expandedKeys,
+    selectedTreeKeys,
+    tableData,
+    selectedRowIndex,
     selectedRowData,
-    selectType,
+    selectedSeqId,
     paramType,
-    cmdTreeList,
+    paramExplanation,
+    paramValue,
   } = state;
 
-  const getTreeData = async () => {
-    try {
-      const { code, data, message: msg } = await getCmdTreeList();
-      if (code !== 0) {
-        message.error(msg || "获取命令失败");
-        setState({
-          processedTreeData: [],
-        });
-        return;
-      }
-      let treeList = buildCommandTreeData(data || []);
-      console.log("tree", treeList);
+  // ===== helpers =====
+  const getRowCmd = (row: any) => row?.command || row?.testcommand || "";
 
-      const allKeys = getAllTreeKeys(treeList);
-      setState({
-        processedTreeData: treeList,
-        expandedKeys: allKeys,
-      });
-    } catch (error) {
-      setState({
-        processedTreeData: [],
-      });
-    }
-  };
-
-  // const [selectType, setType] = useState("COMMAND");
-  // const [paramType, setParamType] = useState<any>("");
-  // 获取所有树节点的keys用于默认展开
   const getAllTreeKeys = (treeData: any[]): string[] => {
     const keys: string[] = [];
     const traverse = (nodes: any[]) => {
       nodes.forEach((node) => {
         keys.push(node.key);
-        if (node.children && node.children.length > 0) {
-          traverse(node.children);
-        }
+        if (node.children?.length) traverse(node.children);
       });
     };
     traverse(treeData);
     return keys;
   };
 
-  // 在树形结构中查找命令并获取其路径
   const findCommandInTree = (
     command: string,
     treeData: any[],
@@ -224,320 +130,379 @@ const Process: React.FC<ProcessProps> = ({
   ): string[] | null => {
     for (const node of treeData) {
       const currentPath = [...path, node.key];
-
-      // 如果当前节点的title匹配命令
-      if (node.title === command || node.key === command) {
-        return currentPath;
-      }
-
-      // 如果有子节点，递归查找
-      if (node.children && node.children.length > 0) {
-        const result = findCommandInTree(command, node.children, currentPath);
-        if (result) {
-          return result;
-        }
+      if (node.title === command || node.key === command) return currentPath;
+      if (node.children?.length) {
+        const res = findCommandInTree(command, node.children, currentPath);
+        if (res) return res;
       }
     }
     return null;
   };
 
-  // 处理点击测试命令
+  const syncTreeWithCommand = (command?: string) => {
+    if (!command) {
+      setState({ selectedTreeKeys: [], selectedCommand: "" });
+      return;
+    }
+    if (!processedTreeData?.length) {
+      setState({
+        selectedCommand: command,
+        selectedTreeKeys: [command as unknown as React.Key],
+      });
+      return;
+    }
+    const commandPath = findCommandInTree(command, processedTreeData);
+    if (commandPath) {
+      setState({
+        selectedTreeKeys: [command as unknown as React.Key],
+        expandedKeys: [
+          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
+        ],
+        selectedCommand: command,
+      });
+    }
+  };
+
   const handleCommandClick = (command: string) => {
     setState({
       isparamShow: false,
       selectedCommand: command,
-      selectType: "COMMAND",
     });
-
-    if (processedTreeData.length > 0) {
+    if (processedTreeData.length) {
       const commandPath = findCommandInTree(command, processedTreeData);
       if (commandPath) {
-        // 设置选中的节点
-
-        setState({
-          selectedTreeKeys: [command],
-        });
-        // 确保展开到该命令的路径
-        const newExpandedKeys = [
+        setState({ selectedTreeKeys: [command] });
+        const newExpanded = [
           ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
         ];
-
-        setState({
-          expandedKeys: newExpandedKeys,
-        });
+        setState({ expandedKeys: newExpanded });
       }
     }
   };
 
-  const syncTreeWithCommand2 = (command?: string) => {
-    console.log("conmmand", command);
-
-    if (!command) {
-      setState({
-        selectedTreeKeys: [],
-        selectedCommand: "",
-      });
-      return;
-    }
-    const commandPath = findCommandInTree(command, processedTreeData);
-    if (commandPath) {
-      console.log("1111", command);
-
-      setState({
-        selectedTreeKeys: [command],
-        expandedKeys: [
-          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-        ],
-        selectedCommand: command,
-      });
-    }
+  const handleRowClick = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.seq_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
+    });
+    const cmd = getRowCmd(record);
+    if (cmd) syncTreeWithCommand(cmd);
   };
 
-  const syncTreeWithCommand = (command?: string) => {
-    if (!command) {
+  const afterMutate = () => {
+    actionRef.current?.reload?.();
+  };
+
+  const handleTableLoad = (ds: any[]) => {
+    setState({ tableData: ds, totalCount: ds?.length || 0 });
+
+    if (!ds.length) {
       setState({
-        selectedTreeKeys: [],
-        selectedCommand: "",
+        selectedSeqId: null,
+        selectedRowIndex: -1,
+        selectedRowData: null,
       });
+      syncTreeWithCommand("");
       return;
     }
 
-    // 如果树还没初始化好，先存起来，等树 ready 再处理
-    if (!processedTreeData || processedTreeData.length === 0) {
-      setState({
-        selectedCommand: command,
-        selectedTreeKeys: [command],
-      });
-      return;
+    // 优先用 selectedSeqId 精准命中；命不中再兜底到 selectedRowIndex 或 0
+    let idx = -1;
+    if (selectedSeqId != null) {
+      idx = ds.findIndex((r) => String(r?.seq_id) === String(selectedSeqId));
     }
+    if (idx < 0) {
+      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+    }
+    handleRowClick(ds[idx], idx);
+  };
 
-    const commandPath = findCommandInTree(command, processedTreeData);
-    if (commandPath) {
-      setState({
-        selectedTreeKeys: [command],
-        expandedKeys: [
-          ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-        ],
-        selectedCommand: command,
+  const moveRow = async (
+    record: any,
+    index: number,
+    direction: "up" | "down"
+  ) => {
+    const APiFn = direction === "up" ? moveUpCmd : moveDownCmd;
+    const delta = direction === "up" ? -1 : 1;
+
+    try {
+      setState({ busyRow: { type: "move", key: record?.seq_id } });
+      const { code, message: msg } = await APiFn({
+        seq_id: record.seq_id,
+        testcommand: record.testcommand,
       });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+
+      // 若移动的是当前选中行，预判下一次选中的 seq_id
+      if (state.selectedSeqId === record.seq_id) {
+        setState({ selectedSeqId: record.seq_id + delta });
+      }
+      afterMutate();
+    } catch (e: any) {
+      message.error(e?.message || "操作失败");
+    } finally {
+      setState({ busyRow: null });
     }
   };
-  const moveRow = (index: number, direction: "up" | "down") => {
-    const newData = [...data];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newData.length) return;
 
-    [newData[index], newData[targetIndex]] = [
-      newData[targetIndex],
-      newData[index],
-    ];
-    newData.forEach((item, i) => (item.sequence = i + 1));
-
-    let newSelected = selectedRowIndex;
-    if (selectedRowIndex === index) {
-      newSelected = targetIndex;
-    } else if (selectedRowIndex === targetIndex) {
-      newSelected = index;
-    }
-
-    onChange?.(newData, newSelected);
-    if (newSelected >= 0) {
-      syncTreeWithCommand(newData[newSelected].command);
-    }
-  };
-  // 删除行
-  const deleteRow = (index: number) => {
+  const deleteRow = async (row: any, index: number) => {
     Modal.confirm({
       title: "确认删除吗？",
-      onOk: () => {
-        const newData = [...data];
-        newData.splice(index, 1);
-        newData.forEach((item, newIndex) => {
-          item.sequence = newIndex + 1;
-        });
+      onOk: async () => {
+        try {
+          setState({ busyRow: { type: "delete", key: row?.seq_id } });
+          const { code, message: msg } = await deleteCmd(row.seq_id);
+          if (code !== 0) {
+            message.error(msg || "操作失败");
+            return;
+          }
+          message.success("删除成功");
 
-        message.success("删除成功");
-
-        // 删除后更新选中行索引
-        let newSelected = selectedRowIndex;
-        if (newData.length === 0) {
-          newSelected = -1;
-          setState({ selectedTreeKeys: [], selectedCommand: "" });
-        } else if (selectedRowIndex >= newData.length) {
-          newSelected = newData.length - 1;
-          syncTreeWithCommand(newData[newSelected].command);
-        } else {
-          syncTreeWithCommand(newData[newSelected].command);
+          // 如果删除的是选中行，预先调整选中 seq_id：优先选中“下一条”，否则“上一条”
+          if (state.selectedSeqId === row.seq_id) {
+            const isLast = index === state.tableData.length - 1;
+            const nextSeqId = isLast ? row.seq_id - 1 : row.seq_id; // 中间删：下一条补位则 seq_id 不变
+            setState({ selectedSeqId: nextSeqId >= 1 ? nextSeqId : null });
+          }
+          afterMutate();
+        } catch (e: any) {
+          message.error(e?.message || "操作失败");
+        } finally {
+          setState({ busyRow: null });
         }
-
-        onChange?.(newData, newSelected);
       },
     });
   };
-  useEffect(() => {
-    if (
-      selectedRowIndex !== undefined &&
-      selectedRowIndex >= 0 &&
-      data.length > 0
-    ) {
-      const currentCommand = data[selectedRowIndex]?.command;
-      if (currentCommand) {
-        syncTreeWithCommand(currentCommand);
+
+  const insertAt = async (
+    nodeKey: string,
+    nodeTitle: string
+  ): Promise<boolean> => {
+    if (Number(state.totalCount) > 299) {
+      message.warning("数量已达上限");
+      return false;
+    }
+
+    // 以 seq_id 为锚：在当前选中行之后插入；若无选中则追加到末尾
+    const lastSeq = state.tableData?.length
+      ? Math.max(...state.tableData.map((r: any) => Number(r.seq_id) || 0))
+      : 0;
+    const targetSeqId = (state.selectedSeqId ?? lastSeq) + 1;
+    const params = { seq_id: targetSeqId, testcommand: nodeKey };
+
+    try {
+      setState({ busyRow: { type: "insert" } });
+      const { code, message: msg } = await insertCmd(params);
+      if (code !== 0) {
+        message.error(msg || "插入失败");
+        return false;
       }
-    } else {
+      message.success(`已插入${nodeTitle}`);
+      setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
+      afterMutate();
+      return true;
+    } catch (e: any) {
+      message.error(e?.message || "插入失败");
+      return false;
+    } finally {
+      setState({ busyRow: null });
+    }
+  };
+  // 获取注释
+  const getComment = async (testcommand: any) => {
+    try {
+      const { code, data, message: msg } = await getCommentOne(testcommand);
+      if (code !== 0) {
+        message.error(msg || "获取失败");
+        setState({
+          paramExplanation: "",
+        });
+        return;
+      }
       setState({
-        selectedTreeKeys: [],
-        selectedCommand: "",
+        paramExplanation: data?.comment || "",
+      });
+    } catch (e) {
+      setState({
+        paramExplanation: "",
       });
     }
-  }, [data, selectedRowIndex, processedTreeData]);
-  // 初始化时处理树形数据并设置默认展开全部
+  };
+  const handleTreeDoubleClick = async (
+    event: React.MouseEvent,
+    node: any
+  ): Promise<void> => {
+    const nodeKey = node.key as React.Key; // 用原始 key 做选中
+    const nodeTitle = node.title;
+
+    // 父节点拦截
+    if (node.children && node.children.length > 0) {
+      message.warning("请选择具体的测试命令进行插入");
+      return;
+    }
+
+    // 高亮树节点
+    setState({
+      selectedTreeKeys: [nodeKey],
+      selectedCommand: String(nodeKey),
+    });
+
+    await insertAt(String(nodeKey), nodeTitle);
+  };
+
+  const handleTreeSelect = (keys: any, info: any) => {
+    console.log("keys", keys);
+    console.log("info", info);
+
+    const level = info.node.level;
+    setState({
+      selectedTreeKeys: keys as React.Key[],
+      selectedCommand: keys[0] && level === 2 ? String(keys[0]) : "",
+    });
+  };
+
+  useEffect(() => {
+    getComment(state.selectedCommand);
+  }, [state.selectedCommand]);
+
+  const requestData: any = async () => {
+    const { code, data, message: msg } = await getCmdList();
+    if (code !== 0) {
+      message.error(msg || "获取失败");
+      setState({ totalCount: 0 });
+      return { data: [], total: 0, success: false };
+    }
+    setState({ totalCount: data?.total_cnt });
+    return {
+      data: data?.lib_list || [],
+      total: data?.total_cnt,
+      success: code === 0,
+    };
+  };
+
+  const getTreeData = async () => {
+    try {
+      const { code, data, message: msg } = await getCmdTreeList();
+      if (code !== 0) {
+        message.error(msg || "获取命令失败");
+        setState({ processedTreeData: [] });
+        return;
+      }
+      const treeList = buildCommandTreeData(data || []).map((node: any) => ({
+        ...node,
+        disabled: !node.children || node.children.length === 0 ? false : true, // 一级节点禁用
+      }));
+      const allKeys = getAllTreeKeys(treeList);
+      setState({ processedTreeData: treeList, expandedKeys: allKeys });
+    } catch (error) {
+      setState({ processedTreeData: [] });
+    }
+  };
+
   useEffect(() => {
     getTreeData();
   }, []);
 
-  // 表格列定义
   const columns: any[] = [
-    {
-      title: "序号",
-      dataIndex: "index",
-      valueType: "index",
-      width: 80,
-    },
+    { title: "序号", dataIndex: "index", valueType: "index", width: 80 },
     {
       title: "激活",
-      dataIndex: "status",
-      // width: 100,
-      key: "status",
+      dataIndex: "active",
       valueType: "select",
       valueEnum: {
-        success: {
-          text: "✓",
-          status: "Success",
-        },
-        error: {
-          text: "✗",
-          status: "Error",
-        },
+        1: { text: "✓", status: "Success" },
+        0: { text: "✗", status: "Error" },
       },
       editable: () => true,
     },
-    {
-      title: "标签",
-      dataIndex: "tag",
-      ellipsis: true,
-      editable: () => true,
-      // width: 100,
-    },
+    { title: "标签", dataIndex: "label", ellipsis: true, editable: () => true },
     {
       title: "测试命令",
-      dataIndex: "command",
-      key: "command",
+      dataIndex: "testcommand",
       editable: false,
       ellipsis: true,
-      // width: 150,
-      render: (text: any, record: any, index: number) => {
-        return (
-          <div
-            style={{ cursor: "pointer", color: "#1677ff" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleColumnClickWithRowSelect(record, index, "COMMAND");
-            }}
-          >
-            {record.command}
-          </div>
-        );
-      },
+      render: (_: any, record: any, index: number) => (
+        <div
+          style={{ cursor: "pointer", color: "#1677ff" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleColumnClickWithRowSelect(record, index, "COMMAND");
+          }}
+        >
+          {record.testcommand}
+        </div>
+      ),
     },
     {
       title: "输入参数",
-      dataIndex: "inputParams",
-      key: "inputParams",
+      dataIndex: "inputparams",
       editable: false,
       ellipsis: true,
-      // width: 150,
-      render: (text: any, record: any, index: number) => {
-        return (
-          <div
-            style={{ cursor: "pointer", color: "#1677ff" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleColumnClickWithRowSelect(record, index, "INPUT");
-
-              setState({
-                paramType: "INPUT",
-              });
-            }}
-          >
-            {record.inputParams}
-          </div>
-        );
-      },
+      render: (_: any, record: any, index: number) => (
+        <div
+          style={{ cursor: "pointer", color: "#1677ff" }}
+          onClick={(e) => {
+            // e.stopPropagation();
+            handleColumnClickWithRowSelect(record, index, "INPUT");
+            setState({ paramType: "INPUT", paramValue: { ...record } });
+          }}
+        >
+          {record.inputparams || "-"}
+        </div>
+      ),
     },
     {
       title: "输出参数",
-      dataIndex: "outputParams",
-      ellipsis: true,
+      dataIndex: "outputparams",
       editable: false,
-      // width: 150,
-      render: (text: any, record: any, index: number) => {
-        return (
-          <div
-            style={{ cursor: "pointer", color: "#1677ff" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setState({
-                paramType: "OUT",
-              });
-              handleColumnClickWithRowSelect(record, index, "OUT");
-            }}
-          >
-            {record.outputParams}
-          </div>
-        );
-      },
+      ellipsis: true,
+      render: (_: any, record: any, index: number) => (
+        <div
+          style={{ cursor: "pointer", color: "#1677ff" }}
+          onClick={(e) => {
+            // e.stopPropagation();
+            setState({ paramType: "OUT", paramValue: { ...record } });
+            handleColumnClickWithRowSelect(record, index, "OUT");
+          }}
+        >
+          {record.outputparams || "-"}
+        </div>
+      ),
     },
     {
       title: "注释",
-      dataIndex: "description",
+      dataIndex: "comment",
       editable: () => true,
       ellipsis: true,
-      // width: 150,
     },
     {
       title: "操作",
       valueType: "option",
       key: "option",
-      width: 130,
-      fixed: "right",
-      render: (
-        text: any,
-        record: { id: any },
-        index: number,
-        action: { startEditable: (arg0: any) => void }
-      ) => {
+      width: 140,
+      render: (_: any, record: any, index: number) => {
         const isFirst = index === 0;
-        const isLast = index === data.length - 1;
-
+        const isLast = index === tableData.length - 1;
         return [
           <a
             key="editable"
-            onClick={() => {
-              // action?.startEditable?.(record.id);
-              setState({ isProcessModalOpen: true, updateValue: record });
-            }}
-            style={{ marginRight: 10, color: "#1677ff" }}
+            onClick={() =>
+              setState({ isProcessModalOpen: true, updateValue: record })
+            }
+            style={{ marginLeft: 10, marginRight: 10, color: "#1677ff" }}
           >
             <EditOutlined style={{ marginRight: 4 }} />
           </a>,
           <a
             key="up"
             onClick={(e) => {
-              e.stopPropagation();
-              if (!isFirst) {
-                moveRow(index, "up");
-              }
+              if (!isFirst) moveRow(record, index, "up");
             }}
             style={{
               marginRight: 10,
@@ -551,10 +516,7 @@ const Process: React.FC<ProcessProps> = ({
           <a
             key="down"
             onClick={(e) => {
-              e.stopPropagation();
-              if (!isLast) {
-                moveRow(index, "down");
-              }
+              if (!isLast) moveRow(record, index, "down");
             }}
             style={{
               marginRight: 10,
@@ -568,8 +530,7 @@ const Process: React.FC<ProcessProps> = ({
           <a
             key="delete"
             onClick={(e) => {
-              e.stopPropagation();
-              deleteRow(index);
+              deleteRow(record, index);
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -580,171 +541,19 @@ const Process: React.FC<ProcessProps> = ({
     },
   ];
 
-  // 处理点击特定列时的行选择和模式切换
+  // 列点击：行选择 + 模式切换
   const handleColumnClickWithRowSelect = (
     record: any,
     index: number,
     mode: string
   ) => {
-    // 先选中当前行
     handleRowClick(record, index);
-
-    // 再切换模式
     if (mode === "COMMAND") {
-      handleCommandClick(record.command);
+      const cmd = getRowCmd(record);
+      if (cmd) handleCommandClick(cmd);
     } else {
-      setState({ isparamShow: true, selectType: mode });
+      setState({ isparamShow: true });
     }
-  };
-  // 处理表格行数据
-  const handleRowClick = (record: any, index: number) => {
-    // 通知父组件更新选中行
-    onChange?.(data, index);
-
-    // 如果当前在 COMMAND 模式，同时更新命令树选中状态
-    if (selectType === "COMMAND" && record.command) {
-      syncTreeWithCommand(record.command);
-    }
-  };
-
-  // 通用插入函数，供双击和按钮点击使用
-  const insertTreeNode = async (nodeKey: string, nodeTitle: string) => {
-    if (data.length > 299) {
-      message.warning("表格中的命令数量已达到最大限度，不可插入");
-      return;
-    }
-
-    // 创建新的行数据
-    const newRowData = {
-      id: Date.now(), // 使用时间戳作为唯一ID
-      command: nodeKey,
-      inputParams: "输入参数: 待配置",
-      outputParams: "输出参数: 待配置",
-      description: `新增测试步骤: ${nodeTitle}`,
-    };
-
-    // 在选中行下方插入新行
-    const insertIndex =
-      selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
-    const newTableData = [...data];
-
-    const params = {
-      seq_id: insertIndex + 1, //序号
-      testcommand: nodeKey,
-    };
-    const { code, data: infos, message: msg } = await insertCmd(params);
-
-    if (code !== 0) {
-      message.error(msg || "操作失败");
-      return;
-    }
-    console.log("insertIndex", insertIndex);
-
-    newTableData.splice(insertIndex, 0, newRowData);
-
-    // 更新序号
-    newTableData.forEach((item, index) => {
-      item.sequence = index + 1;
-    });
-
-    console.log("newTableData", newTableData);
-
-    // 通知父组件更新数据 & 当前选中行
-    onChange?.(newTableData, insertIndex);
-    setState({ selectedRowData: newRowData });
-    syncTreeWithCommand(nodeKey);
-    // // 本地只维护右侧树和 param 的状态
-    // setSelectedRowData(newRowData);
-
-    // // 如果当前是命令模式，更新命令选择
-    // if (selectType === "COMMAND") {
-    //   handleCommandClick(nodeKey);
-    // }
-
-    message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
-  };
-  const handleInsertClick = () => {
-    if (selectedTreeKeys.length === 0) {
-      message.warning("请先选择要插入的测试命令");
-      return;
-    }
-
-    const selectedNodeKey = selectedTreeKeys[0];
-
-    const findNodeInTree = (treeData: any[], key: string): any => {
-      for (const node of treeData) {
-        if (node.key === key) return node;
-        if (node.children?.length > 0) {
-          const found = findNodeInTree(node.children, key);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const selectedNode = findNodeInTree(processedTreeData, selectedNodeKey);
-
-    if (!selectedNode) {
-      message.warning("未找到选中的测试命令");
-      return;
-    }
-
-    if (selectedNode.children?.length > 0) {
-      message.warning(`请选择具体的测试命令进行插入`);
-      return;
-    }
-
-    // 调用通用插入函数
-    insertTreeNode(selectedNodeKey, selectedNode.title);
-  };
-
-  // 处理树节点双击事件，在选中行下方插入新行
-  const handleTreeDoubleClick = (keys: any[], info: any) => {
-    console.log("双击", keys);
-    console.log("info", info);
-
-    if (keys.length === 0) return;
-    const clickedNodeKey = keys[0];
-    const clickedNode = info.node;
-
-    // 检查是否为父节点（有子节点），父节点不允许双击插入
-    if (clickedNode.children && clickedNode.children.length > 0) {
-      // "${clickedNode.title}" 是父级节点，
-      message.warning(`请选择具体的测试命令进行插入`);
-      return;
-    }
-
-    // 调用通用插入函数
-    insertTreeNode(clickedNodeKey, clickedNode.title);
-  };
-
-  // 根据选中的命令获取参数解释
-  const getCommandParamExplanation = (command: string) => {
-    // 根据命令名称映射到对应的参数解释
-    const commandToIdMap: Record<string, number> = {
-      ReadESR_Acw: 1,
-      ReadESR_Irl: 2,
-      ReadESR_232_ResponseStringData: 3,
-      ReadESR_Data: 4,
-      SetESR_Acw: 5,
-    };
-
-    const id = commandToIdMap[command] as keyof typeof mockParamExplanation;
-    return mockParamExplanation[id] || mockParamExplanation[1];
-  };
-
-  // 获取当前选中命令的参数解释
-  const getCurrentParamExplanation = () => {
-    if (selectedCommand) {
-      return getCommandParamExplanation(selectedCommand);
-    }
-    // 如果没有选中命令，使用表格选中行的命令
-    if (selectedRowData?.id) {
-      const id = selectedRowData.id as keyof typeof mockParamExplanation;
-      return mockParamExplanation[id] || mockParamExplanation[1];
-    }
-    // 默认返回第一个参数解释
-    return mockParamExplanation[1];
   };
 
   return (
@@ -752,10 +561,10 @@ const Process: React.FC<ProcessProps> = ({
       {/* 左侧表格区域 */}
       <div className="process-left">
         <ProTable
-          // scroll={{ x: 1020 }}
+          actionRef={actionRef}
           columns={columns}
-          dataSource={data}
-          rowKey="id"
+          request={requestData}
+          rowKey={(row) => String(row?.seq_id)}
           search={false}
           options={false}
           pagination={false}
@@ -763,7 +572,32 @@ const Process: React.FC<ProcessProps> = ({
             <Button
               key="button"
               icon={<PlusOutlined />}
-              onClick={handleInsertClick}
+              onClick={() => {
+                // 从树中选择叶子后，点击插入按钮也可插入
+                if (!selectedTreeKeys?.length)
+                  return message.warning("请先选择要插入的测试命令");
+                const selectedNodeKey = selectedTreeKeys[0] as string;
+
+                const findNodeInTree = (treeData: any[], key: string): any => {
+                  for (const node of treeData) {
+                    if (node.key === key) return node;
+                    if (node.children?.length) {
+                      const found = findNodeInTree(node.children, key);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+                const selectedNode = findNodeInTree(
+                  processedTreeData,
+                  selectedNodeKey
+                );
+                if (!selectedNode)
+                  return message.warning("未找到选中的测试命令");
+                if (selectedNode.children?.length)
+                  return message.warning("请选择具体的测试命令进行插入");
+                insertAt(selectedNodeKey, selectedNode.title);
+              }}
             >
               插入
             </Button>,
@@ -772,59 +606,29 @@ const Process: React.FC<ProcessProps> = ({
           onRow={(record, index) => ({
             onClick: () => handleRowClick(record, index || 0),
           })}
-          rowClassName={(record, index) =>
+          rowClassName={(_, index) =>
             selectedRowIndex === index ? "selected-row" : ""
           }
+          onLoad={handleTableLoad}
         />
       </div>
 
       {/* 右侧区域 */}
-
       <div className="process-right">
         {/* 参数解释区域 */}
         <Card size="small" className="param-explanation-card">
           <div className="param-content">
-            {/* 输入参数 */}
-            {getCurrentParamExplanation().params.length > 0 && (
-              <div className="param-section">
-                <div className="param-section-title">
-                  <Text strong>{getCurrentParamExplanation().title}</Text>
-                </div>
-                {getCurrentParamExplanation().params.map(
-                  (param: any, index: number) => (
-                    <div key={index} className="param-line">
-                      <Text className="param-name">{param.name}</Text>
-                      <Text type="secondary" className="param-type">
-                        {param.type} ({param.dataType})
-                      </Text>
-                      <Text className="param-desc">{param.description}</Text>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-
-            {/* 输出参数 */}
-            {getCurrentParamExplanation().outputParams && (
-              <div className="param-section">
-                <div className="param-section-title">
-                  <Text strong>
-                    {getCurrentParamExplanation().outputParams}
-                  </Text>
-                </div>
-                <div className="param-line">
-                  <Text className="param-name">
-                    Parameter: {selectedCommand || selectedRowData?.command}_I
-                  </Text>
-                  <Text type="secondary" className="param-type">
-                    结果参数 (integer)
-                  </Text>
-                  <Text className="param-desc">命令执行结果返回值</Text>
-                </div>
-              </div>
+            <div style={{ marginBottom: 10 }}>
+              <Text strong>命令注释:</Text>
+            </div>
+            {paramExplanation ? (
+              <Text className="param-desc">{paramExplanation}</Text>
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
           </div>
         </Card>
+
         {/* 树形结构区域 */}
         <Card size="small" className="tree-card">
           <Tree
@@ -832,41 +636,34 @@ const Process: React.FC<ProcessProps> = ({
             expandedKeys={expandedKeys}
             onExpand={(keys) => setState({ expandedKeys: keys as string[] })}
             selectedKeys={selectedTreeKeys}
-            onSelect={(keys) =>
-              setState({
-                selectedTreeKeys: keys as string[],
-                selectedCommand: keys[0] || "",
-              })
-            }
-            onDoubleClick={(e, node) => {
-              handleTreeDoubleClick([node.key], { node });
-            }}
-            showIcon={true}
+            onSelect={handleTreeSelect}
+            onDoubleClick={handleTreeDoubleClick}
+            showIcon
             className="command-tree"
           />
         </Card>
       </div>
+
+      {/* 参数弹窗 */}
       <ParamForm
         type={paramType}
         open={isparamShow}
         initialData={mockFormData}
+        updateValue={paramValue}
         onCancel={() => setState({ isparamShow: false })}
         onOk={() => setState({ isparamShow: false })}
       />
+
+      {/* 编辑弹窗（示例：保存后 reload + 保持选中） */}
       <ProcessModal
         open={isProcessModalOpen}
         updateValue={updateValue}
-        onCancel={() => setState({ isProcessModalOpen: false })}
-        onOk={(value) => {
-          const newData = data.map((item) =>
-            item.id === updateValue.id ? { ...item, ...value } : item
-          );
-          onChange?.(newData, selectedRowIndex);
-          if (selectedRowData?.id === updateValue.id) {
-            setState({ selectedRowData: { ...selectedRowData, ...value } });
-          }
-          setState({ isProcessModalOpen: false });
-          message.success("保存成功");
+        onCancel={() =>
+          setState({ isProcessModalOpen: false, updateValue: {} })
+        }
+        onOk={async (value) => {
+          setState({ isProcessModalOpen: false, updateValue: {} });
+          afterMutate();
         }}
       />
     </div>

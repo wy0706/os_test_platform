@@ -428,6 +428,7 @@ export const buildCommandTreeData = (data: any[]): any[] => {
               id: cmd.command_id,
               icon: <FileTextOutlined />,
               ...cmd,
+              level: 2,
             }))
         : [];
 
@@ -438,6 +439,7 @@ export const buildCommandTreeData = (data: any[]): any[] => {
         // key: `type-${id}`,
         icon: <FolderOutlined />,
         children,
+        level: 1,
       };
     });
 
