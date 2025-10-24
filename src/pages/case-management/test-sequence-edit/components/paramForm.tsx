@@ -2,20 +2,8 @@ import {
   getInParaList,
   getOutParaList,
 } from "@/services/case-management/test-sequence-edit.service";
-import {
-  Form,
-  Input,
-  InputNumber,
-  message,
-  Modal,
-  Select,
-  Table,
-  Typography,
-} from "antd";
-import React, { useEffect, useState } from "react";
-const { Title, Text } = Typography;
-
-const { Option } = Select;
+import { Form, Input, InputNumber, message, Modal, Select, Table } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
 
 interface ParamItem {
   id: string;
@@ -23,19 +11,46 @@ interface ParamItem {
   unit: string;
   type: string;
   type1?: string;
-  conditionType?: number; // 测试条件类型
-  constantType?: string; // 常量类型：int、Float、Byte、HexString、String
-  value?: any; // 输入的值
+  // 与后端保持一致的 key
+  conditionType?: string; // "test_condition" | "test_result" | "temporary_variable" | "label" | "operator" | "Constant"
+  constantType?: string; // "int" | "Float" | "Byte" | "HexString" | "String"
+  value?: any;
 }
 
 interface ParamFormProps {
-  type?: string;
+  type?: "INPUT" | "OUTPUT";
   open?: boolean;
   onCancel?: () => void;
   onOk?: (values: any) => void;
   initialData?: ParamItem[];
   updateValue: any;
 }
+
+const constantTypeOptions = [
+  { value: "int", label: "整数" },
+  { value: "Float", label: "双精度型" },
+  { value: "Byte", label: "字节型" },
+  { value: "HexString", label: "十六进制字符" },
+  { value: "String", label: "字符型" },
+];
+
+const allOptions = [
+  { label: "测试结果", value: "test_result" },
+  { label: "测试条件", value: "test_condition" },
+  { label: "临时变量", value: "temporary_variable" },
+  { label: "标签", value: "label" },
+  { label: "操作符", value: "operator" },
+  { label: "常量", value: "Constant" },
+] as const;
+
+type CanonicalKey = (typeof allOptions)[number]["value"];
+
+const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
+// 过滤 null / undefined / '' / 仅空格
+const cleanArray = (arr: any[]) =>
+  Array.isArray(arr)
+    ? arr.filter((v) => v != null && String(v).trim() !== "")
+    : [];
 
 const ParamForm: React.FC<ParamFormProps> = ({
   open,
@@ -46,150 +61,240 @@ const ParamForm: React.FC<ParamFormProps> = ({
   updateValue,
 }) => {
   const [form] = Form.useForm();
-  const [title, setTitle] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0); // 用于强制重新渲染
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [testConditionOptions, setTestConditionOptions] = useState<any>([]);
+  const [dataSource, setDataSource] = useState<
+    Array<
+      ParamItem & {
+        allowedTypeKeys?: CanonicalKey[];
+        optionsByType?: Record<string, { label: string; value: string }[]>;
+      }
+    >
+  >(initialData || []);
 
-  // 常量类型选项
-  const constantTypeOptions = [
-    { value: "int", label: "整数" },
-    { value: "Float", label: "双精度型" },
-    { value: "Byte", label: "字节型" },
-    { value: "HexString", label: "十六进制字符" },
-    { value: "String", label: "字符型" },
-  ];
+  // 将后端 para 行转为前端行（key 与后端一致）
+  const mapBackendParaToRow = (para: any, index: number) => {
+    const allowedTypeKeys: CanonicalKey[] = uniq(
+      (Array.isArray(para.paratype) ? para.paratype : []) as CanonicalKey[]
+    );
+
+    // 为每个允许的类型收集候选（若该类型需要下拉），并清洗空值
+    const optionsByType: Record<string, { label: string; value: string }[]> =
+      {};
+
+    if (allowedTypeKeys.includes("test_condition")) {
+      const arr = cleanArray(
+        uniq(Array.isArray(para.test_condition) ? para.test_condition : [])
+      );
+      optionsByType["test_condition"] = arr.map((t: string) => ({
+        label: t,
+        value: t,
+      }));
+    }
+    if (allowedTypeKeys.includes("temporary_variable")) {
+      const arr = cleanArray(
+        uniq(
+          Array.isArray(para.temporary_variable) ? para.temporary_variable : []
+        )
+      );
+      optionsByType["temporary_variable"] = arr.map((t: string) => ({
+        label: t,
+        value: t,
+      }));
+    }
+    if (allowedTypeKeys.includes("test_result")) {
+      const arr = cleanArray(
+        uniq(Array.isArray(para.test_result) ? para.test_result : [])
+      );
+      optionsByType["test_result"] = arr.map((t: string) => ({
+        label: t,
+        value: t,
+      }));
+    }
+    if (allowedTypeKeys.includes("label")) {
+      const arr = cleanArray(uniq(Array.isArray(para.label) ? para.label : []));
+      optionsByType["label"] = arr.map((t: string) => ({ label: t, value: t }));
+    }
+    if (allowedTypeKeys.includes("operator")) {
+      const arr = cleanArray(
+        uniq(Array.isArray(para.operator) ? para.operator : [])
+      );
+      optionsByType["operator"] = arr.map((t: string) => ({
+        label: t,
+        value: t,
+      }));
+    }
+
+    // 如果这一行只允许一个类型，可选：默认选中它以减少一次点击
+    const defaultConditionType =
+      allowedTypeKeys.length === 1 ? allowedTypeKeys[0] : undefined;
+
+    return {
+      id: String(para.para_id),
+      name: `param${index + 1}`,
+      unit: para.para_unit || "",
+      type: "",
+      value: undefined,
+      conditionType: defaultConditionType,
+      constantType: undefined,
+      allowedTypeKeys,
+      optionsByType,
+    } as ParamItem & {
+      allowedTypeKeys: CanonicalKey[];
+      optionsByType: Record<string, { label: string; value: string }[]>;
+    };
+  };
+
+  // 初始化数据
+  const initData = async () => {
+    if (!open) return;
+    form?.resetFields();
+
+    const ApiFn = type === "INPUT" ? getInParaList : getOutParaList;
+
+    try {
+      if (!updateValue?.testcommand) {
+        message.warning("缺少命令参数");
+        return;
+      }
+      const { code, data, message: msg } = await ApiFn("IF_THEN"); //updateValue.testcommand
+
+      if (code !== 0) {
+        message.error(msg || "获取参数失败");
+        onCancel?.();
+        return;
+      }
+
+      const list = Array.isArray(data?.para_list) ? data.para_list : [];
+      const rows = list.map((p: any, idx: number) =>
+        mapBackendParaToRow(p, idx)
+      );
+
+      setDataSource(rows);
+
+      // 表单数组与行数对齐
+      form.setFieldsValue({
+        params: rows.map((row) => ({
+          conditionType: row.conditionType,
+        })),
+      });
+
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      onCancel?.();
+    }
+  };
 
   useEffect(() => {
-    initData();
     if (open) {
-      console.log("updateValue", updateValue);
-      const allOptions = [{ label: "测试条件", value: "test_condition" }];
-      // 输入参数支持的类型
-      let op1 = [
-        { value: 1, label: "测试条件" }, //输入参数
-        { value: 2, label: "测试结果" }, //输入参数 输出参数
-        { value: 3, label: "临时变量" }, //输入参数  输出参数
-        { value: 4, label: "运算符", disabled: true }, //判断是否是运算符 如果是 可以选择 ，否则不可选
-        { value: 5, label: "标签", disabled: true }, //测试流程中包含这个标签才可以选择
-        { value: 6, label: "常量" }, //  输入参数,
-        // 当选择常量时，单元格中参数类型与常量类型进行关联，一对一关联，常量展开类型:整形、双精度、字符型、十六进制字符、字符型。
-      ];
-      //  输出参数支持的类型
-      let op2 = [
-        { value: 2, label: "测试结果" },
-        { value: 3, label: "临时变量" },
-      ];
-      setTestConditionOptions(type === "INPUT" ? op1 : op2);
+      initData();
     }
-  }, [open, updateValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, updateValue?.testcommand, type]);
 
-  const initData = async () => {
-    if (open) {
-      form?.resetFields();
-      const ApiFn = type === "INPUT" ? getInParaList : getOutParaList;
-      try {
-        if (!updateValue.testcommand) {
-          message.warning("缺少命令参数");
-          return;
-        }
-        const {
-          code,
-          data,
-          message: msg,
-          // updateValue.testcommand
-        } = await ApiFn(updateValue.testcommand); //SetAllTimeNoise_NoiseRate
+  // —— 类型变化（按行独立；value 为后端一致的字符串 key）
+  const handleTypeChange = (
+    value: string,
+    record: ParamItem,
+    index: number
+  ) => {
+    const newDataSource = dataSource.map((item, i) =>
+      i === index
+        ? {
+            ...item,
+            conditionType: value,
+            constantType: value === "Constant" ? item.constantType : undefined,
+            value: undefined,
+          }
+        : item
+    );
+    setDataSource(newDataSource);
 
-        if (code !== 0) {
-          message.error(msg || "获取参数失败");
-          onCancel?.();
-          return;
-        }
-        let mockData = [
-          {
-            para_id: 1,
-            para_unit: "V",
+    const current = form.getFieldsValue();
+    if (!current.params) current.params = dataSource.map(() => ({}));
+    while (current.params.length <= index) current.params.push({});
 
-            para_type: [],
-          },
-          {
-            para_id: 2,
-            para_unit: "",
-            para_type: [],
-          },
-        ];
-      } catch (e) {
-        onCancel?.();
-      }
-    }
+    current.params[index] = {
+      ...current.params[index],
+      conditionType: value,
+      constantType:
+        value === "Constant" ? current.params[index]?.constantType : undefined,
+      value: undefined,
+    };
+    form.setFieldsValue(current);
+    setRefreshKey((prev) => prev + 1);
   };
 
-  // 初始数据源
-  const [dataSource, setDataSource] = useState<ParamItem[]>(initialData || []);
-  // console.log("dataSource", dataSource);
+  // —— 常量类型变化（按行独立）
+  const handleConstantTypeChange = (
+    value: string,
+    record: ParamItem,
+    index: number
+  ) => {
+    const newDataSource = dataSource.map((item, i) =>
+      i === index ? { ...item, constantType: value, value: undefined } : item
+    );
+    setDataSource(newDataSource);
 
-  // 获取下拉选项（模拟数据）
-  const getSelectOptions = (conditionType: number) => {
-    switch (conditionType) {
-      case 1: // 测试条件
-        return [
-          { value: "voltage_condition", label: "供电典型值" },
-          { value: "current_condition", label: "CAN_MSG" },
-          { value: "resistance_condition", label: "CAN通道" },
-        ];
-      case 2: // 测试结果
-        return [{ value: "pass", label: "CAN4发送命令" }];
-      case 3: // 测试变量
-        return [
-          { value: "input_voltage", label: "flag" },
-          { value: "output_voltage", label: "上拉电阻临时变量" },
-        ];
-      case 4: // 运算符
-        return [
-          { value: "eq", label: "==" },
-          { value: "gt", label: ">" },
-          { value: "gte", label: ">=" },
-          { value: "lt", label: "<" },
-          { value: "lte", label: "<=" },
-          { value: "ne", label: "!=" },
-        ];
-      case 5: // 标签
-        return [
-          //实际 根据测试流程中的标签获取，选择标签
-          { value: "step_start", label: "COM" },
-          { value: "step_end", label: "1" },
-        ];
-      default:
-        return [];
-    }
+    const current = form.getFieldsValue();
+    if (!current.params) current.params = dataSource.map(() => ({}));
+    while (current.params.length <= index) current.params.push({});
+
+    current.params[index] = {
+      ...current.params[index],
+      constantType: value,
+      value: undefined,
+    };
+    form.setFieldsValue(current);
+    setRefreshKey((prev) => prev + 1);
   };
 
-  // 渲染输入组件
-  const renderInputComponent = (item: ParamItem, index: number) => {
-    // 使用当前行数据中的conditionType，确保每行独立
-    const conditionType = item.conditionType;
+  // —— 值变化（按行独立）
+  const handleValueChange = (value: any, record: ParamItem, index: number) => {
+    const newDataSource = dataSource.map((item, i) =>
+      i === index ? { ...item, value } : item
+    );
+    setDataSource(newDataSource);
+  };
 
-    // 如果没有选择测试条件类型，显示提示信息
-    if (!conditionType) {
+  // 类型列：根据 allowedTypeKeys 过滤 allOptions
+  const renderTypeSelect = (record: any, index: number) => {
+    const allowed: string[] = record.allowedTypeKeys || [];
+    const options = allOptions.filter((op) => allowed.includes(op.value));
+    return (
+      <Select
+        value={record.conditionType}
+        placeholder="选择类型"
+        options={options as any}
+        style={{ width: "100%" }}
+        size="small"
+        allowClear
+        showSearch
+        onChange={(value) => handleTypeChange(value, record, index)}
+        filterOption={(input, option) =>
+          (option?.label?.toString() ?? "")
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
+      />
+    );
+  };
+
+  // 值列：Constant → 输入；其他类型 → 若有候选就下拉，否则提示
+  const renderInputComponent = (item: any, index: number) => {
+    const k = item.conditionType as CanonicalKey | undefined;
+    if (!k) {
       return (
-        <div style={{ color: "#6c757d", fontSize: "12px" }}>
-          {/* 请先选择测试条件 */}
-        </div>
+        <div style={{ color: "#6c757d", fontSize: 12 }}>请选择上面的类型</div>
       );
     }
 
-    // 只有常量类型（conditionType === 6）使用输入框
-    if (conditionType === 6) {
-      // 如果没有选择常量类型，显示提示信息
+    if (k === "Constant") {
       if (!item.constantType) {
         return (
-          <div style={{ color: "#6c757d", fontSize: "12px" }}>
-            请先选择常量类型
-          </div>
+          <div style={{ color: "#6c757d", fontSize: 12 }}>请先选择常量类型</div>
         );
       }
-
-      // 根据常量类型决定输入组件类型
       switch (item.constantType) {
         case "int":
           return (
@@ -266,192 +371,63 @@ const ParamForm: React.FC<ParamFormProps> = ({
           );
         default:
           return (
-            <div style={{ color: "#6c757d", fontSize: "12px" }}>
-              未知的常量类型
-            </div>
+            <div style={{ color: "#6c757d", fontSize: 12 }}>未知的常量类型</div>
           );
       }
     }
 
-    // 其他所有类型（测试条件、测试结果、测试变量、运算符、标签）都使用下拉选择
-    const selectOptions = getSelectOptions(conditionType);
+    const opts = item.optionsByType?.[k] || [];
+    if (opts.length) {
+      return (
+        <Form.Item name={["params", index, "value"]} noStyle>
+          <Select
+            placeholder="请选择"
+            options={opts}
+            style={{ width: "100%" }}
+            size="small"
+            allowClear
+            showSearch
+            onChange={(value) => handleValueChange(value, item, index)}
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        </Form.Item>
+      );
+    }
 
     return (
-      <Form.Item name={["params", index, "value"]} noStyle>
-        <Select
-          placeholder="选择"
-          options={selectOptions}
-          style={{ width: "100%" }}
-          size="small"
-          allowClear
-          showSearch
-          onChange={(value) => handleValueChange(value, item, index)}
-          filterOption={(input, option) =>
-            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      </Form.Item>
+      <div style={{ color: "#6c757d", fontSize: 12 }}>当前类型暂无候选值</div>
     );
   };
 
-  // 处理类型选择变化 - 确保每行数据完全独立
-  const handleTypeChange = (
-    value: number,
-    record: ParamItem,
-    index: number
-  ) => {
-    // 仅更新数据源中对应行的conditionType，其他行保持不变
-    const newDataSource = dataSource.map((item, i) => {
-      if (i === index) {
-        return {
-          ...item,
-          conditionType: value,
-          constantType: value === 6 ? undefined : item.constantType, // 如果不是常量类型，清空常量类型
-          value: undefined, // 清空当前行的值，因为类型变了
-        };
-      }
-      return item; // 其他行保持原样
-    });
-    setDataSource(newDataSource);
-
-    // 只更新表单中当前行的数据，其他行不受影响
-    const currentFormValues = form.getFieldsValue();
-    if (!currentFormValues.params) {
-      currentFormValues.params = dataSource.map(() => ({}));
-    }
-
-    // 确保表单数组有足够的元素
-    while (currentFormValues.params.length <= index) {
-      currentFormValues.params.push({});
-    }
-
-    // 只更新当前行的表单字段
-    currentFormValues.params[index] = {
-      ...currentFormValues.params[index],
-      conditionType: value,
-      constantType:
-        value === 6 ? undefined : currentFormValues.params[index]?.constantType,
-      value: undefined,
-    };
-
-    form.setFieldsValue(currentFormValues);
-
-    // 强制重新渲染表格
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  // 处理常量类型选择变化
-  const handleConstantTypeChange = (
-    value: string,
-    record: ParamItem,
-    index: number
-  ) => {
-    // 仅更新数据源中对应行的constantType，其他行保持不变
-    const newDataSource = dataSource.map((item, i) => {
-      if (i === index) {
-        return {
-          ...item,
-          title: `param${index + 1}`,
-          constantType: value,
-          value: undefined, // 清空当前行的值，因为常量类型变了
-        };
-      }
-      return {
-        ...item,
-        title: `param${index + 1}`,
-      }; // 其他行保持原样
-    });
-
-    console.log("newDataSource", newDataSource);
-
-    setDataSource(newDataSource);
-
-    // 只更新表单中当前行的数据，其他行不受影响
-    const currentFormValues = form.getFieldsValue();
-    if (!currentFormValues.params) {
-      currentFormValues.params = dataSource.map(() => ({}));
-    }
-
-    // 确保表单数组有足够的元素
-    while (currentFormValues.params.length <= index) {
-      currentFormValues.params.push({});
-    }
-
-    // 只更新当前行的表单字段
-    currentFormValues.params[index] = {
-      ...currentFormValues.params[index],
-      constantType: value,
-      value: undefined,
-    };
-
-    form.setFieldsValue(currentFormValues);
-
-    // 强制重新渲染表格
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  // 处理值变化 - 确保每行数据完全独立
-  const handleValueChange = (value: any, record: ParamItem, index: number) => {
-    // 仅更新数据源中对应行的value，其他行保持不变
-    const newDataSource = dataSource.map((item, i) => {
-      if (i === index) {
-        return {
-          ...item,
-          value: value,
-        };
-      }
-      return item; // 其他行保持原样
-    });
-    setDataSource(newDataSource);
-  };
-
-  // 表格列定义
+  // 表格列
   const getColumns = () => {
-    const baseColumns = [
+    const baseColumns: any[] = [
       {
         title: "参数名",
         dataIndex: "name",
         width: 120,
-        render: (value: any, record: any, index: number) => {
-          return <span>param{index + 1}</span>;
-        },
+        render: (_: any, __: any, index: number) => (
+          <span>param{index + 1}</span>
+        ),
       },
-
       {
         title: "符合要求的参数列表",
         dataIndex: "type1",
-        width: 100,
-        render: (text: string, record: ParamItem, index: number) => {
-          return (
-            <Select
-              value={record.conditionType}
-              placeholder="选择测试条件"
-              options={testConditionOptions}
-              style={{ width: "100%" }}
-              size="small"
-              allowClear
-              showSearch
-              onChange={(value) => handleTypeChange(value, record, index)}
-              filterOption={(input, option) =>
-                (option?.label?.toString() ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-            />
-          );
-        },
+        width: 180,
+        render: (_: any, record: ParamItem & any, index: number) =>
+          renderTypeSelect(record, index),
       },
     ];
 
-    // 只有输入参数类型才显示常量类型列
     if (type === "INPUT") {
       baseColumns.push({
         title: "常量类型",
         dataIndex: "constantType",
-        width: 120,
-        render: (text: string, record: ParamItem, index: number) => {
-          // 只有当选择了常量类型（conditionType === 6）时才显示常量类型选择
-          if (record.conditionType === 6) {
+        width: 140,
+        render: (text: string, record: ParamItem & any, index: number) => {
+          if (record.conditionType === "Constant") {
             return (
               <Select
                 value={record.constantType}
@@ -472,24 +448,23 @@ const ParamForm: React.FC<ParamFormProps> = ({
               />
             );
           }
-          return <div style={{ color: "#6c757d", fontSize: "12px" }}>-</div>;
+          return <div style={{ color: "#6c757d", fontSize: 12 }}>-</div>;
         },
       });
     }
-    // 添加值列
+
     baseColumns.push(
       {
         title: "值",
         dataIndex: "value",
-        width: 200,
-        render: (text: any, record: ParamItem, index: number) => {
-          return renderInputComponent(record, index);
-        },
+        width: 260,
+        render: (_: any, record: ParamItem & any, index: number) =>
+          renderInputComponent(record, index),
       },
       {
         title: "参数单位",
         dataIndex: "unit",
-        width: 100,
+        width: 120,
         render: (text: string) => text || "-",
       }
     );
@@ -497,50 +472,44 @@ const ParamForm: React.FC<ParamFormProps> = ({
     return baseColumns;
   };
 
-  const columns = getColumns();
+  const columns = useMemo(() => getColumns(), [dataSource, type]);
 
-  // useEffect(() => {
-  //   // 初始化表单数据
-  //   const initialValues = {
-  //     params: dataSource.map((item) => ({
-  //       id: item.id,
-  //       conditionType: item.conditionType,
-  //       value: item.value,
-  //     })),
-  //   };
-  //   form.setFieldsValue(initialValues);
-  // }, [dataSource, form]);
-
-  // 处理确定按钮
+  // 提交
   const handleOk = () => {
     form
       .validateFields()
       .then((values) => {
-        // 合并表单数据到dataSource
-        const updatedDataSource = dataSource.map((item, index) => ({
-          ...item,
-          conditionType: values.params[index]?.conditionType,
-          constantType: values.params[index]?.constantType,
-          value: values.params[index]?.value,
-        }));
+        // 按行顺序提取 value
+        const rawList = dataSource.map((item, index) => {
+          const v = values?.params?.[index]?.value ?? item.value;
+          // null / undefined 转为空字符串，但不丢失位置
+          return v != null ? String(v).trim() : "";
+        });
 
-        console.log("更新后的数据源:", updatedDataSource);
-        onOk?.(updatedDataSource);
+        // 不过滤空值，保持位置一致
+        const finalString = rawList.join(",");
+
+        console.log("finalString:", finalString);
+        return;
+        // 返回字符串和原始数组
+        onOk?.({ finalString, rawList });
       })
       .catch((errorInfo) => {
         console.error("表单验证失败:", errorInfo);
       });
   };
+
   const handleCancel = () => {
     form?.resetFields();
     onCancel?.();
   };
+
   return (
     <Modal
       open={open}
       onCancel={handleCancel}
       onOk={handleOk}
-      destroyOnHidden
+      destroyOnClose
       title={type === "INPUT" ? "输入参数" : "输出参数"}
       width={900}
       okText="确定"
@@ -553,42 +522,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
         },
       }}
     >
-      {/* <div>
-        <div className="param-content">
-          <div className="param-section" style={{ marginBottom: 15 }}>
-            <div className="param-section-title">
-              <Text strong>
-                {title}：{initialData?.length}个参数{" "}
-              </Text>
-            </div>
-
-            {initialData?.map((param: any, index: number) => (
-              <div key={index} className="param-line">
-                Parameter：
-                <Text className="param-name">{param.name}</Text>
-                <Text type="secondary" className="param-type">
-                  {param.type} ({param.dataType})
-                </Text>
-                <Text className="param-desc">{param.description}</Text>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div> */}
       <Form form={form} layout="vertical" size="small">
-        {/* <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              marginBottom: 8,
-              color: "#262626",
-            }}
-          >
-            参数
-          </div>
-        
-        </div> */}
         <Table
           key={refreshKey}
           columns={columns}

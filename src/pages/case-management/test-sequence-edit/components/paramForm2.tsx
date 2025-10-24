@@ -70,8 +70,8 @@ const ParamForm: React.FC<ParamFormProps> = ({
         { value: 1, label: "测试条件" }, //输入参数
         { value: 2, label: "测试结果" }, //输入参数 输出参数
         { value: 3, label: "临时变量" }, //输入参数  输出参数
-        { value: 4, label: "运算符", disabled: true }, //判断是否是运算符 如果是 可以选择 ，否则不可选
-        { value: 5, label: "标签", disabled: true }, //测试流程中包含这个标签才可以选择
+        { value: 4, label: "运算符" }, //判断是否是运算符 如果是 可以选择 ，否则不可选
+        { value: 5, label: "标签" }, //测试流程中包含这个标签才可以选择
         { value: 6, label: "常量" }, //  输入参数,
         // 当选择常量时，单元格中参数类型与常量类型进行关联，一对一关联，常量展开类型:整形、双精度、字符型、十六进制字符、字符型。
       ];

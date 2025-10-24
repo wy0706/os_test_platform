@@ -709,7 +709,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     let idx = -1;
     if (selectedSeqId != null) {
       idx = ds.findIndex(
-        (r) => String(r?.condition_id) === String(selectedSeqId) // ✅ 用 condition_id 对齐
+        (r) => String(r?.condition_id) === String(selectedSeqId) //  用 condition_id 对齐
       );
     }
     if (idx < 0) {

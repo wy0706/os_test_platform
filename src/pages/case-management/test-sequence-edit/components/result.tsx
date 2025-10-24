@@ -1,3 +1,4 @@
+import { getResultList } from "@/services/case-management/test-sequence-edit.service";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -5,10 +6,10 @@ import {
   EditOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { ProTable } from "@ant-design/pro-components";
+import { ActionType, ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Table } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./index.less";
 import ResultModal from "./resultModal";
 
@@ -18,41 +19,57 @@ interface ResultPageProps {
   selectedRowIndex?: any;
 }
 
-const ResultPage: React.FC<ResultPageProps> = ({
-  data,
-  onChange,
-  selectedRowIndex,
-}) => {
+const ResultPage: React.FC<ResultPageProps> = ({ data, onChange }) => {
   const [state, setState] = useSetState<any>({
     isPrecisionModalOpen: false,
     precisionValue: {}, //当前点击数据类型的整行数据
     isEditModalOpen: false,
     editValue: {},
+    tableData: [] as any[],
+    totalCount: 0,
+    selectedSeqId: null as number | null, // ⭐ 主锚（使用 condition_id）
+    selectedRowIndex: -1, // 仅用于渲染高亮
+    selectedRowData: null as any,
+    // 请求中的行
+    busyRow: null as null | {
+      type: "insert" | "update" | "delete" | "move";
+      key?: any;
+    },
   });
-  const { isPrecisionModalOpen, precisionValue, editValue, isEditModalOpen } =
-    state;
-  const columns = [
+  const {
+    isPrecisionModalOpen,
+    precisionValue,
+    editValue,
+    isEditModalOpen,
+    selectedSeqId,
+    selectedRowIndex,
+    totalCount,
+    tableData,
+    busyRow,
+    selectedRowData,
+  } = state;
+  const columns: any = [
     {
       title: "序号",
-      dataIndex: "index",
-      valueType: "index",
+      dataIndex: "result_id",
+      // valueType: "index",
       ellipsis: true,
       width: 80,
     },
     {
       title: "扩展名",
-      dataIndex: "extensionName",
-      key: "extensionName",
+      dataIndex: "extension_name",
+      // key: "extensionName",
       ellipsis: true,
     },
     {
       title: "变量名",
       ellipsis: true,
-      dataIndex: "variableName",
+      dataIndex: "variable_name",
     },
     {
       title: "数据类型",
-      dataIndex: "dataType",
+      dataIndex: "data_type",
       render: (text: any, record: any, index: any) => {
         return record.dataType == "Float[]" ||
           record.dataType == "int[]" ||
@@ -75,38 +92,44 @@ const ResultPage: React.FC<ResultPageProps> = ({
     {
       title: "编辑类型",
       ellipsis: true,
-      dataIndex: "editType",
+      dataIndex: "edit_type",
     },
 
     {
       title: "最小值下限",
       ellipsis: true,
-      dataIndex: "minOffValue",
+      // dataIndex: "minOffValue",
+      dataIndex: "min_lmt_Low",
     },
     {
       title: "最小值上限",
       ellipsis: true,
-      dataIndex: "minHighValue",
+      // dataIndex: "minHighValue",
+      dataIndex: "min_lmt_Upp",
     },
     {
       title: "最小值默认值",
       ellipsis: true,
-      dataIndex: "minDefaultValue",
+      dataIndex: "min_Def",
+      key: "minDefaultValue",
     },
     {
       title: "最大值下限",
       ellipsis: true,
-      dataIndex: "maxOffValue",
+      dataIndex: "max_lmt_Low",
+      key: "maxOffValue",
     },
     {
       ellipsis: true,
       title: "最大值上限",
-      dataIndex: "maxHighValue",
+      dataIndex: "max_lmt_Upp",
+      key: "maxHighValue",
     },
     {
       title: "最大值默认值",
       ellipsis: true,
-      dataIndex: "maxDefaultValue",
+      key: "maxDefaultValue",
+      dataIndex: "max_Def",
     },
     {
       title: "精度",
@@ -117,7 +140,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
     {
       ellipsis: true,
       title: "数组大小",
-      dataIndex: "arraySize",
+      dataIndex: "array_size",
     },
     {
       title: "单位",
@@ -127,15 +150,15 @@ const ResultPage: React.FC<ResultPageProps> = ({
     {
       title: "可见",
       ellipsis: true,
-      dataIndex: "visible",
+      dataIndex: "visibility",
       valueType: "select",
       key: "visible",
       valueEnum: {
-        success: {
+        1: {
           text: "✓",
           status: "Success",
         },
-        error: {
+        0: {
           text: "✗",
           status: "Error",
         },
@@ -146,8 +169,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
       title: "操作",
       valueType: "option",
       key: "option",
-      width: 130,
-      fixed: "right",
+      width: 140,
       render: (
         text: any,
         record: { id: any },
@@ -172,7 +194,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           <a
             key="up"
             onClick={(e) => {
-              e.stopPropagation();
               if (!isFirst) {
                 moveRow(index, "up");
               }
@@ -189,7 +210,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           <a
             key="down"
             onClick={(e) => {
-              e.stopPropagation();
               if (!isLast) {
                 moveRow(index, "down");
               }
@@ -206,7 +226,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
           <a
             key="delete"
             onClick={(e) => {
-              e.stopPropagation();
               deleteRow(index);
             }}
             style={{ color: "#ff4d4f" }}
@@ -219,7 +238,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
   ];
   // 数组设置弹框的表格数据
   const [arrayTableData, setArrayTableData] = useState<any[]>([]);
-
+  const resultRef = useRef<ActionType>();
   useEffect(() => {
     // 当打开数组设置弹框时，初始化表格数据
     if (isPrecisionModalOpen && precisionValue) {
@@ -277,9 +296,16 @@ const ResultPage: React.FC<ResultPageProps> = ({
     });
   };
 
-  // 点击行
-  const handleRowClick = (_record: any, index: number) => {
-    onChange?.(data, index);
+  const handleRowClick = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.condition_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
+    });
+  };
+
+  const afterMutate = () => {
+    resultRef.current?.reload?.();
   };
   const handleInsertClick = () => {
     const newRowData = {
@@ -305,6 +331,21 @@ const ResultPage: React.FC<ResultPageProps> = ({
     onChange?.(newTableData, insertIndex);
   };
 
+  const requestData: any = async () => {
+    const { code, data, message: msg } = await getResultList();
+    if (code !== 0) {
+      message.error(msg || "获取失败");
+      setState({ totalCount: 0 });
+      return { data: [], total: 0, success: false };
+    }
+    setState({ totalCount: data?.total_cnt });
+    let list = data?.lib_lists || [];
+    return {
+      data: list,
+      total: data?.total_cnt || list?.length,
+      success: code === 0,
+    };
+  };
   // 初始化数组表格数据
   const initializeArrayTableData = () => {
     const arraySize = precisionValue.arraySize || 1;
@@ -552,13 +593,41 @@ const ResultPage: React.FC<ResultPageProps> = ({
       message.error("保存失败，请重试");
     }
   };
+  const handleTableLoad = (ds: any[]) => {
+    setState({ tableData: ds, totalCount: ds?.length || 0 });
+    if (!ds.length) {
+      setState({
+        selectedSeqId: null,
+        selectedRowIndex: -1,
+        selectedRowData: null,
+      });
+      return;
+    }
+
+    let idx = -1;
+    if (selectedSeqId != null) {
+      idx = ds.findIndex(
+        (r) => String(r?.result_id) === String(selectedSeqId) // 用 result_id 对齐
+      );
+    }
+    if (idx < 0) {
+      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+    }
+
+    console.log("idx", idx);
+
+    handleRowClick(ds[idx], idx);
+  };
 
   return (
     <div className="result-page tabs-page">
       <ProTable
         columns={columns}
-        dataSource={data}
-        rowKey="id"
+        actionRef={resultRef}
+        request={requestData}
+        onLoad={handleTableLoad}
+        rowKey={(row) => String(row?.result_id)}
         search={false}
         pagination={false}
         size="small"
