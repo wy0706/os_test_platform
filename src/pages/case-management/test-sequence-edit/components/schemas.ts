@@ -82,3 +82,73 @@ export const parseOptionString = (optionStr: string) => {
     return { label: label?.trim(), value: value?.trim() };
   });
 };
+
+// 仅支持三种格式：[{a:1},{b:2}] / [["a",1],["b","2"]] / [{key:"a",value:1}]
+export const formatEnum = (raw: unknown): string => {
+  if (!Array.isArray(raw) || raw.length === 0) return "-";
+
+  const pairs: Array<[string, unknown]> = [];
+
+  for (const it of raw as unknown[]) {
+    if (Array.isArray(it)) {
+      if (it.length >= 2) {
+        const k = String(it[0]);
+        if (k) pairs.push([k, (it as any[])[1]]);
+      }
+      continue;
+    }
+
+    if (it && typeof it === "object") {
+      const obj = it as Record<string, unknown>;
+      if ("key" in obj && "value" in obj) {
+        const k = String((obj as any).key ?? "");
+        if (k) pairs.push([k, (obj as any).value]);
+      } else {
+        const k = Object.keys(obj)[0];
+        if (k) pairs.push([String(k), obj[k]]);
+      }
+      continue;
+    }
+
+    // 其它形态忽略
+  }
+
+  if (pairs.length === 0) return "-";
+  return pairs.map(([k, v]) => `${k}=${v as any}`).join(", ");
+};
+const isNumeric = (v: any) => /^-?\d+(\.\d+)?$/.test(String(v).trim());
+// 仅支持三种数组格式 → [{label, value}]
+export const enumToOptions = (
+  raw: unknown
+): Array<{ label: string; value: any }> => {
+  if (!Array.isArray(raw)) return [];
+  const opts: Array<{ label: string; value: any }> = [];
+  for (const it of raw as unknown[]) {
+    if (Array.isArray(it) && it.length >= 2) {
+      const label = String(it[0]);
+      const vStr = String((it as any[])[1]);
+      const value = isNumeric(vStr) ? Number(vStr) : (it as any[])[1];
+      if (label) opts.push({ label, value });
+      continue;
+    }
+    if (it && typeof it === "object") {
+      const obj = it as Record<string, any>;
+      if ("key" in obj && "value" in obj) {
+        const label = String(obj.key ?? "");
+        const vStr = String(obj.value);
+        const value = isNumeric(vStr) ? Number(vStr) : obj.value;
+        if (label) opts.push({ label, value });
+      } else {
+        const k = Object.keys(obj)[0];
+        if (k) {
+          const label = String(k);
+          const vStr = String(obj[k]);
+          const value = isNumeric(vStr) ? Number(vStr) : obj[k];
+          opts.push({ label, value });
+        }
+      }
+      continue;
+    }
+  }
+  return opts;
+};

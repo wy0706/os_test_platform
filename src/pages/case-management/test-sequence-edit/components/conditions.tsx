@@ -4,6 +4,7 @@ import {
   getConditonList,
   moveDownCondition,
   moveUpCondition,
+  updateOneCondition,
 } from "@/services/case-management/test-sequence-edit.service";
 import {
   ArrowDownOutlined,
@@ -19,7 +20,7 @@ import React, { useEffect, useRef, useState } from "react";
 import ConditionModal from "./conditionModal";
 import EditTypeModal from "./editTypeModal";
 import "./index.less";
-import { parseOptionString } from "./schemas";
+import { formatEnum } from "./schemas";
 
 interface ConditionsProps {
   data: any[]; //table数据
@@ -74,7 +75,9 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     editTypeData,
     dataTypeData,
   } = state;
-
+  const isINtAndCom = (dataType: any, editType: any) => {
+    return dataType === 11 && editType === 1;
+  };
   const columns: any = [
     {
       title: "序号",
@@ -100,15 +103,22 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
             onClick={() => {
               setState({
                 isPrecisionModalOpen: true,
-                precisionValue: record,
+                precisionValue: { ...record },
               });
+              if (isINtAndCom(record.data_type, record.edit_type)) {
+                const options = enumToOption(record);
+                console.log("optins", options);
 
-              if (record.data_type === 11 && record.edit_type === 1) {
-                const options = parseOptionString(record.project);
                 setState({
                   projectOption: options,
                 });
               }
+              // if (record.data_type === 11 && record.edit_type === 1) {
+              //   const options = parseOptionString(record.project);
+              //   setState({
+              //     projectOption: options,
+              //   });
+              // }
             }}
           >
             {dataTypeData[record.data_type]}
@@ -157,6 +167,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     {
       title: "枚举项目",
       dataIndex: "enum",
+      render: (_: any, record: any) => <span>{formatEnum(record.enum)}</span>,
     },
     {
       title: "数组大小",
@@ -356,10 +367,10 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
 
   // 初始化数组表格数据
   const initializeArrayTableData = () => {
-    const arraySize = precisionValue.arraySize || 1;
-    const minValues = parseArrayString(precisionValue.minValue);
-    const maxValues = parseArrayString(precisionValue.maxValue);
-    const defaultValues = parseArrayString(precisionValue.defaultValue);
+    const arraySize = precisionValue.array_size || 1;
+    const minValues = parseArrayString(precisionValue.min_value);
+    const maxValues = parseArrayString(precisionValue.max_value);
+    const defaultValues = parseArrayString(precisionValue.default_value);
 
     const data = [
       {
@@ -381,17 +392,33 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     setArrayTableData(data);
   };
 
-  // 解析数组字符串，如 "0, 0, 0, 0, ff, ff, ff, ff" 或 "1, 1" 或者 1 或者"1"
   const parseArrayString = (arrayString: string) => {
     if (arrayString === undefined || arrayString === null) return [];
+
     const str = String(arrayString).trim();
     if (!str) return [];
+
+    // 如果是 JSON 数组格式（例如 "[0,0,0,0]"）
+    if (str.startsWith("[") && str.endsWith("]")) {
+      try {
+        const arr = JSON.parse(str);
+        if (Array.isArray(arr)) {
+          return arr.map((item) => String(item).trim());
+        }
+      } catch (e) {
+        // 解析失败则继续往下走
+      }
+    }
+
+    // 普通逗号分隔形式
     if (str.includes(",")) {
       return str
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean);
     }
+
+    // 单个值
     return [str];
   };
 
@@ -407,7 +434,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
   // 渲染数组设置表格
   const renderArraySettingTable = () => {
     if (!precisionValue) return null;
-    const arraySize = precisionValue.arraySize || 1; //数组
+    const arraySize = precisionValue.array_size || 1; //数组
 
     const columns = [
       {
@@ -423,18 +450,24 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         key: `col${index}`,
         width: 120,
         render: (text: string, record: any) => {
-          const isDisabled =
-            (precisionValue.dataType === "bytearray" &&
-              (record.key === "MinValue" || record.key === "MaxValue")) ||
-            (precisionValue.dataType === "int[]" &&
-              precisionValue.editType === "ComboList" &&
-              (record.key === "MinValue" || record.key === "MaxValue"));
+          const isbyte =
+            precisionValue.data_type === 12 &&
+            (record.key === "MinValue" || record.key === "MaxValue");
 
+          // const isDisabled =
+          //   (precisionValue.data_type === "bytearray" &&
+          //     (record.key === "MinValue" || record.key === "MaxValue")) ||
+          //   (precisionValue.data_type === "int[]" &&
+          //     precisionValue.edit_type === "ComboList" &&
+          //     (record.key === "MinValue" || record.key === "MaxValue"));
+
+          // const useSelect =
+          //   precisionValue.data_type === "int[]" &&
+          //   precisionValue.edit_type === "ComboList" &&
+          //   record.key === "DefaultValue";
           const useSelect =
-            precisionValue.dataType === "int[]" &&
-            precisionValue.editType === "ComboList" &&
+            isINtAndCom(precisionValue.data_type, precisionValue.edit_type) &&
             record.key === "DefaultValue";
-
           if (useSelect) {
             return (
               <Select
@@ -452,6 +485,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           return (
             <Input
               value={text}
+              disabled={isbyte}
               onChange={(e) =>
                 handleArrayCellChange(record.key, `col${index}`, e.target.value)
               }
@@ -469,7 +503,8 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     return (
       <div>
         <div className="array-info">
-          数据类型: {precisionValue.dataType} | 数组大小: {arraySize}
+          数据类型: {dataTypeData[precisionValue.data_type] || ""} | 数组大小:{" "}
+          {arraySize}
         </div>
         <Table
           columns={columns}
@@ -496,11 +531,31 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       )
     );
   };
+  const enumToOption = (record: any) => {
+    if (record?.enum && Array.isArray(record.enum)) {
+      const normalized = record.enum.map((it: any) => {
+        if (
+          it &&
+          typeof it === "object" &&
+          !("key" in it) &&
+          !("value" in it)
+        ) {
+          // 形如 { item1: 1 }
+          const k = Object.keys(it)[0];
+          return { label: k, value: k, key: it[k] };
+        }
+        return it; // 形如 { key:'item1', value:1 }
+      });
 
+      return normalized;
+    }
+  };
   // 处理数组设置弹框确定按钮
-  const handleArrayModalConfirm = () => {
+  // 处理数组设置弹框确定按钮
+  const handleArrayModalConfirm = async () => {
     try {
-      const arraySize = precisionValue.arraySize || 1;
+      const arraySize = precisionValue.array_size || 1;
+      console.log("arrayTableData", arrayTableData);
 
       const minRow = arrayTableData.find((row) => row.key === "MinValue");
       const maxRow = arrayTableData.find((row) => row.key === "MaxValue");
@@ -512,46 +567,117 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         message.error("数据不完整，请检查数组设置");
         return;
       }
-      let minValue, maxValue;
-      if (precisionValue.dataType === "bytearray") {
-        minValue = precisionValue.minValue || "";
-        maxValue = precisionValue.maxValue || "";
-      } else {
-        minValue = Array.from(
-          { length: arraySize },
-          (_, i) => minRow?.[`col${i}`] || ""
-        ).join(", ");
-        maxValue = Array.from(
-          { length: arraySize },
-          (_, i) => maxRow?.[`col${i}`] || ""
-        ).join(", ");
+
+      // 辅助函数：从行中提取数组并自动补0
+      const extractArray = (row: any) => {
+        return Array.from({ length: arraySize }, (_, i) => {
+          const val = row?.[`col${i}`];
+          return val === undefined || val === null || val === "" ? "0" : val;
+        });
+      };
+
+      let minValue, maxValue, defaultValue;
+
+      if (precisionValue.data_type === 12) {
+        // 特殊类型，直接使用已有值（字符串或其他格式）
+        minValue = precisionValue.min_value || "";
+        maxValue = precisionValue.max_value || "";
+        // defaultValue = precisionValue.default_value || "";
       }
+      // else {
+      // 普通数组类型，转为 JSON 字符串数组
+      minValue = JSON.stringify(extractArray(minRow));
+      maxValue = JSON.stringify(extractArray(maxRow));
+      defaultValue = JSON.stringify(extractArray(defaultRow));
+      // }
+      const params = {
+        ...precisionValue,
+        min_value: minValue,
+        max_value: maxValue,
+        default_value: defaultValue,
+      };
+      console.log("params", params);
 
-      const defaultValue = Array.from(
-        { length: arraySize },
-        (_, i) => defaultRow?.[`col${i}`] || ""
-      ).join(", ");
-
-      const newData = data.map((item: any) => {
-        if (item.id === precisionValue.id) {
-          return {
-            ...item,
-            minValue,
-            maxValue,
-            defaultValue,
-          };
-        }
-        return item;
+      const { code, message: msg } = await updateOneCondition({
+        ...params,
       });
-
-      onChange?.(newData, selectedRowIndex);
-      setState({ isPrecisionModalOpen: false, projectOption: [] });
-      message.success("数组设置保存成功");
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作失败");
+      afterMutate();
+      setState({
+        isPrecisionModalOpen: false,
+        projectOption: [],
+        precisionValue: {},
+      });
     } catch (error) {
       console.error("保存数组设置时出错:", error);
       message.error("保存失败，请重试");
     }
   };
+
+  // const handleArrayModalConfirm = () => {
+  //   try {
+  //     const arraySize = precisionValue.array_size || 1;
+  //     console.log("arrayTableData", arrayTableData);
+
+  //     const minRow = arrayTableData.find((row) => row.key === "MinValue");
+  //     const maxRow = arrayTableData.find((row) => row.key === "MaxValue");
+  //     const defaultRow = arrayTableData.find(
+  //       (row) => row.key === "DefaultValue"
+  //     );
+
+  //     console.log("minRow", minRow);
+  //     console.log("maxRow", maxRow);
+  //     console.log("defaultRow", defaultRow);
+
+  //     if (!minRow || !maxRow || !defaultRow) {
+  //       message.error("数据不完整，请检查数组设置");
+  //       return;
+  //     }
+  //     let minValue, maxValue;
+  //     if (precisionValue.data_type === 12) {
+  //       minValue = precisionValue.min_value || "";
+  //       maxValue = precisionValue.max_value || "";
+  //     } else {
+  //       minValue = Array.from(
+  //         { length: arraySize },
+  //         (_, i) => minRow?.[`col${i}`] || ""
+  //       ).join(", ");
+  //       maxValue = Array.from(
+  //         { length: arraySize },
+  //         (_, i) => maxRow?.[`col${i}`] || ""
+  //       ).join(", ");
+  //     }
+
+  //     const defaultValue = Array.from(
+  //       { length: arraySize },
+  //       (_, i) => defaultRow?.[`col${i}`] || ""
+  //     ).join(", ");
+
+  //     const params = {
+  //       min_value: minValue,
+  //       max_value: maxValue,
+  //       default_value: defaultValue,
+  //       condition_id: precisionValue.condition_id,
+  //     };
+  //     console.log("params", params);
+
+  //     return;
+
+  //     setState({
+  //       isPrecisionModalOpen: false,
+  //       projectOption: [],
+  //       precisionValue: {},
+  //     });
+  //     message.success("数组设置保存成功");
+  //   } catch (error) {
+  //     console.error("保存数组设置时出错:", error);
+  //     message.error("保存失败，请重试");
+  //   }
+  // };
 
   const requestData: any = async () => {
     const { code, data, message: msg } = await getConditonList();
@@ -613,7 +739,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     }
   };
   return (
-    <div className="conditions-page">
+    <div className="conditions-page tabs-page">
       <ProTable
         columns={columns}
         actionRef={conditionRef}

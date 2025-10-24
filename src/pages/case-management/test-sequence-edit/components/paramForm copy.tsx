@@ -64,7 +64,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
     initData();
     if (open) {
       console.log("updateValue", updateValue);
-      const allOptions = [{ label: "测试条件", value: "test_condition" }];
+
       // 输入参数支持的类型
       let op1 = [
         { value: 1, label: "测试条件" }, //输入参数

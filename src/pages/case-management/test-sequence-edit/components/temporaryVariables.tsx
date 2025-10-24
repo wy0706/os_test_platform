@@ -223,7 +223,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
   };
 
   return (
-    <div className="conditions-page">
+    <div className="temporaryVariables-page tabs-page">
       <ProTable
         columns={columns}
         dataSource={data}

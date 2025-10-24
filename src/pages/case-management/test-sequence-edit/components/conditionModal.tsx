@@ -11,7 +11,12 @@ import {
   Select,
 } from "antd";
 import { useEffect } from "react";
-import { dataTypeOptions, precisionOptions, unitOptions } from "./schemas";
+import {
+  dataTypeOptions,
+  enumToOptions,
+  precisionOptions,
+  unitOptions,
+} from "./schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -29,19 +34,16 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
 }) => {
   const [form] = Form.useForm();
 
-  const [state, setState] = useSetState<{
-    selectedDataType: number | null;
-    selectEdittype: number | null;
-    confirmLoading: boolean;
-  }>({
+  const [state, setState] = useSetState<any>({
     selectedDataType: null,
     selectEdittype: null,
     confirmLoading: false,
+    enumOptions: [],
   });
 
-  const { selectedDataType, selectEdittype, confirmLoading } = state;
+  const { selectedDataType, selectEdittype, confirmLoading, enumOptions } =
+    state;
 
-  // ---------- helpers ----------
   const toNum = (v: any): number | undefined =>
     v === null || v === undefined || v === "" ? undefined : Number(v);
 
@@ -75,8 +77,16 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
   }, [open, type, updateValue]);
 
   const initData = () => {
-    if (!open) return;
+    if (!open) {
+      setState({
+        selectedDataType: null,
+        selectEdittype: null,
+        enumOptions: [],
+      });
+      return;
+    }
     form.resetFields();
+
     if (updateValue) {
       // 把可能的字符串数字统一转为 number，且保留 0
       const patched = {
@@ -91,22 +101,38 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
         visibility: toNum(updateValue?.visibility),
       };
 
-      form.setFieldsValue(patched);
+      // 生成 enum 下拉
+      let opts: Array<{ label: string; value: any }> = [];
+      if (patched?.edit_type === 1 && Array.isArray(patched?.enum)) {
+        opts = enumToOptions(patched.enum);
+      }
+      // 如果 default_value 不在 options 里，清空
+      const hasDefault =
+        opts.length > 0 &&
+        opts.some((o) => String(o.value) === String(patched.default_value));
+      const formValues = {
+        ...patched,
+        default_value: hasDefault ? patched.default_value : undefined,
+      };
+      form.setFieldsValue(formValues);
+
       setState({
-        selectedDataType: patched.data_type ?? null,
-        selectEdittype: patched.edit_type ?? null,
+        selectedDataType: patched.data_type,
+        selectEdittype: patched.edit_type,
+        enumOptions: opts,
       });
     } else {
       setState({
         selectedDataType: null,
         selectEdittype: null,
+        enumOptions: [],
       });
     }
   };
 
   const handleOk = async () => {
     try {
-      // setState({ confirmLoading: true });
+      setState({ confirmLoading: true });
       const values = await form.validateFields();
       const normalized = {
         ...values,
@@ -117,7 +143,21 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
         array_size: toNum(values.array_size),
         visibility: toNum(values.visibility),
       };
-      console.log("normalized", normalized);
+
+      if (normalized.edit_type === 1 && enumOptions.length > 0) {
+        normalized.default_value = normalized.default_value["label"];
+      }
+
+      if (normalized.edit_type === 1 && !normalized.default_value) {
+        normalized.default_value = "";
+      }
+
+      if (shouldEnableArraySize(normalized.data_type)) {
+        const size = normalized.array_size || 1;
+        console.log("size", size);
+        let list = Array(size).fill(0);
+        normalized.default_value = JSON.stringify(list);
+      }
 
       const { code, message: msg } = await updateOneCondition({
         ...normalized,
@@ -231,7 +271,6 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
               <Select placeholder="选择单位" options={unitOptions} />
             </Form.Item>
           </Col>
-
           {/* int + EditBox 显示输入框；int + ComboList 显示选择框 */}
           {canEditMinMaxValue(selectedDataType) && (
             <Col span={12}>
@@ -240,7 +279,11 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
                 label="默认值"
                 rules={[
                   {
-                    required: selectEdittype === 0 && true,
+                    required:
+                      selectEdittype === 0 ||
+                      (selectEdittype === 1 && enumOptions.length > 0)
+                        ? true
+                        : false,
                     message: "请设置默认值",
                   },
                 ]}
@@ -254,14 +297,10 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
                   />
                 ) : (
                   <Select
+                    labelInValue
                     allowClear
                     placeholder="选择默认值"
-                    options={
-                      [
-                        // { label: "aa", value: "1" },
-                        // { label: "bb", value: "2" },
-                      ]
-                    }
+                    options={enumOptions}
                   />
                 )}
               </Form.Item>
@@ -271,7 +310,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
           {shouldEnableArraySize(selectedDataType) ? (
             <Col span={12}>
               <Form.Item name="array_size" label="数组大小">
-                <InputNumber style={{ width: "100%" }} />
+                <InputNumber style={{ width: "100%" }} min={1} />
               </Form.Item>
             </Col>
           ) : null}

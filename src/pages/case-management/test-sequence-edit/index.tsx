@@ -404,10 +404,7 @@ const Page: React.FC = () => {
             onChange={handleTabChange}
           />
 
-          <div
-            className="main-info
-          "
-          >
+          <div className="main-info">
             {/* {tabActiveKey === "1" && (
               <Process
                 data={tabData.tab1}

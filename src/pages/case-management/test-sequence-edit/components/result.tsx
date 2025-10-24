@@ -554,7 +554,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
   };
 
   return (
-    <div className="conditions-page">
+    <div className="result-page tabs-page">
       <ProTable
         columns={columns}
         dataSource={data}
