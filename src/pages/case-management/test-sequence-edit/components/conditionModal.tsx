@@ -15,6 +15,7 @@ import {
   dataTypeOptions,
   enumToOptions,
   precisionOptions,
+  toNum,
   unitOptions,
 } from "./schemas";
 interface SetMemberModalProps {
@@ -43,9 +44,6 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
 
   const { selectedDataType, selectEdittype, confirmLoading, enumOptions } =
     state;
-
-  const toNum = (v: any): number | undefined =>
-    v === null || v === undefined || v === "" ? undefined : Number(v);
 
   const shouldShowPrecision = (dataType?: number | null) =>
     [0, 10].includes(Number(dataType));
@@ -138,9 +136,10 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
         ...values,
         condition_id: updateValue.condition_id,
         data_type: toNum(values.data_type),
+        array_size: toNum(values.array_size),
         edit_type: toNum(values.edit_type),
         precision: toNum(values.precision),
-        array_size: toNum(values.array_size),
+
         visibility: toNum(values.visibility),
       };
 
@@ -155,7 +154,7 @@ const ConditionsModal: React.FC<SetMemberModalProps> = ({
       if (shouldEnableArraySize(normalized.data_type)) {
         const size = normalized.array_size || 1;
         console.log("size", size);
-        let list = Array(size).fill(0);
+        let list = Array(size).fill("0");
         normalized.default_value = JSON.stringify(list);
       }
 

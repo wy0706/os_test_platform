@@ -20,19 +20,24 @@ import React, { useEffect, useRef, useState } from "react";
 import ConditionModal from "./conditionModal";
 import EditTypeModal from "./editTypeModal";
 import "./index.less";
-import { formatEnum } from "./schemas";
-
+import {
+  dataTypeData,
+  editTypeData,
+  formatEnum,
+  generateArrayColumns,
+  parseArrayString,
+  valueIsExist,
+} from "./schemas";
 interface ConditionsProps {
-  data: any[]; //table数据
   onChange?: (data: any, selectedRowIndex: number) => void;
   selectedRowIndex?: any;
 }
 
-const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
+const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
   const [state, setState] = useSetState<any>({
     title: "",
     isPrecisionModalOpen: false,
-    precisionValue: {}, //当前点击数据类型的整行数据
+    precisionValue: null, //当前点击数据类型的整行数据
     isEditModalOpen: false,
     editValue: {},
     isEditTypeModalOpen: false,
@@ -47,20 +52,8 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       type: "insert" | "update" | "delete" | "move";
       key?: any;
     },
-    editTypeData: {
-      0: "EditBox",
-      1: "ComboList",
-    },
-    //  0:Float 1:int 2:bytes 10:Float[] 11:int[] 12:bytearray 43:str
-    dataTypeData: {
-      0: "Float",
-      1: "int",
-      2: "bytes",
-      10: "Float[]",
-      11: "int[]",
-      12: "bytearray",
-      43: "str",
-    },
+    precisionModalLoading: false,
+    pendingFocusIndex: null as number | null, // ⭐ 刷新后优先用它来选中
   });
   const {
     isEditTypeModalOpen,
@@ -72,11 +65,18 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     selectedSeqId,
     selectedRowIndex,
     tableData,
-    editTypeData,
-    dataTypeData,
+    precisionModalLoading,
+    pendingFocusIndex,
   } = state;
   const isINtAndCom = (dataType: any, editType: any) => {
     return dataType === 11 && editType === 1;
+  };
+  const ensureSelected = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.condition_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
+    });
   };
   const columns: any = [
     {
@@ -107,24 +107,23 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
               });
               if (isINtAndCom(record.data_type, record.edit_type)) {
                 const options = enumToOption(record);
-                console.log("optins", options);
 
                 setState({
                   projectOption: options,
                 });
               }
-              // if (record.data_type === 11 && record.edit_type === 1) {
-              //   const options = parseOptionString(record.project);
-              //   setState({
-              //     projectOption: options,
-              //   });
-              // }
             }}
           >
-            {dataTypeData[record.data_type]}
+            {valueIsExist(record.data_type)
+              ? dataTypeData[record.data_type]
+              : "-"}
           </a>
         ) : (
-          <span> {dataTypeData[record.data_type]}</span>
+          <span>
+            {valueIsExist(record.data_type)
+              ? dataTypeData[record.data_type]
+              : "-"}
+          </span>
         );
       },
     },
@@ -141,10 +140,16 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
               });
             }}
           >
-            {editTypeData[record.edit_type]}
+            {(valueIsExist(record.edit_type) &&
+              editTypeData[record.edit_type]) ||
+              "-"}
           </a>
         ) : (
-          <span>{editTypeData[record.edit_type]}</span>
+          <span>
+            {(valueIsExist(record.edit_type) &&
+              editTypeData[record.edit_type]) ||
+              "-"}
+          </span>
         );
       },
     },
@@ -205,7 +210,12 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           <a
             key="editable"
             onClick={() => {
-              setState({ isEditModalOpen: true, editValue: record });
+              ensureSelected(record, index);
+              setState({
+                isEditModalOpen: true,
+                editValue: record,
+                pendingFocusIndex: index,
+              });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
           >
@@ -213,8 +223,11 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="up"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (!isFirst) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
               }
             }}
@@ -229,8 +242,11 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="down"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (!isLast) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
               }
             }}
@@ -245,7 +261,12 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
           </a>,
           <a
             key="delete"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              ensureSelected(record, index);
+              const target = isLast ? index - 1 : index;
+              setState({ pendingFocusIndex: target >= 0 ? target : null });
+
               deleteRow(record, index);
             }}
             style={{ color: "#ff4d4f" }}
@@ -286,10 +307,10 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       }
       message.success(msg || "操作成功");
 
-      // 若移动的是当前选中行，预判下一次选中的 seq_id
-      if (state.selectedSeqId === record.condition_id) {
-        setState({ selectedSeqId: record.condition_id + delta });
-      }
+      // // 若移动的是当前选中行，预判下一次选中的 condition_id
+      // if (state.selectedSeqId === record.condition_id) {
+      //   setState({ selectedSeqId: record.condition_id + delta });
+      // }
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "操作失败");
@@ -343,16 +364,19 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         )
       : 0;
     const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
-
+    const targetIndex =
+      state.selectedRowIndex >= 0
+        ? state.selectedRowIndex + 1
+        : state.tableData.length; // 没选中就追加到末尾并聚焦末尾
     try {
-      setState({ busyRow: { type: "insert" } });
+      setState({ busyRow: { type: "insert" }, pendingFocusIndex: targetIndex });
       const { code, message: msg } = await createOneCondition(targetSeqId);
       if (code !== 0) {
         message.error(msg || "插入失败");
         return;
       }
       message.success(msg || `已在第${targetSeqId}插入`);
-      setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
+      // setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "插入失败");
@@ -392,45 +416,6 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     setArrayTableData(data);
   };
 
-  const parseArrayString = (arrayString: string) => {
-    if (arrayString === undefined || arrayString === null) return [];
-
-    const str = String(arrayString).trim();
-    if (!str) return [];
-
-    // 如果是 JSON 数组格式（例如 "[0,0,0,0]"）
-    if (str.startsWith("[") && str.endsWith("]")) {
-      try {
-        const arr = JSON.parse(str);
-        if (Array.isArray(arr)) {
-          return arr.map((item) => String(item).trim());
-        }
-      } catch (e) {
-        // 解析失败则继续往下走
-      }
-    }
-
-    // 普通逗号分隔形式
-    if (str.includes(",")) {
-      return str
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-
-    // 单个值
-    return [str];
-  };
-
-  // 生成数组列的数据对象
-  const generateArrayColumns = (values: string[], arraySize: number) => {
-    const columns: any = {};
-    for (let i = 0; i < arraySize; i++) {
-      columns[`col${i}`] = values[i] || "";
-    }
-    return columns;
-  };
-
   // 渲染数组设置表格
   const renderArraySettingTable = () => {
     if (!precisionValue) return null;
@@ -449,6 +434,7 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         dataIndex: `col${index}`,
         key: `col${index}`,
         width: 120,
+        align: "center",
         render: (text: string, record: any) => {
           const isbyte =
             precisionValue.data_type === 12 &&
@@ -551,11 +537,9 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     }
   };
   // 处理数组设置弹框确定按钮
-  // 处理数组设置弹框确定按钮
   const handleArrayModalConfirm = async () => {
     try {
       const arraySize = precisionValue.array_size || 1;
-      console.log("arrayTableData", arrayTableData);
 
       const minRow = arrayTableData.find((row) => row.key === "MinValue");
       const maxRow = arrayTableData.find((row) => row.key === "MaxValue");
@@ -583,13 +567,12 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         minValue = precisionValue.min_value || "";
         maxValue = precisionValue.max_value || "";
         // defaultValue = precisionValue.default_value || "";
+      } else {
+        // 普通数组类型，转为 JSON 字符串数组
+        minValue = JSON.stringify(extractArray(minRow));
+        maxValue = JSON.stringify(extractArray(maxRow));
       }
-      // else {
-      // 普通数组类型，转为 JSON 字符串数组
-      minValue = JSON.stringify(extractArray(minRow));
-      maxValue = JSON.stringify(extractArray(maxRow));
       defaultValue = JSON.stringify(extractArray(defaultRow));
-      // }
       const params = {
         ...precisionValue,
         min_value: minValue,
@@ -597,87 +580,30 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
         default_value: defaultValue,
       };
       console.log("params", params);
-
-      const { code, message: msg } = await updateOneCondition({
-        ...params,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
+      try {
+        setState({ precisionModalLoading: true });
+        const { code, message: msg } = await updateOneCondition({
+          ...params,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作失败");
+        afterMutate();
+        setState({
+          isPrecisionModalOpen: false,
+          projectOption: [],
+          precisionValue: null,
+        });
+      } catch (error) {
+      } finally {
+        setState({ precisionModalLoading: false });
       }
-      message.success(msg || "操作失败");
-      afterMutate();
-      setState({
-        isPrecisionModalOpen: false,
-        projectOption: [],
-        precisionValue: {},
-      });
     } catch (error) {
       console.error("保存数组设置时出错:", error);
-      message.error("保存失败，请重试");
     }
   };
-
-  // const handleArrayModalConfirm = () => {
-  //   try {
-  //     const arraySize = precisionValue.array_size || 1;
-  //     console.log("arrayTableData", arrayTableData);
-
-  //     const minRow = arrayTableData.find((row) => row.key === "MinValue");
-  //     const maxRow = arrayTableData.find((row) => row.key === "MaxValue");
-  //     const defaultRow = arrayTableData.find(
-  //       (row) => row.key === "DefaultValue"
-  //     );
-
-  //     console.log("minRow", minRow);
-  //     console.log("maxRow", maxRow);
-  //     console.log("defaultRow", defaultRow);
-
-  //     if (!minRow || !maxRow || !defaultRow) {
-  //       message.error("数据不完整，请检查数组设置");
-  //       return;
-  //     }
-  //     let minValue, maxValue;
-  //     if (precisionValue.data_type === 12) {
-  //       minValue = precisionValue.min_value || "";
-  //       maxValue = precisionValue.max_value || "";
-  //     } else {
-  //       minValue = Array.from(
-  //         { length: arraySize },
-  //         (_, i) => minRow?.[`col${i}`] || ""
-  //       ).join(", ");
-  //       maxValue = Array.from(
-  //         { length: arraySize },
-  //         (_, i) => maxRow?.[`col${i}`] || ""
-  //       ).join(", ");
-  //     }
-
-  //     const defaultValue = Array.from(
-  //       { length: arraySize },
-  //       (_, i) => defaultRow?.[`col${i}`] || ""
-  //     ).join(", ");
-
-  //     const params = {
-  //       min_value: minValue,
-  //       max_value: maxValue,
-  //       default_value: defaultValue,
-  //       condition_id: precisionValue.condition_id,
-  //     };
-  //     console.log("params", params);
-
-  //     return;
-
-  //     setState({
-  //       isPrecisionModalOpen: false,
-  //       projectOption: [],
-  //       precisionValue: {},
-  //     });
-  //     message.success("数组设置保存成功");
-  //   } catch (error) {
-  //     console.error("保存数组设置时出错:", error);
-  //     message.error("保存失败，请重试");
-  //   }
-  // };
 
   const requestData: any = async () => {
     const { code, data, message: msg } = await getConditonList();
@@ -694,30 +620,66 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       success: code === 0,
     };
   };
-
   const handleTableLoad = (ds: any[]) => {
     setState({ tableData: ds, totalCount: ds?.length || 0 });
+
     if (!ds.length) {
       setState({
         selectedSeqId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
+        pendingFocusIndex: null, // 清掉
       });
       return;
     }
 
+    // ⭐ 1) 优先用 pendingFocusIndex
+    if (state.pendingFocusIndex != null) {
+      const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
+      handleRowClick(ds[i], i);
+      setState({ pendingFocusIndex: null });
+      return;
+    }
+
+    // 2) 再用 selectedSeqId（如果你仍想保留）
     let idx = -1;
-    if (selectedSeqId != null) {
+    if (state.selectedSeqId != null) {
       idx = ds.findIndex(
-        (r) => String(r?.condition_id) === String(selectedSeqId) //  用 condition_id 对齐
+        (r) => String(r?.condition_id) === String(state.selectedSeqId)
       );
     }
+
+    // 3) 兜底用上次的 index / 0
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     }
     handleRowClick(ds[idx], idx);
   };
+
+  // const handleTableLoad = (ds: any[]) => {
+  //   setState({ tableData: ds, totalCount: ds?.length || 0 });
+  //   if (!ds.length) {
+  //     setState({
+  //       selectedSeqId: null,
+  //       selectedRowIndex: -1,
+  //       selectedRowData: null,
+  //     });
+  //     return;
+  //   }
+
+  //   let idx = -1;
+  //   if (selectedSeqId != null) {
+  //     idx = ds.findIndex(
+  //       (r) => String(r?.condition_id) === String(selectedSeqId) //  用 condition_id 对齐
+  //     );
+  //   }
+  //   if (idx < 0) {
+  //     const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+  //     idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+  //   }
+  //   handleRowClick(ds[idx], idx);
+  // };
 
   const clearUpdateValue = (type: string) => {
     //type为condition是表示ConditionModal
@@ -727,16 +689,25 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
     });
     switch (type) {
       case "condition":
-        setState({ isEditModalOpen: false });
+        setState({ isEditModalOpen: false, editValue: {} });
         return;
       case "editType":
         setState({
           isEditTypeModalOpen: false,
+          editValue: {},
         });
         return;
       default:
         return;
     }
+  };
+
+  const handleTableModalCancel = () => {
+    setState({
+      isPrecisionModalOpen: false,
+      projectOption: [],
+      precisionValue: null,
+    });
   };
   return (
     <div className="conditions-page tabs-page">
@@ -771,16 +742,12 @@ const Conditions: React.FC<ConditionsProps> = ({ data, onChange }) => {
       <Modal
         title="数组设置"
         open={isPrecisionModalOpen}
-        onCancel={() => setState({ isPrecisionModalOpen: false })}
+        onCancel={handleTableModalCancel}
         width={800}
-        className="array-setting-modal"
+        destroyOnHidden
+        confirmLoading={precisionModalLoading}
         footer={[
-          <Button
-            key="cancel"
-            onClick={() =>
-              setState({ isPrecisionModalOpen: false, projectOption: [] })
-            }
-          >
+          <Button key="cancel" onClick={handleTableModalCancel}>
             取消
           </Button>,
           <Button

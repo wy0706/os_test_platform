@@ -27,37 +27,6 @@ import ProcessModal from "./processModal";
 
 const { Text } = Typography;
 
-const mockFormData = [
-  {
-    id: "1",
-    name: "stepCon2",
-    unit: "",
-    dataType: "字符串终止符 (string)",
-    type: "",
-    conditionType: 1,
-    description: "设置232字符串终止符参数",
-  },
-  {
-    id: "3",
-    name: "sendString",
-    unit: "",
-    dataType: "结果参数 (integer)",
-    type: "",
-    conditionType: 1,
-    description: "设置232字符串终止符参数",
-  },
-  {
-    id: "2",
-    name: "0",
-    unit: "",
-    conditionType: 2,
-    description: "设置232字符串终止符参数",
-    dataType: "结果参数 (integer)",
-    type: "",
-  },
-];
-
-// ===== 组件开始 =====
 interface ProcessProps {
   selectedRowIndex?: number; // 如需受控可保留；否则可不传
 }
@@ -648,10 +617,12 @@ const Process: React.FC<ProcessProps> = () => {
       <ParamForm
         type={paramType}
         open={isparamShow}
-        initialData={mockFormData}
         updateValue={paramValue}
-        onCancel={() => setState({ isparamShow: false })}
-        onOk={() => setState({ isparamShow: false })}
+        onCancel={() => setState({ isparamShow: false, updateValue: {} })}
+        onOk={() => {
+          setState({ isparamShow: false, updateValue: {} });
+          afterMutate();
+        }}
       />
 
       {/* 编辑弹窗（示例：保存后 reload + 保持选中） */}

@@ -7,6 +7,7 @@ enum BaseApi {
   TESTCONDITION = "/testcondition", //测试条件
   TESTRESULT = "/testresult", //测试结果
   TESTTEMP = "/testtemp", //临时变量
+  TESTSEQUENCE = "/testsequence", //测试序列
 }
 
 export async function getList(params: any) {
@@ -349,12 +350,152 @@ export async function getResultList() {
   });
   return result;
 }
+
+/**
+ * 测试结果上移变量
+ * result_id 测试结果编号
+ */
+
+export async function moveUpResult(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTRESULT}/moveup`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+/**
+ *  测试结果下移变量
+ * result_id 测试结果编号
+ */
+export async function moveDownResult(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTRESULT}/moveDown`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+/**
+ * 测试结果插入变量
+ *result_id 测试结果编号
+ */
+export async function createOneResult(result_id: any) {
+  const result: any = await request<{}>(
+    `${BaseApi.TESTRESULT}/insertvariable`,
+    {
+      method: "PUT",
+      data: {
+        result_id,
+      },
+    }
+  );
+  return result;
+}
+
+/**
+ *  测试结果删除变量
+ * result_id 测试结果编号
+ */
+
+export async function deleteResult(result_id: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTRESULT}/delete`, {
+    method: "DELETE",
+    params: {
+      result_id,
+    },
+  });
+  return result;
+}
+/**
+ * 测试结果编辑
+ * @param data
+ * result_id 测试结果编号
+ * extension_name 扩展名
+ * variable_name  变量名
+ * data_type 数据类型
+ *min_lmt_Low 最小值下限
+ *min_Def 最小值默认值
+ *max_Def 最大值默认值
+ * max_lmt_Low 最大值下限
+ * min_lmt_Upp 最小值上限
+ * max_lmt_Upp  最大值上限
+ * precision 精度
+ * array_size 数组大小
+ * unit 单位
+ * visibility   可见性，1 表示可见，0 表示不可见
+ * @returns
+ */
+
+export async function updateOneResult(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTRESULT}/editoutpar`, {
+    method: "PUT",
+    data: data,
+  });
+  return result;
+}
+
 /**
  * 获取临时变量表list
  */
 export async function getTempList() {
   const result: any = await request<{}>(`${BaseApi.TESTTEMP}/getList`, {
     method: "GET",
+  });
+  return result;
+}
+/**
+ * 临时变量上移
+ */
+export async function moveUpTemp(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTTEMP}/moveup`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+/**
+ * 临时变量下移
+ */
+export async function moveDownTemp(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTTEMP}/moveDown`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+/**
+ * 临时变量插入
+ */
+export async function createOneTemp(temp_id: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTTEMP}/insertvariable`, {
+    method: "PUT",
+    data: {
+      temp_id,
+    },
+  });
+  return result;
+}
+/**
+ * 临时变量删除
+ */
+export async function deleteTemp(temp_id: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTTEMP}/delete`, {
+    method: "DELETE",
+    params: {
+      temp_id,
+    },
+  });
+  return result;
+}
+
+/**
+ * 配置序列错误检查
+ */
+export async function getErrorCheck() {
+  const result: any = await request<{}>(`${BaseApi.TESTSEQUENCE}/errorcheck`, {
+    method: "POST",
   });
   return result;
 }

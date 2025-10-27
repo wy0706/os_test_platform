@@ -1,64 +1,80 @@
 import {
+  createOneTemp,
+  getTempList,
+  moveUpTemp,
+} from "@/services/case-management/test-sequence-edit.service";
+import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { ProTable } from "@ant-design/pro-components";
+import { ActionType, ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, message, Modal } from "antd";
-import React from "react";
+import React, { useRef } from "react";
+import { dataTypeData } from "./schemas";
 import TempModal from "./tempModal";
+
 interface ConditionsProps {
   data: any[]; //table数据
   onChange?: (data: any, selectedRowIndex: number) => void;
   selectedRowIndex?: any;
 }
 
-const TemporaryVariables: React.FC<ConditionsProps> = ({
-  data,
-  onChange,
-  selectedRowIndex,
-}) => {
+const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
   const [state, setState] = useSetState<any>({
     title: "",
     isPrecisionModalOpen: false,
     precisionValue: {}, //当前点击数据类型的整行数据
     isEditModalOpen: false,
     editValue: {},
+    tableData: [] as any[],
+    totalCount: 0,
+    selectedSeqId: null as number | null, // ⭐ 主锚（使用 condition_id）
+    selectedRowIndex: -1, // 仅用于渲染高亮
+    selectedRowData: null as any,
+    // 请求中的行
+    busyRow: null as null | {
+      type: "insert" | "update" | "delete" | "move";
+      key?: any;
+    },
   });
-
+  const tempRef = useRef<ActionType>();
   // 动态创建列定义，确保操作列能响应tableData变化
   const columns = [
     {
       title: "序号",
-      dataIndex: "index",
-      valueType: "index",
+      dataIndex: "temp_id",
+      // valueType: "index",
       width: 80,
     },
     {
       title: "扩展名",
-      dataIndex: "extensionName",
+      dataIndex: "extension_name",
       ellipsis: true,
-      key: "extensionName",
+      // key: "extensionName",
     },
     {
       title: "变量名",
       ellipsis: true,
-      dataIndex: "variableName",
+      dataIndex: "variable_name",
     },
     {
       title: "数据类型",
-      dataIndex: "dataType",
+      dataIndex: "data_type",
       ellipsis: true,
       valueType: "select",
+      render: (_: any, record: any) => {
+        return <span>{dataTypeData[record.data_type]}</span>;
+      },
     },
 
     {
       title: "数组大小",
       ellipsis: true,
-      dataIndex: "arraySize",
+      dataIndex: "array_size",
     },
     {
       title: "单位",
@@ -69,13 +85,11 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
       title: "操作",
       valueType: "option",
       key: "option",
-      width: 130,
-      fixed: "right" as const,
+      width: 140,
       render: (text: any, record: any, index: number, action: any) => {
         // 动态获取当前表格数据长度来判断是否为最后一条
-        const currentTableData = data || [];
         const isFirst = index === 0;
-        const isLast = index === currentTableData.length - 1;
+        const isLast = index === tableData.length - 1;
 
         return [
           <a
@@ -91,9 +105,8 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
           <a
             key="up"
             onClick={(e) => {
-              e.stopPropagation();
               if (!isFirst) {
-                moveRow(index, "up");
+                moveRow(record, index, "up");
               }
             }}
             style={{
@@ -108,9 +121,8 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
           <a
             key="down"
             onClick={(e) => {
-              e.stopPropagation();
               if (!isLast) {
-                moveRow(index, "down");
+                moveRow(record, index, "down");
               }
             }}
             style={{
@@ -126,7 +138,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
             key="delete"
             onClick={(e) => {
               e.stopPropagation();
-              deleteRow(index);
+              deleteRow(record, index);
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -137,97 +149,158 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
     },
   ];
 
-  const { title, editValue, isEditModalOpen } = state;
+  const {
+    title,
+    editValue,
+    isEditModalOpen,
+    tableData,
+    totalCount,
+    selectedSeqId,
+    selectedRowIndex,
+    busyRow,
+  } = state;
 
-  const moveRow = (index: number, direction: "up" | "down") => {
-    const newData = [...data];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
+  const moveRow = async (
+    record: any,
+    index: number,
+    direction: "up" | "down"
+  ) => {
+    const APiFn = direction === "up" ? moveUpTemp : moveUpTemp;
+    const delta = direction === "up" ? -1 : 1;
 
-    if (targetIndex < 0 || targetIndex >= newData.length) return;
+    try {
+      setState({ busyRow: { type: "move", key: record?.temp_id } });
+      const { code, message: msg } = await APiFn({
+        temp_id: record.temp_id,
+      });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
 
-    [newData[index], newData[targetIndex]] = [
-      newData[targetIndex],
-      newData[index],
-    ];
-
-    newData.forEach((item, i) => {
-      item.sequence = i + 1;
-    });
-    // 更新选中行
-    let newSelected = selectedRowIndex;
-    if (selectedRowIndex === index) {
-      newSelected = targetIndex;
-    } else if (selectedRowIndex === targetIndex) {
-      newSelected = index;
+      // 若移动的是当前选中行，预判下一次选中的 seq_id
+      if (state.selectedSeqId === record.temp_id) {
+        setState({ selectedSeqId: record.temp_id + delta });
+      }
+      afterMutate();
+    } catch (e: any) {
+      message.error(e?.message || "操作失败");
+    } finally {
+      setState({ busyRow: null });
     }
-
-    onChange?.(newData, newSelected);
   };
-  // 删除行
-  const deleteRow = (index: number) => {
+
+  const deleteRow = async (row: any, index: number) => {
     Modal.confirm({
       title: "确认删除吗？",
-      onOk: () => {
-        const newData = [...data];
-        newData.splice(index, 1);
-        newData.forEach((item, newIndex) => {
-          item.sequence = newIndex + 1;
-        });
+      onOk: async () => {
+        try {
+          setState({ busyRow: { type: "delete", key: row?.temp_id } });
+          const { code, message: msg } = await deleteResult(row.temp_id);
+          if (code !== 0) {
+            message.error(msg || "操作失败");
+            return;
+          }
+          message.success("删除成功");
 
-        message.success("删除成功");
-
-        // 删除后更新选中行索引
-        let newSelected = selectedRowIndex;
-        if (newData.length === 0) {
-          newSelected = -1;
-        } else if (selectedRowIndex >= newData.length) {
-          newSelected = newData.length - 1;
+          // 如果删除的是选中行，预先调整选中 seq_id：优先选中“下一条”，否则“上一条”
+          if (state.selectedSeqId === row.temp_id) {
+            const isLast = index === state.tableData.length - 1;
+            const nextSeqId = isLast ? row.temp_id - 1 : row.temp_id; // 中间删：下一条补位则 seq_id 不变
+            setState({ selectedSeqId: nextSeqId >= 1 ? nextSeqId : null });
+          }
+          afterMutate();
+        } catch (e: any) {
+          message.error(e?.message || "操作失败");
+        } finally {
+          setState({ busyRow: null });
         }
-
-        onChange?.(newData, newSelected);
       },
     });
   };
-
-  // 点击行
-  const handleRowClick = (_record: any, index: number) => {
-    onChange?.(data, index);
-  };
-
-  const handleInsertClick = () => {
-    const newRowData = {
-      id: Date.now(), // 使用时间戳作为唯一ID
-      extensionName: "",
-      variableName: "",
-      dataType: "bytearray",
-      arraySize: 1,
-      unit: "",
-      visible: "success",
-    };
-
-    const insertIndex =
-      selectedRowIndex >= 0 ? selectedRowIndex + 1 : data.length;
-    const newTableData = [...data];
-    newTableData.splice(insertIndex, 0, newRowData);
-
-    // 更新序号
-    newTableData.forEach((item, index) => {
-      item.sequence = index + 1;
+  const handleRowClick = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.temp_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
     });
-
-    message.success(
-      data.length === 0 ? "已插入第一行" : `已在第${insertIndex + 1}行插入`
-    );
-
-    onChange?.(newTableData, insertIndex);
   };
 
+  const afterMutate = () => {
+    tempRef.current?.reload?.();
+  };
+
+  // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
+  const handleInsertClick = async () => {
+    const lastId = state.tableData?.length
+      ? Math.max(...state.tableData.map((r: any) => Number(r.temp_id) || 0))
+      : 0;
+    const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
+    try {
+      setState({ busyRow: { type: "insert" } });
+      const { code, message: msg } = await createOneTemp(targetSeqId);
+      if (code !== 0) {
+        message.error(msg || "插入失败");
+        return;
+      }
+      message.success(msg || `已在第${targetSeqId}插入`);
+      setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
+      afterMutate();
+    } catch (e: any) {
+      message.error(e?.message || "插入失败");
+    } finally {
+      setState({ busyRow: null });
+    }
+  };
+
+  const requestData: any = async () => {
+    const { code, data, message: msg } = await getTempList();
+    if (code !== 0) {
+      message.error(msg || "获取失败");
+      setState({ totalCount: 0 });
+      return { data: [], total: 0, success: false };
+    }
+    setState({ totalCount: data?.total_cnt });
+    let list = data?.lib_lists || [];
+    return {
+      data: list,
+      total: data?.total_cnt || list?.length,
+      success: code === 0,
+    };
+  };
+  const handleTableLoad = (ds: any[]) => {
+    setState({ tableData: ds, totalCount: ds?.length || 0 });
+    if (!ds.length) {
+      setState({
+        selectedSeqId: null,
+        selectedRowIndex: -1,
+        selectedRowData: null,
+      });
+      return;
+    }
+
+    let idx = -1;
+    if (selectedSeqId != null) {
+      idx = ds.findIndex(
+        (r) => String(r?.temp_id) === String(selectedSeqId) // 用 temp_id 对齐
+      );
+    }
+    if (idx < 0) {
+      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+    }
+
+    handleRowClick(ds[idx], idx);
+  };
   return (
     <div className="temporaryVariables-page tabs-page">
       <ProTable
         columns={columns}
-        dataSource={data}
-        rowKey="id"
+        actionRef={tempRef}
+        request={requestData}
+        onLoad={handleTableLoad}
+        rowKey={(row) => String(row?.temp_id)}
         search={false}
         pagination={false}
         options={false}
@@ -255,11 +328,8 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({
         type="edit"
         updateValue={editValue}
         onOk={(values) => {
-          const newData = data.map((item: any) =>
-            item.id === editValue.id ? { ...item, ...values } : item
-          );
           // 通知父组件更新数据
-          onChange?.(newData, selectedRowIndex);
+
           setState({ isEditModalOpen: false });
           message.success("保存成功");
         }}

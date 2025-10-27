@@ -1,6 +1,7 @@
 import {
   getCmdList,
   getConditonList,
+  getErrorCheck,
   getResultList,
   getTempList,
 } from "@/services/case-management/test-sequence-edit.service";
@@ -92,6 +93,7 @@ const Page: React.FC = () => {
     isSaveAsModalOpen: false, //另存为
     addModalType: "",
     selectedId: null,
+    errorCheckLoading: false,
   });
   const {
     title,
@@ -110,6 +112,7 @@ const Page: React.FC = () => {
     isSaveAsModalOpen,
     addModalType,
     selectedId,
+    errorCheckLoading,
   } = state;
   const tabDataMap: Record<string, any> = {
     tab1: mockProcessData,
@@ -152,52 +155,6 @@ const Page: React.FC = () => {
   };
   const handleTabChange = async (key: string) => {
     setState({ tabActiveKey: key });
-    // if (params.id === "add") return;
-
-    // const tabKey = `tab${key}` as keyof typeof state.tabData;
-    // if (state.loaded[tabKey]) return;
-
-    // latestReqKeyRef.current = key;
-
-    // try {
-    //   const fetcher = fetchers[key];
-    //   if (!fetcher) return;
-
-    //   const resp = await fetcher({ id: String(params.id) });
-    //   console.log("res", resp);
-
-    //   // 判断返回格式
-    //   if (resp?.code === 0 && Array.isArray(resp?.data?.lib_list)) {
-    //     const data = resp.data.lib_list;
-    //     // 只更新最新一次请求
-    //     if (latestReqKeyRef.current === key) {
-    //       setState((prev: any) => ({
-    //         tabData: { ...prev.tabData, [tabKey]: data },
-    //         loaded: { ...prev.loaded, [tabKey]: true },
-    //         selectedRowKeys: {
-    //           ...prev.selectedRowKeys,
-    //           [tabKey]: data.length ? 0 : -1,
-    //         },
-    //       }));
-    //     }
-    //   } else {
-    //     // 请求失败或返回结构不符 → 清空
-    //     message.error(resp?.message || "接口返回异常");
-    //     setState((prev: any) => ({
-    //       tabData: { ...prev.tabData, [tabKey]: [] },
-    //       loaded: { ...prev.loaded, [tabKey]: true },
-    //       selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
-    //     }));
-    //   }
-    // } catch (err: any) {
-    //   // 网络错误等异常 → 清空表格
-    //   message.error(err?.message || "请求失败");
-    //   setState((prev: any) => ({
-    //     tabData: { ...prev.tabData, [tabKey]: [] },
-    //     loaded: { ...prev.loaded, [tabKey]: true },
-    //     selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
-    //   }));
-    // }
   };
 
   const getData = async (key: string) => {
@@ -268,23 +225,35 @@ const Page: React.FC = () => {
     }
   };
 
-  const handleErrorCheck = () => {
+  const handleErrorCheck = async () => {
     // 如果均检查正确
-    // Modal.info({
-    //   title: "流程完整性检查！",
-    //   content: "所有有效参数均设置正确！",
-    // okText: "确定",
-    // });
-    // 如果检查有误，展示错误信息
-    Modal.error({
-      title: "以下参数设置错误，请重新设置",
-      content: (
-        <div>
-          0)测试流程表:第2行,第1个输入参数未设置1)测试条件表:2)测试结果表:3)临时变量表:
-        </div>
-      ),
-      okText: "确定",
-    });
+    try {
+      setState({ errorCheckLoading: true });
+      const { code, data, message: msg } = await getErrorCheck();
+
+      if (code === 0) {
+        // 如果检查有误，展示错误信息
+        Modal.error({
+          title: "以下参数设置错误，请重新设置",
+          content: (
+            <div>
+              {data || "-"}
+              {/* 0)测试流程表:第2行,第1个输入参数未设置1)测试条件表:2)测试结果表:3)临时变量表: */}
+            </div>
+          ),
+          okText: "确定",
+        });
+        return;
+      }
+      Modal.info({
+        title: "流程完整性检查！",
+        content: "所有有效参数均设置正确！",
+        okText: "确定",
+      });
+    } catch (error) {
+    } finally {
+      setState({ errorCheckLoading: false });
+    }
   };
   const goAdd = () => {
     history.push("/case-management/test-sequence-edit/add");
@@ -382,7 +351,11 @@ const Page: React.FC = () => {
             <Button icon={<FileAddOutlined />} onClick={handleSaveAs}>
               另存为
             </Button>
-            <Button icon={<CloseCircleOutlined />} onClick={handleErrorCheck}>
+            <Button
+              icon={<CloseCircleOutlined />}
+              loading={errorCheckLoading}
+              onClick={handleErrorCheck}
+            >
               错误检查
             </Button>
             <Button
@@ -422,38 +395,8 @@ const Page: React.FC = () => {
               />
             )} */}
             {tabActiveKey === "1" && <Process />}
-            {tabActiveKey === "2" && (
-              <Conditions
-                data={tabData.tab2}
-                selectedRowIndex={selectedRowKeys.tab2}
-                onChange={(newData, newSelectedIndex) => {
-                  setState((prev) => ({
-                    tabData: { ...prev.tabData, tab2: newData },
-                    selectedRowKeys: {
-                      ...prev.selectedRowKeys,
-                      tab2: newSelectedIndex,
-                    },
-                    isDirty: true,
-                  }));
-                }}
-              />
-            )}
-            {tabActiveKey === "3" && (
-              <ResultPage
-                data={tabData.tab3}
-                selectedRowIndex={selectedRowKeys.tab3}
-                onChange={(newData, newSelectedIndex) => {
-                  setState((prev) => ({
-                    tabData: { ...prev.tabData, tab3: newData },
-                    selectedRowKeys: {
-                      ...prev.selectedRowKeys,
-                      tab3: newSelectedIndex,
-                    },
-                    isDirty: true,
-                  }));
-                }}
-              />
-            )}
+            {tabActiveKey === "2" && <Conditions />}
+            {tabActiveKey === "3" && <ResultPage />}
             {tabActiveKey === "4" && (
               <TemporaryVariables
                 data={tabData.tab4}

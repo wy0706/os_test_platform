@@ -152,3 +152,61 @@ export const enumToOptions = (
   }
   return opts;
 };
+export const editTypeData: any = {
+  0: "EditBox",
+  1: "ComboList",
+};
+//  0:Float 1:int 2:bytes 10:Float[] 11:int[] 12:bytearray 43:str
+export const dataTypeData: any = {
+  0: "Float",
+  1: "int",
+  2: "bytes",
+  10: "Float[]",
+  11: "int[]",
+  12: "bytearray",
+  43: "str",
+};
+
+export const valueIsExist = (value: any) => {
+  return value !== null && value !== undefined && value !== "";
+};
+
+export const toNum = (v: any): number | undefined =>
+  v === null || v === undefined || v === "" ? undefined : Number(v);
+export const parseArrayString = (arrayString: string) => {
+  if (arrayString === undefined || arrayString === null) return [];
+
+  const str = String(arrayString).trim();
+  if (!str) return [];
+
+  // 如果是 JSON 数组格式（例如 "[0,0,0,0]"）
+  if (str.startsWith("[") && str.endsWith("]")) {
+    try {
+      const arr = JSON.parse(str);
+      if (Array.isArray(arr)) {
+        return arr.map((item) => String(item).trim());
+      }
+    } catch (e) {
+      // 解析失败则继续往下走
+    }
+  }
+
+  // 普通逗号分隔形式
+  if (str.includes(",")) {
+    return str
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  // 单个值
+  return [str];
+};
+// 生成数组列的数据对象
+export const generateArrayColumns = (values: string[], arraySize: number) => {
+  const columns: any = {};
+  for (let i = 0; i < arraySize; i++) {
+    columns[`col${i}`] = values[i] || "";
+  }
+  return columns;
+};
