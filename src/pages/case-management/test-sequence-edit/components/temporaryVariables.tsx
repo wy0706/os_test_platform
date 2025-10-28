@@ -1,6 +1,8 @@
 import {
   createOneTemp,
+  deleteTemp,
   getTempList,
+  moveDownTemp,
   moveUpTemp,
 } from "@/services/case-management/test-sequence-edit.service";
 import {
@@ -18,7 +20,6 @@ import { dataTypeData } from "./schemas";
 import TempModal from "./tempModal";
 
 interface ConditionsProps {
-  data: any[]; //table数据
   onChange?: (data: any, selectedRowIndex: number) => void;
   selectedRowIndex?: any;
 }
@@ -40,6 +41,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       type: "insert" | "update" | "delete" | "move";
       key?: any;
     },
+    pendingFocusIndex: null as number | null, // 刷新后优先用它来选中
   });
   const tempRef = useRef<ActionType>();
   // 动态创建列定义，确保操作列能响应tableData变化
@@ -94,9 +96,14 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
         return [
           <a
             key="editable"
-            onClick={() => {
-              // action?.startEditable?.(record.id);
-              setState({ isEditModalOpen: true, editValue: record });
+            onClick={(e) => {
+              e.stopPropagation();
+              ensureSelected(record, index);
+              setState({
+                isEditModalOpen: true,
+                editValue: record,
+                pendingFocusIndex: index,
+              });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
           >
@@ -105,7 +112,10 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
           <a
             key="up"
             onClick={(e) => {
+              e.stopPropagation();
               if (!isFirst) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
               }
             }}
@@ -121,7 +131,10 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
           <a
             key="down"
             onClick={(e) => {
+              e.stopPropagation();
               if (!isLast) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
               }
             }}
@@ -138,6 +151,9 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             key="delete"
             onClick={(e) => {
               e.stopPropagation();
+              ensureSelected(record, index);
+              const target = isLast ? index - 1 : index;
+              setState({ pendingFocusIndex: target >= 0 ? target : null });
               deleteRow(record, index);
             }}
             style={{ color: "#ff4d4f" }}
@@ -159,13 +175,19 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
     selectedRowIndex,
     busyRow,
   } = state;
-
+  const ensureSelected = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.temp_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
+    });
+  };
   const moveRow = async (
     record: any,
     index: number,
     direction: "up" | "down"
   ) => {
-    const APiFn = direction === "up" ? moveUpTemp : moveUpTemp;
+    const APiFn = direction === "up" ? moveUpTemp : moveDownTemp;
     const delta = direction === "up" ? -1 : 1;
 
     try {
@@ -179,10 +201,6 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       }
       message.success(msg || "操作成功");
 
-      // 若移动的是当前选中行，预判下一次选中的 seq_id
-      if (state.selectedSeqId === record.temp_id) {
-        setState({ selectedSeqId: record.temp_id + delta });
-      }
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "操作失败");
@@ -197,7 +215,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       onOk: async () => {
         try {
           setState({ busyRow: { type: "delete", key: row?.temp_id } });
-          const { code, message: msg } = await deleteResult(row.temp_id);
+          const { code, message: msg } = await deleteTemp(row.temp_id);
           if (code !== 0) {
             message.error(msg || "操作失败");
             return;
@@ -219,6 +237,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       },
     });
   };
+
   const handleRowClick = (record: any, index: number) => {
     setState({
       selectedSeqId: record?.temp_id ?? null,
@@ -226,32 +245,34 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       selectedRowData: record,
     });
   };
-
-  const afterMutate = () => {
-    tempRef.current?.reload?.();
-  };
-
   // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
   const handleInsertClick = async () => {
     const lastId = state.tableData?.length
       ? Math.max(...state.tableData.map((r: any) => Number(r.temp_id) || 0))
       : 0;
     const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
+    const targetIndex =
+      state.selectedRowIndex >= 0
+        ? state.selectedRowIndex + 1
+        : state.tableData.length; // 没选中就追加到末尾并聚焦末尾
     try {
-      setState({ busyRow: { type: "insert" } });
+      setState({ busyRow: { type: "insert" }, pendingFocusIndex: targetIndex });
       const { code, message: msg } = await createOneTemp(targetSeqId);
       if (code !== 0) {
         message.error(msg || "插入失败");
         return;
       }
       message.success(msg || `已在第${targetSeqId}插入`);
-      setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
+      // setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "插入失败");
     } finally {
       setState({ busyRow: null });
     }
+  };
+  const afterMutate = () => {
+    tempRef.current?.reload?.();
   };
 
   const requestData: any = async () => {
@@ -271,26 +292,38 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
   };
   const handleTableLoad = (ds: any[]) => {
     setState({ tableData: ds, totalCount: ds?.length || 0 });
+
     if (!ds.length) {
       setState({
         selectedSeqId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
+        pendingFocusIndex: null, // 清掉
       });
       return;
     }
 
+    // ⭐ 1) 优先用 pendingFocusIndex
+    if (state.pendingFocusIndex != null) {
+      const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
+      handleRowClick(ds[i], i);
+      setState({ pendingFocusIndex: null });
+      return;
+    }
+
+    // 2) 再用 selectedSeqId（如果你仍想保留）
     let idx = -1;
-    if (selectedSeqId != null) {
+    if (state.selectedSeqId != null) {
       idx = ds.findIndex(
-        (r) => String(r?.temp_id) === String(selectedSeqId) // 用 temp_id 对齐
+        (r) => String(r?.temp_id) === String(state.selectedSeqId)
       );
     }
+
+    // 3) 兜底用上次的 index / 0
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     }
-
     handleRowClick(ds[idx], idx);
   };
   return (
@@ -324,17 +357,14 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
 
       <TempModal
         open={isEditModalOpen}
-        onCancel={() => setState({ isEditModalOpen: false })}
+        onCancel={() => setState({ isEditModalOpen: false, editValue: {} })}
         type="edit"
         updateValue={editValue}
         onOk={(values) => {
-          // 通知父组件更新数据
-
-          setState({ isEditModalOpen: false });
-          message.success("保存成功");
+          setState({ isEditModalOpen: false, editValue: {} });
+          afterMutate();
         }}
       />
-      {/* <Modal title="编辑测试条件" open={isEditModalOpen}></Modal> */}
     </div>
   );
 };

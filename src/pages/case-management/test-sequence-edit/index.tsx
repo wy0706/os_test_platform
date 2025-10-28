@@ -1,11 +1,9 @@
 import {
-  getCmdList,
-  getConditonList,
   getErrorCheck,
-  getResultList,
-  getTempList,
+  saveData,
+  setNewOrBack,
 } from "@/services/case-management/test-sequence-edit.service";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 
 import {
   BarsOutlined,
@@ -30,13 +28,6 @@ import Process from "./components/process";
 import ResultPage from "./components/result";
 import TemporaryVariables from "./components/temporaryVariables";
 import "./index.less";
-import {
-  ApiResp,
-  mockConditionsData,
-  mockProcessData,
-  mockResultTable,
-  mockTempTable,
-} from "./schemas";
 
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
@@ -65,35 +56,19 @@ const Page: React.FC = () => {
         icon: <FunctionOutlined />,
       },
     ],
-    tabData: {
-      tab1: [],
-      tab2: [],
-      tab3: [],
-      tab4: [],
-    }, // 判断tab数据是否已经请求过数据
-    loaded: {
-      tab1: false,
-      tab2: false,
-      tab3: false,
-      tab4: false,
-    },
-    selectedRowKeys: {
-      tab1: -1,
-      tab2: -1,
-      tab3: -1,
-      tab4: -1,
-    },
-    selectTreeData: [],
-    selectedCommand: "",
     isDirty: false,
     isRelease: false, //是否为已发布
     isPromptModalOpen: false, //
-    promptModalType: "save", // 'add' 'edit' 'empty'
+    promptModalType: null, // 2）如果文件为未发布且已经改动 code：1  message：文件已经改动，需要保存吗？ 3）文件流程为空  code：2  ，message：尚未创建测试流程
     autoId: null,
     isSaveAsModalOpen: false, //另存为
     addModalType: "",
     selectedId: null,
     errorCheckLoading: false,
+    addLoading: false,
+    saveLoading: false,
+    saveAsLoading: false,
+    sequenceName: null, //文件名
   });
   const {
     title,
@@ -102,10 +77,6 @@ const Page: React.FC = () => {
     isPromptModalOpen,
     isRunModalOpen,
     isDirty,
-    tabData,
-    selectedRowKeys,
-    loaded,
-    selectedCommand,
     isRelease,
     promptModalType,
     autoId,
@@ -113,115 +84,55 @@ const Page: React.FC = () => {
     addModalType,
     selectedId,
     errorCheckLoading,
+    addLoading,
+    saveLoading,
+    saveAsLoading,
+    sequenceName,
   } = state;
-  const tabDataMap: Record<string, any> = {
-    tab1: mockProcessData,
-    tab2: mockConditionsData,
-    tab3: mockResultTable,
-    tab4: mockTempTable,
-  };
-  // ★ 可选：避免快速切 tab 产生竞态
-  const latestReqKeyRef = useRef<string | null>(null);
+
   const params = useParams();
   const [searchParams] = useSearchParams();
-  // 初始化：只加载 tab1
+
   useEffect(() => {
-    // if (params.id !== "add") {
     handleTabChange("1");
-    // }
     let release =
       params.id === "add"
         ? false
         : searchParams.get("status") === "True"
         ? true
         : false;
+    const group = searchParams.get("group");
+    const sequence = searchParams.get("sequence");
 
     setState({
-      title: params.id === "add" ? "" : searchParams.get("name") || "",
+      title: params.id === "add" ? "" : `${group} / ${sequence}`,
       isRelease: release,
       autoId: params.id,
       selectedId: searchParams.get("selectedId"),
+      sequenceName: sequence,
     });
   }, [params.id]);
 
-  const fetchers: Record<
-    string,
-    (args: { id: string }) => Promise<ApiResp<any>>
-  > = {
-    "1": () => getCmdList(),
-    "2": () => getConditonList(),
-    "3": () => getResultList(),
-    "4": () => getTempList(),
-  };
-  const handleTabChange = async (key: string) => {
+  const handleTabChange = (key: string) => {
     setState({ tabActiveKey: key });
   };
 
-  const getData = async (key: string) => {
-    const tabKey = `tab${key}` as keyof typeof state.tabData;
-    if (state.loaded[tabKey]) return;
-    try {
-      const fetcher = fetchers[key];
-      if (!fetcher) return;
-
-      const resp = await fetcher({ id: String(params.id) });
-      console.log("res", resp);
-
-      // 判断返回格式
-      if (resp?.code === 0 && Array.isArray(resp?.data?.lib_list)) {
-        const data = resp.data.lib_list;
-        // 只更新最新一次请求
-        if (latestReqKeyRef.current === key) {
-          setState((prev: any) => ({
-            tabData: { ...prev.tabData, [tabKey]: data },
-            loaded: { ...prev.loaded, [tabKey]: true },
-            selectedRowKeys: {
-              ...prev.selectedRowKeys,
-              [tabKey]: data.length ? 0 : -1,
-            },
-          }));
-        }
-      } else {
-        // 请求失败或返回结构不符 → 清空
-        message.error(resp?.message || "接口返回异常");
-        setState((prev: any) => ({
-          tabData: { ...prev.tabData, [tabKey]: [] },
-          loaded: { ...prev.loaded, [tabKey]: true },
-          selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
-        }));
-      }
-    } catch (err: any) {
-      // 网络错误等异常 → 清空表格
-      message.error(err?.message || "请求失败");
-      setState((prev: any) => ({
-        tabData: { ...prev.tabData, [tabKey]: [] },
-        loaded: { ...prev.loaded, [tabKey]: true },
-        selectedRowKeys: { ...prev.selectedRowKeys, [tabKey]: -1 },
-      }));
-    }
-  };
   const goList = () => {
     history.push(`/case-management/test-sequence?id=${selectedId}`);
   };
-  const handleGoBack = () => {
-    if (isRelease) {
+
+  const handleGoBack = async () => {
+    const { code, message: msg } = await setNewOrBack();
+    if (code === 0) {
       goList();
       return;
-    }
-    const hasData = hasNonEmptyTab(tabData);
-    const showPrompt = (type: "add" | "edit" | "empty") => {
+    } else if (code === 1 || code === 2) {
       setState({
-        promptModalType: hasData ? type : "empty",
+        promptModalType: code,
         isPromptModalOpen: true,
       });
-    };
-
-    if (autoId == "add") {
-      // 新增页面
-      hasData ? showPrompt("add") : showPrompt("empty");
     } else {
-      // 编辑页面
-      isDirty ? showPrompt("edit") : showPrompt("empty");
+      message.error(msg || "操作失败");
     }
   };
 
@@ -231,16 +142,11 @@ const Page: React.FC = () => {
       setState({ errorCheckLoading: true });
       const { code, data, message: msg } = await getErrorCheck();
 
-      if (code === 0) {
+      if (code !== 0) {
         // 如果检查有误，展示错误信息
         Modal.error({
           title: "以下参数设置错误，请重新设置",
-          content: (
-            <div>
-              {data || "-"}
-              {/* 0)测试流程表:第2行,第1个输入参数未设置1)测试条件表:2)测试结果表:3)临时变量表: */}
-            </div>
-          ),
+          content: <div>{data || "-"}</div>,
           okText: "确定",
         });
         return;
@@ -255,72 +161,101 @@ const Page: React.FC = () => {
       setState({ errorCheckLoading: false });
     }
   };
-  const goAdd = () => {
-    history.push("/case-management/test-sequence-edit/add");
+  const goAdd = (group: any, sequence: any) => {
+    history.push(
+      `/case-management/test-sequence-edit/add?group=${group}sequence=${sequence}&selectedId=${selectedId}`
+    );
     window.location.reload();
   };
-  const handleAdd = () => {
-    // 已发布 弹出新建Modal
-    if (isRelease) {
+  // 新建
+  const handleAdd = async () => {
+    try {
       setState({
-        isSaveAsModalOpen: true,
-        addModalType: "add",
+        addLoading: true,
       });
-      return;
-    }
-    // 已修改，弹确认框
-    if (isDirty) {
-      Modal.confirm({
-        title: "提示",
-        content:
-          "您正在编辑一个测试项目，如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗",
-        onOk: () =>
-          setState({
-            isSaveAsModalOpen: true, // 弹出新建Modal
-            addModalType: "add",
-          }),
+      const { code, message: msg } = await setNewOrBack();
+      if (code === 0) {
+        //支持新建，直接弹出新建Modal
+        setState({
+          addModalType: "add",
+          isSaveAsModalOpen: true,
+        });
+      } else if (code === 1) {
+        //文件已改动，且未保存
+        Modal.confirm({
+          title: "提示",
+          content:
+            "您正在编辑一个测试项目，如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗？",
+          onOk: async () => {
+            await saveRequest();
+          },
+        });
+        return;
+      } else {
+        message.error(msg || "操作失败");
+      }
+    } catch (e) {
+    } finally {
+      setState({
+        addLoading: false,
       });
-      return;
     }
+  };
+  // 另存为
+  const handleSaveAs = () => {
+    setState({ isSaveAsModalOpen: true, addModalType: "saveAs" });
+  };
 
-    // 未修改，直接打开新建Modal
-    setState({
-      addModalType: "add",
-      isSaveAsModalOpen: true,
+  const hasAlreadyExists = (text?: string) => {
+    Modal.confirm({
+      title: "提示",
+      content: text
+        ? `${text} 请选择 "另存为" 重新命名后保存；无需保存，请选择 "取消" `
+        : `此测试项目已存在，且已发布，不能保存！如需保存，请选择 "另存为" 重新命名后保存；无需保存，请选择 "取消" `,
+      okText: "另存为",
+      onOk: () => {
+        handleSaveAs();
+      },
     });
   };
-  const hasNonEmptyTab = (data: Record<string, any[]>): boolean => {
-    return Object.values(data).some((arr) => arr.length > 0);
+  const saveRequest = async () => {
+    if (!sequenceName || sequenceName.trim() === "") {
+      message.info("序列名称不能为空");
+      return;
+    }
+    const { code, message: msg } = await saveData({
+      sequence_name: sequenceName,
+    });
+    if (code === 1) {
+      hasAlreadyExists(msg); // 已发布
+      return;
+    } else if (code === 0) {
+      message.success("保存成功");
+      goList(); // 保存成功后，返回上一页
+    } else {
+      message.error(msg || "保存失败");
+    }
   };
-  const handleSaveAs = () => {
-    setState({ isSaveAsModalOpen: true, addModalType: "save" });
-  };
-  const handleSave = () => {
+  // 保存
+  const handleSave = async () => {
     // 已发布直接提示
-    if (isRelease) {
-      Modal.confirm({
-        title: "提示",
-        content:
-          "此测试项目已存在，且已发布，不能保存！如需保存，请选择”另存为“重新命名后保存；无需保存，请选择”取消“",
-        okText: "另存为",
-        onOk: () => setState({ isSaveAsModalOpen: true }),
+    if (state.isRelease) {
+      hasAlreadyExists();
+      return;
+    }
+    try {
+      setState({
+        saveLoading: true,
       });
-      return;
-    }
-    const hasData = hasNonEmptyTab(tabData);
-    if (autoId === "add" && !hasData) {
-      message.info("您尚未创建流程，无需保存");
-      return;
-    }
-    if (autoId !== "add" && isDirty) {
-      // 这里填写保存逻辑
-      console.log("执行保存操作");
+      await saveRequest();
+    } catch (e) {
+    } finally {
+      setState({
+        saveLoading: false,
+      });
     }
   };
 
-  const handleDataChange = (key: string) => {
-    getData(key);
-  };
   return (
     <PageContainer
       header={{
@@ -342,13 +277,25 @@ const Page: React.FC = () => {
         {/* 操作栏 */}
         <Card className="operation-bar">
           <Space className="operation-buttons">
-            <Button icon={<PlusOutlined />} onClick={handleAdd}>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              loading={addLoading}
+            >
               新建
             </Button>
-            <Button icon={<SaveOutlined />} onClick={handleSave}>
+            <Button
+              icon={<SaveOutlined />}
+              onClick={handleSave}
+              loading={saveLoading}
+            >
               保存
             </Button>
-            <Button icon={<FileAddOutlined />} onClick={handleSaveAs}>
+            <Button
+              icon={<FileAddOutlined />}
+              onClick={handleSaveAs}
+              loading={saveAsLoading}
+            >
               另存为
             </Button>
             <Button
@@ -378,41 +325,10 @@ const Page: React.FC = () => {
           />
 
           <div className="main-info">
-            {/* {tabActiveKey === "1" && (
-              <Process
-                data={tabData.tab1}
-                selectedRowIndex={selectedRowKeys.tab1}
-                onChange={(newData, newSelectedIndex) => {
-                  setState((prev) => ({
-                    tabData: { ...prev.tabData, tab1: newData },
-                    selectedRowKeys: {
-                      ...prev.selectedRowKeys,
-                      tab1: newSelectedIndex,
-                    },
-                    isDirty: true,
-                  }));
-                }}
-              />
-            )} */}
             {tabActiveKey === "1" && <Process />}
             {tabActiveKey === "2" && <Conditions />}
             {tabActiveKey === "3" && <ResultPage />}
-            {tabActiveKey === "4" && (
-              <TemporaryVariables
-                data={tabData.tab4}
-                selectedRowIndex={selectedRowKeys.tab4}
-                onChange={(newData, newSelectedIndex) => {
-                  setState((prev) => ({
-                    tabData: { ...prev.tabData, tab4: newData },
-                    selectedRowKeys: {
-                      ...prev.selectedRowKeys,
-                      tab4: newSelectedIndex,
-                    },
-                    isDirty: true,
-                  }));
-                }}
-              />
-            )}
+            {tabActiveKey === "4" && <TemporaryVariables />}
           </div>
         </div>
       </div>
@@ -425,17 +341,21 @@ const Page: React.FC = () => {
             isSaveAsModalOpen: false,
           });
         }}
-        onOk={() => {
+        currentNode={selectedId}
+        onOk={(values) => {
+          // 1、如果是另存为：这里需要确认点击确认后是关闭当前序列编辑页面返回列表还是其他操作
+          // 2、如果是新建 这里需要跳转到新建页面 goAdd()
           setState({
             isSaveAsModalOpen: false,
           });
-          console.log("addModalType", addModalType);
-
-          // 1、如果是另存为：这里需要确认点击确认后是关闭当前序列编辑页面返回列表还是其他操作
-          // 2、如果是新建 这里需要跳转到新建页面 goAdd()
-          if (addModalType == "add") {
-            goAdd();
+          if (addModalType == "saveAs") {
+            goList();
           } else {
+            // 新建 这里需要跳转到新建页面 goAdd()
+            const { tigroup, sequence_name } = values;
+            const group = tigroup || "-";
+            const sequence = sequence_name || "-";
+            goAdd(group, sequence);
           }
         }}
       />
@@ -467,22 +387,23 @@ const Page: React.FC = () => {
           });
         }}
         onNo={() => {
-          console.log("promptModalType", promptModalType);
+          // 不保存直接返回
           setState({
             isPromptModalOpen: false,
           });
           goList();
         }}
         onOk={() => {
-          console.log("promptModalType", promptModalType);
           setState({
             isPromptModalOpen: false,
           });
-          if (promptModalType == "empty") {
+          if (promptModalType === 1) {
+            saveRequest();
+            //需要保存，先保存后跳转
+          } else if (promptModalType === 2) {
             goList();
-            return;
+            // 确认直接返回
           }
-          // 否则需要保存数据后返回
         }}
       />
     </PageContainer>

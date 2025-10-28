@@ -6,7 +6,7 @@ interface PromptModalProps {
   onOk?: (values?: any) => void;
   onCancel?: () => void;
   onNo?: (values?: any) => void;
-  type: any; //'add' 'edit' 'empty'
+  type: number; //1 2
   title?: any;
   customButtons?: ModalButton[]; // 可完全自定义按钮
   children?: ReactNode;
@@ -33,11 +33,11 @@ const PromptModal: React.FC<PromptModalProps> = ({
     if (title) return title;
 
     switch (type) {
-      case "add":
-        return "新建文件需要保存吗？";
-      case "edit":
+      // case "add":
+      //   return "新建文件需要保存吗？";
+      case 1:
         return "文件已经改动，需要保存吗？";
-      case "empty":
+      case 2:
         return "您尚未创建测试流程，是否确认返回？";
       default:
         return "";
@@ -48,7 +48,7 @@ const PromptModal: React.FC<PromptModalProps> = ({
   const defaultButtons: ModalButton[] = useMemo(() => {
     if (customButtons && customButtons.length > 0) return customButtons;
 
-    if (type === "add" || type === "edit") {
+    if (type === 1) {
       return [
         {
           key: "yes",
@@ -68,7 +68,7 @@ const PromptModal: React.FC<PromptModalProps> = ({
       ];
     }
 
-    if (type === "empty") {
+    if (type === 2) {
       return [
         {
           key: "cancel",

@@ -11,15 +11,15 @@ import {
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
-  PlusOutlined,
 } from "@ant-design/icons";
-import { ActionType, ProTable } from "@ant-design/pro-components";
+import { ActionType } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Select, Table } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import ConditionModal from "./conditionModal";
 import EditTypeModal from "./editTypeModal";
 import "./index.less";
+import { OrderTable } from "./OrderTable";
 import {
   dataTypeData,
   editTypeData,
@@ -739,31 +739,29 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
   };
   return (
     <div className="conditions-page tabs-page">
-      <ProTable
+      <OrderTable
         columns={columns}
-        actionRef={conditionRef}
-        request={requestData}
-        onLoad={handleTableLoad}
-        rowKey={(row) => String(row?.condition_id)}
-        search={false}
-        pagination={false}
-        size="small"
-        toolBarRender={() => [
-          <Button
-            key="button"
-            icon={<PlusOutlined />}
-            onClick={handleInsertClick}
-          >
-            插入
-          </Button>,
-        ]}
-        options={false}
-        onRow={(record, index) => ({
-          onClick: () => handleRowClick(record, index || 0),
-        })}
+        idField="condition_id" // 或 getId={(r) => r.condition_id}
+        buildPayload={(id: any) => ({ condition_id: id })}
+        services={{
+          fetchList: getConditonList,
+          moveUp: moveUpCondition,
+          moveDown: moveDownCondition,
+          remove: deleteConditon,
+          insert: createOneCondition,
+        }}
+        onFocusChange={(_, index) => setState({ selectedRowIndex: index })}
         rowClassName={(_, index) =>
-          selectedRowIndex === index ? "selected-row" : ""
+          index === selectedRowIndex ? "selected-row" : ""
         }
+        insertFocusPolicy={{ type: "keep-current" }} //如果想“插入后选中新行”，把 insertFocusPolicy={{ type: "keep-current" }} 改成 {{ type: "new-row" }} 就行。
+        onEdit={(record: any, index: any) => {
+          setState({
+            isEditModalOpen: true,
+            editValue: record,
+            pendingFocusIndex: index,
+          });
+        }}
       />
 
       {/* 数组设置弹框 */}

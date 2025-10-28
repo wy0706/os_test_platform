@@ -342,10 +342,10 @@ const TestSequence: React.FC = () => {
       message.error(msg || "操作失败");
       return;
     }
-
-    const name = `${record.TIGroup} / ${record.sequence_name}`;
+    const group = record.TIGroup || "-";
+    const sequence = record.sequence_name || "-";
     history.push({
-      pathname: `/case-management/test-sequence-edit/${record.sequence_id}?name=${name}&status=${record?.is_published}&selectedId=${selectedNodeId}`,
+      pathname: `/case-management/test-sequence-edit/${record.sequence_id}?group=${group}&sequence=${sequence}&status=${record?.is_published}&selectedId=${selectedNodeId}`,
     });
     // 将选中行写入 state
     setState({ selectedRow: record });
@@ -659,9 +659,10 @@ const TestSequence: React.FC = () => {
             }
           } else {
             const { tigroup, sequence_name } = values;
-            const titles = `${tigroup}/${sequence_name}`;
+            const group = tigroup || "-";
+            const sequence = sequence_name || "-";
             history.push(
-              `/case-management/test-sequence-edit/add?name=${titles}selectedId=${selectedNodeId}`
+              `/case-management/test-sequence-edit/add?group=${group}sequence=${sequence}&selectedId=${selectedNodeId}`
             );
           }
         }}

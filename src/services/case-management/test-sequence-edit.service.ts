@@ -491,10 +491,55 @@ export async function deleteTemp(temp_id: any) {
 }
 
 /**
+ * 编辑临时变量
+ * temp_id 临时变量编号
+ * extension_name 扩展名
+ * variable_name 变量名
+ * data_type 数据类型
+ * array_size 数组大小
+ * unit 单位
+ */
+export async function updateOneTemp(data: any) {
+  const result: any = await request<{}>(`${BaseApi.TESTTEMP}/editinpar`, {
+    method: "PUT",
+    data: data,
+  });
+  return result;
+}
+
+/**
  * 配置序列错误检查
  */
 export async function getErrorCheck() {
   const result: any = await request<{}>(`${BaseApi.TESTSEQUENCE}/errorcheck`, {
+    method: "POST",
+  });
+  return result;
+}
+
+/**
+ * 保存
+ * sequence_name 待保存文件名称
+ * TST 三阶段测试，包括pre/uut/post
+ * tc_title 关联测试用例标题，发送用例ID和用例名称，是一组数据表现形式：【{id：，title:},{}】
+ * tigroup 测试序列类
+ */
+
+export async function saveData(data: any) {
+  const result: any = await request<{}>(
+    `${BaseApi.TESTSEQUENCE}/sequencesave`,
+    {
+      method: "POST",
+      data,
+    }
+  );
+  return result;
+}
+/**
+ *界面中 新建和返回的处理
+ */
+export async function setNewOrBack() {
+  const result: any = await request<{}>(`${BaseApi.TESTSEQUENCE}/new`, {
     method: "POST",
   });
   return result;

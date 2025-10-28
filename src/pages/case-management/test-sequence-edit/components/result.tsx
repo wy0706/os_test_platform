@@ -49,6 +49,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       key?: any;
     },
     precisionResultLoading: false,
+    pendingFocusIndex: null as number | null, // 刷新后优先用它来选中
   });
   const {
     isPrecisionResultOpen,
@@ -211,9 +212,14 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
         return [
           <a
             key="editable"
-            onClick={() => {
-              // action?.startEditable?.(record.id);
-              setState({ isEditModalOpen: true, editValue: record });
+            onClick={(e) => {
+              e.stopPropagation();
+              ensureSelected(record, index);
+              setState({
+                isEditModalOpen: true,
+                editValue: record,
+                pendingFocusIndex: index,
+              });
             }}
             style={{ marginRight: 10, color: "#1677ff" }}
           >
@@ -222,7 +228,10 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
           <a
             key="up"
             onClick={(e) => {
+              e.stopPropagation();
               if (!isFirst) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
               }
             }}
@@ -238,7 +247,10 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
           <a
             key="down"
             onClick={(e) => {
+              e.stopPropagation();
               if (!isLast) {
+                ensureSelected(record, index);
+                setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
               }
             }}
@@ -254,6 +266,10 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
           <a
             key="delete"
             onClick={(e) => {
+              e.stopPropagation();
+              ensureSelected(record, index);
+              const target = isLast ? index - 1 : index;
+              setState({ pendingFocusIndex: target >= 0 ? target : null });
               deleteRow(record, index);
             }}
             style={{ color: "#ff4d4f" }}
@@ -264,6 +280,13 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       },
     },
   ];
+  const ensureSelected = (record: any, index: number) => {
+    setState({
+      selectedSeqId: record?.result_id ?? null,
+      selectedRowIndex: index,
+      selectedRowData: record,
+    });
+  };
   // 数组设置弹框的表格数据
   const [arrayTableData, setArrayTableData] = useState<any[]>([]);
   const resultRef = useRef<ActionType>();
@@ -293,10 +316,6 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       }
       message.success(msg || "操作成功");
 
-      // // 若移动的是当前选中行，预判下一次选中的 seq_id
-      // if (state.selectedSeqId === record.result_id) {
-      //   setState({ selectedSeqId: record.result_id + delta });
-      // }
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "操作失败");
@@ -333,6 +352,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       },
     });
   };
+
   const handleRowClick = (record: any, index: number) => {
     setState({
       selectedSeqId: record?.result_id ?? null,
@@ -340,32 +360,72 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       selectedRowData: record,
     });
   };
-
-  const afterMutate = () => {
-    resultRef.current?.reload?.();
-  };
-
   // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
   const handleInsertClick = async () => {
     const lastId = state.tableData?.length
       ? Math.max(...state.tableData.map((r: any) => Number(r.result_id) || 0))
       : 0;
     const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
+    const targetIndex =
+      state.selectedRowIndex >= 0
+        ? state.selectedRowIndex + 1
+        : state.tableData.length; // 没选中就追加到末尾并聚焦末尾
     try {
-      setState({ busyRow: { type: "insert" } });
+      setState({ busyRow: { type: "insert" }, pendingFocusIndex: targetIndex });
       const { code, message: msg } = await createOneResult(targetSeqId);
       if (code !== 0) {
         message.error(msg || "插入失败");
         return;
       }
       message.success(msg || `已在第${targetSeqId}插入`);
-      setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
+      // setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "插入失败");
     } finally {
       setState({ busyRow: null });
     }
+  };
+
+  const afterMutate = () => {
+    resultRef.current?.reload?.();
+  };
+
+  const handleTableLoad = (ds: any[]) => {
+    setState({ tableData: ds, totalCount: ds?.length || 0 });
+
+    if (!ds.length) {
+      setState({
+        selectedSeqId: null,
+        selectedRowIndex: -1,
+        selectedRowData: null,
+        pendingFocusIndex: null, // 清掉
+      });
+      return;
+    }
+
+    // ⭐ 1) 优先用 pendingFocusIndex
+    if (state.pendingFocusIndex != null) {
+      const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
+      handleRowClick(ds[i], i);
+      setState({ pendingFocusIndex: null });
+      return;
+    }
+
+    // 2) 再用 selectedSeqId（如果你仍想保留）
+    let idx = -1;
+    if (state.selectedSeqId != null) {
+      idx = ds.findIndex(
+        (r) => String(r?.result_id) === String(state.selectedSeqId)
+      );
+    }
+
+    // 3) 兜底用上次的 index / 0
+    if (idx < 0) {
+      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+    }
+    handleRowClick(ds[idx], idx);
   };
 
   const requestData: any = async () => {
@@ -618,30 +678,6 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
     } finally {
       setState({ precisionResultLoading: false });
     }
-  };
-  const handleTableLoad = (ds: any[]) => {
-    setState({ tableData: ds, totalCount: ds?.length || 0 });
-    if (!ds.length) {
-      setState({
-        selectedSeqId: null,
-        selectedRowIndex: -1,
-        selectedRowData: null,
-      });
-      return;
-    }
-
-    let idx = -1;
-    if (selectedSeqId != null) {
-      idx = ds.findIndex(
-        (r) => String(r?.result_id) === String(selectedSeqId) // 用 result_id 对齐
-      );
-    }
-    if (idx < 0) {
-      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
-      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
-    }
-
-    handleRowClick(ds[idx], idx);
   };
 
   const handleModalCancel = () => {

@@ -33,7 +33,6 @@ const ResultModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
-  // const [selectedDataType, setSelectedDataType] = useState<string>("");
   const [state, setState] = useSetState<any>({
     selectedDataType: null,
     confirmLoading: false,

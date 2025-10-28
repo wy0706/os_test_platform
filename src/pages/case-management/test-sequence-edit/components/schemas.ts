@@ -166,7 +166,10 @@ export const dataTypeData: any = {
   12: "bytearray",
   43: "str",
 };
-
+// 判断是否需要启用数组大小字段
+export const shouldEnableArraySize = (dataType: number) => {
+  return [10, 11, 12].includes(Number(dataType));
+};
 export const valueIsExist = (value: any) => {
   return value !== null && value !== undefined && value !== "";
 };
