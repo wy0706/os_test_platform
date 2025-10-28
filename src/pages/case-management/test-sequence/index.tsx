@@ -1,10 +1,10 @@
 import { createTempLib } from "@/services/case-management/test-sequence-edit.service";
 import {
+  deleteSequence,
   deleteSequenceType,
   getSequenceList,
   getTypeList,
 } from "@/services/case-management/test-sequence.service";
-import { deleteOne } from "@/services/task-management/test-requirement.service";
 import { transformParams } from "@/utils/params";
 import {
   CopyOutlined,
@@ -138,7 +138,7 @@ const TestSequence: React.FC = () => {
                       <div>
                         确认删除序列{" "}
                         <span style={{ color: "#ff4d4f", fontWeight: "bold" }}>
-                          {record.name}
+                          {record.sequence_name}
                         </span>{" "}
                         吗？
                       </div>
@@ -155,7 +155,14 @@ const TestSequence: React.FC = () => {
                   ),
 
                   onOk: async () => {
-                    await deleteOne(record.id);
+                    const { code, message: msg } = await deleteSequence(
+                      record.sequence_id
+                    );
+                    if (code !== 0) {
+                      message.error(msg || "操作失败");
+                      return;
+                    }
+                    message.success(msg || "操作成功");
                     if (actionRef.current) {
                       actionRef.current.reload();
                     }
