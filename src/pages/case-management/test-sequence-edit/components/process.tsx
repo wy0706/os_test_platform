@@ -123,30 +123,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     return null;
   };
 
-  // 统一负责“表格选中行 → 树联动”
-  // const syncTreeWithCommand = (command?: string) => {
-  //   if (!command) {
-  //     setState({ selectedTreeKeys: [], selectedCommand: "" });
-  //     return;
-  //   }
-  //   if (!processedTreeData?.length) {
-  //     setState({
-  //       selectedCommand: command,
-  //       selectedTreeKeys: [command as unknown as React.Key],
-  //     });
-  //     return;
-  //   }
-  //   const commandPath = findCommandInTree(command, processedTreeData);
-  //   if (commandPath) {
-  //     setState({
-  //       selectedTreeKeys: [command as unknown as React.Key],
-  //       expandedKeys: [
-  //         ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-  //       ],
-  //       selectedCommand: command,
-  //     });
-  //   }
-  // };
   const syncTreeWithCommand = (command?: string) => {
     // 没有命令：清空树选中 & 清空选中命令
     if (!command) {
@@ -418,7 +394,15 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     // 任意时点只要 selectedCommand 变化就拉注释
     getComment(state.selectedCommand);
   }, [state.selectedCommand]);
+  useEffect(() => {
+    getTreeData();
+  }, []);
 
+  useEffect(() => {
+    if (processedTreeData?.length && state.selectedCommand) {
+      syncTreeWithCommand(state.selectedCommand);
+    }
+  }, [processedTreeData, state.selectedCommand]);
   const requestData: any = async () => {
     const { code, data, message: msg } = await getCmdList();
     if (code !== 0) {
@@ -450,10 +434,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
       setState({ processedTreeData: [] });
     }
   };
-
-  useEffect(() => {
-    getTreeData();
-  }, []);
 
   const columns: any[] = [
     { title: "序号", dataIndex: "seq_id", width: 80 },

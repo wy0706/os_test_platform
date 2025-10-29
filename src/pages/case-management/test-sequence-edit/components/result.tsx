@@ -53,6 +53,8 @@ const ResultPage: React.FC<ResultPageProps> = ({
     },
     precisionResultLoading: false,
     pendingFocusIndex: null as number | null, // 刷新后优先用它来选中
+    isFetchingList: false, // 列表请求中
+    listReady: false, // 最近一次列表请求是否成功
   });
   const {
     isPrecisionResultOpen,
@@ -447,19 +449,24 @@ const ResultPage: React.FC<ResultPageProps> = ({
   };
 
   const requestData: any = async () => {
-    const { code, data, message: msg } = await getResultList();
-    if (code !== 0) {
-      message.error(msg || "获取失败");
-      setState({ totalCount: 0 });
-      return { data: [], total: 0, success: false };
+    setState({ isFetchingList: true, listReady: false });
+    try {
+      const { code, data, message: msg } = await getResultList();
+      if (code !== 0) {
+        message.error(msg || "获取失败");
+        setState({ totalCount: 0, listReady: false });
+        return { data: [], total: 0, success: false };
+      }
+      setState({ totalCount: data?.total_cnt, listReady: true });
+      const list = data?.lib_lists || [];
+      return {
+        data: list,
+        total: data?.total_cnt || list?.length,
+        success: true,
+      };
+    } finally {
+      setState({ isFetchingList: false });
     }
-    setState({ totalCount: data?.total_cnt });
-    let list = data?.lib_lists || [];
-    return {
-      data: list,
-      total: data?.total_cnt || list?.length,
-      success: code === 0,
-    };
   };
   // 初始化数组表格数据
   const initializeArrayTableData = () => {
@@ -712,7 +719,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         rowKey={(row) => String(row?.result_id)}
         search={false}
         pagination={false}
-        loading={isBusy}
+        loading={isBusy || state.isFetchingList}
         size="small"
         onRow={(record, index) => ({
           onClick: () => !isBusy && handleRowClick(record, index || 0),
@@ -723,7 +730,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         toolBarRender={() => [
           <Button
             loading={isInserting}
-            disabled={isBusy}
+            disabled={isBusy || state.isFetchingList || !state.listReady}
             key="button"
             icon={<PlusOutlined />}
             onClick={handleInsertClick}
