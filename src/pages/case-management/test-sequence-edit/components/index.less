@@ -23,14 +23,25 @@
     width: 350px;
     height: 100%;
     overflow: hidden; // 防止整体溢出
-
     .param-explanation-card {
-      box-sizing: border-box;
-      min-height: 100px;
-      max-height: 150px;
-      overflow-y: auto;
+      /* 不在外层滚动 */
+      max-height: none;
+    }
+    .param-explanation-card .ant-card-body {
+      padding: 12px; /* 适当减小内边距，避免占高 */
+    }
+    .param-explanation-card .param-content {
+      height: 130px; /* 把高度限制放到内容容器 */
+      overflow-y: auto; /* 只有内容超出时才滚动 */
     }
 
+    /* 可选：压缩 Empty 的占位高度，避免轻易溢出 */
+    .param-explanation-card .ant-empty {
+      margin: 0;
+    }
+    .param-explanation-card .ant-empty-image {
+      height: 48px;
+    }
     .tree-card {
       flex: 1;
       box-sizing: border-box;

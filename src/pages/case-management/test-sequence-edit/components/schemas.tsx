@@ -1,3 +1,4 @@
+import { FileTextOutlined, FolderOutlined } from "@ant-design/icons";
 export const schemas = {
   layoutType: "Form",
   rowProps: {
@@ -166,6 +167,57 @@ export const dataTypeData: any = {
   12: "bytearray",
   43: "str",
 };
+
+/**
+ * 构建命令树数据
+ * @param data 后端返回的命令分组数据
+ * @returns 标准化的树结构 [{ title, key, children, disabled, ... }]
+ */
+export const buildCommandTreeData = (data: any[]): any[] => {
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  try {
+    const transformed = data
+      .map((group) => {
+        const { id, name, command_list } = group || {};
+        if (!name) return null; // 没有 name 的直接跳过
+
+        // 生成子节点（命令项）
+        const children = Array.isArray(command_list)
+          ? command_list
+              .filter((cmd) => cmd && cmd.command_name)
+              .map((cmd) => ({
+                title: cmd.command_name,
+                key: cmd.command_name, // ✅ 使用命令名称作为唯一 key（名称唯一）
+                id: cmd.command_id,
+                icon: <FileTextOutlined />,
+                ...cmd,
+                level: 2,
+                disabled: false, // 子节点可选
+                selectable: true,
+              }))
+          : [];
+
+        return {
+          title: name,
+          id,
+          key: name, // ✅ 使用分组名称作为唯一 key
+          icon: <FolderOutlined />,
+          children,
+          level: 1,
+          disabled: true, // ✅ 父级禁用
+          selectable: false, // ✅ 不可选
+        };
+      })
+      .filter(Boolean);
+
+    return transformed;
+  } catch (error) {
+    console.error("❌ buildCommandTreeData 转换失败:", error);
+    return [];
+  }
+};
+
 // 判断是否需要启用数组大小字段
 export const shouldEnableArraySize = (dataType: number) => {
   return [10, 11, 12].includes(Number(dataType));

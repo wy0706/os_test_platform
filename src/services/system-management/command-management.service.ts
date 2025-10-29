@@ -91,7 +91,7 @@ export async function updateOne(data: any) {
 export async function deleteOne(command_id: any) {
   const result: any = await request<{}>(`${baseUrl}/delete`, {
     method: "DELETE",
-    params: {
+    data: {
       command_id,
     },
   });

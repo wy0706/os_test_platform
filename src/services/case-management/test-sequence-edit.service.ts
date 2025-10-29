@@ -1,7 +1,5 @@
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/caseManagement/testSequenceEdit";
-
 enum BaseApi {
   TESTCOMMAND = "/testcommand", //测试流程
   TESTCONDITION = "/testcondition", //测试条件
@@ -10,59 +8,6 @@ enum BaseApi {
   TESTSEQUENCE = "/testsequence", //测试序列
 }
 
-export async function getList(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: "GET",
-    params: params,
-  });
-  return result;
-}
-
-export async function createOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/createOne`, {
-    method: "POST",
-    data: data,
-  });
-  return result;
-}
-
-export async function getAll(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getAll`, {
-    method: "GET",
-    params: params,
-  });
-  return result;
-}
-
-export async function getOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/getOne/${id}`, {
-    method: "GET",
-  });
-  return result;
-}
-
-export async function updateOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
-    method: "POST",
-    data: data,
-  });
-  return result;
-}
-
-export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
-    method: "DELETE",
-  });
-  return result;
-}
-
-export async function deleteBatch(ids: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-    method: "DELETE",
-    data: ids,
-  });
-  return result;
-}
 /**
  * 点编辑创建临时库
  *
@@ -118,7 +63,7 @@ export async function insertCmd(data: any) {
 export async function deleteCmd(seq_id: any) {
   const result: any = await request<{}>(`${BaseApi.TESTCOMMAND}/delete`, {
     method: "DELETE",
-    params: {
+    data: {
       seq_id,
     },
   });
@@ -297,7 +242,7 @@ export async function moveDownCondition(data: any) {
 export async function deleteConditon(condition_id: any) {
   const result: any = await request<{}>(`${BaseApi.TESTCONDITION}/delete`, {
     method: "DELETE",
-    params: {
+    data: {
       condition_id,
     },
   });
@@ -401,7 +346,7 @@ export async function createOneResult(result_id: any) {
 export async function deleteResult(result_id: any) {
   const result: any = await request<{}>(`${BaseApi.TESTRESULT}/delete`, {
     method: "DELETE",
-    params: {
+    data: {
       result_id,
     },
   });
@@ -483,7 +428,7 @@ export async function createOneTemp(temp_id: any) {
 export async function deleteTemp(temp_id: any) {
   const result: any = await request<{}>(`${BaseApi.TESTTEMP}/delete`, {
     method: "DELETE",
-    params: {
+    data: {
       temp_id,
     },
   });

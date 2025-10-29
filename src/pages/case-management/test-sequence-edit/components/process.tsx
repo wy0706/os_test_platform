@@ -20,10 +20,10 @@ import {
   moveUpCmd,
 } from "@/services/case-management/test-sequence-edit.service";
 
-import { buildCommandTreeData } from "../schemas";
 import "./index.less";
 import ParamForm from "./paramForm";
 import ProcessModal from "./processModal";
+import { buildCommandTreeData } from "./schemas";
 
 const { Text } = Typography;
 
@@ -363,10 +363,8 @@ const Process: React.FC<ProcessProps> = () => {
         setState({ processedTreeData: [] });
         return;
       }
-      const treeList = buildCommandTreeData(data || []).map((node: any) => ({
-        ...node,
-        disabled: !node.children || node.children.length === 0 ? false : true, // 一级节点禁用
-      }));
+
+      const treeList = buildCommandTreeData(data || []);
       const allKeys = getAllTreeKeys(treeList);
       setState({ processedTreeData: treeList, expandedKeys: allKeys });
     } catch (error) {

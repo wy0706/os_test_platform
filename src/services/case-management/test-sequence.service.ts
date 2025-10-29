@@ -433,7 +433,7 @@ export async function updateSequenceType(data: any) {
 export async function deleteSequenceType(id: any) {
   const result: any = await request<{}>(`${BaseApi.TestSequenceType}/delete`, {
     method: "DELETE",
-    params: { sequencetype_id: id },
+    data: { sequencetype_id: id },
   });
   return result;
 }
@@ -496,7 +496,7 @@ export async function updateSequence(data: any) {
 export async function deleteSequence(id: any) {
   const result: any = await request<{}>(`${BaseApi.TestSequence}/delete`, {
     method: "DELETE",
-    params: { sequence_id: id },
+    data: { sequence_id: id },
   });
   return result;
 }
