@@ -17,7 +17,7 @@ import {
   precisionOptions,
   toNum,
   unitOptions,
-} from "./schemas";
+} from "../schemas";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;

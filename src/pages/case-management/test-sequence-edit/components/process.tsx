@@ -21,8 +21,8 @@ import {
 } from "@/services/case-management/test-sequence-edit.service";
 
 import "./index.less";
-import ParamForm from "./paramForm";
-import ProcessModal from "./processModal";
+import ParamForm from "./modals/paramForm";
+import ProcessModal from "./modals/processModal";
 import { buildCommandTreeData } from "./schemas";
 
 const { Text } = Typography;

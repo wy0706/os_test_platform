@@ -17,9 +17,9 @@ import { ActionType, ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Select, Table } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import ConditionModal from "./conditionModal";
-import EditTypeModal from "./editTypeModal";
 import "./index.less";
+import ConditionModal from "./modals/conditionModal";
+import EditTypeModal from "./modals/editTypeModal";
 import {
   dataTypeData,
   editTypeData,

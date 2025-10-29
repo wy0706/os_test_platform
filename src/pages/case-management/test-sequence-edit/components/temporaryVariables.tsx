@@ -16,8 +16,8 @@ import { ActionType, ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
 import { Button, message, Modal } from "antd";
 import React, { useRef } from "react";
+import TempModal from "./modals/tempModal";
 import { dataTypeData } from "./schemas";
-import TempModal from "./tempModal";
 
 interface ConditionsProps {
   selectedId?: number | null; // 受控选中：temp_id

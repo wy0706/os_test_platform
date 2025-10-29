@@ -18,7 +18,7 @@ import { useSetState } from "ahooks";
 import { Button, Input, message, Modal, Table } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import "./index.less";
-import ResultModal from "./resultModal";
+import ResultModal from "./modals/resultModal";
 import {
   dataTypeData,
   editTypeData,

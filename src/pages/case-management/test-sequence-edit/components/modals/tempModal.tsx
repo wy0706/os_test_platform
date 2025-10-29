@@ -11,7 +11,11 @@ import {
   Select,
 } from "antd";
 import { useEffect } from "react";
-import { dataTypeOptions, shouldEnableArraySize, unitOptions } from "./schemas";
+import {
+  dataTypeOptions,
+  shouldEnableArraySize,
+  unitOptions,
+} from "../schemas";
 
 interface SetMemberModalProps {
   open: boolean;
