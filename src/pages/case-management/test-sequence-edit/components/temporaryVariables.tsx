@@ -44,6 +44,8 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
     pendingFocusIndex: null as number | null, // 刷新后优先用它来选中
   });
   const tempRef = useRef<ActionType>();
+  const isBusy = !!state.busyRow;
+  const isInserting = state.busyRow?.type === "insert";
   // 动态创建列定义，确保操作列能响应tableData变化
   const columns = [
     {
@@ -113,7 +115,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             key="up"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isFirst) {
+              if (!isFirst && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
@@ -121,9 +123,9 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isFirst ? "not-allowed" : "pointer",
-              opacity: isFirst ? 0.5 : 1,
-              color: isFirst ? "#ccc" : "#1677ff",
+              cursor: isFirst || isBusy ? "not-allowed" : "pointer",
+              opacity: isFirst || isBusy ? 0.5 : 1,
+              color: isFirst || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowUpOutlined style={{ marginRight: 4 }} />
@@ -132,7 +134,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             key="down"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isLast) {
+              if (!isLast && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
@@ -140,9 +142,9 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isLast ? "not-allowed" : "pointer",
-              opacity: isLast ? 0.5 : 1,
-              color: isLast ? "#ccc" : "#1677ff",
+              cursor: isLast || isBusy ? "not-allowed" : "pointer",
+              opacity: isLast || isBusy ? 0.5 : 1,
+              color: isLast || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowDownOutlined style={{ marginRight: 4 }} />
@@ -151,10 +153,12 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
             key="delete"
             onClick={(e) => {
               e.stopPropagation();
-              ensureSelected(record, index);
-              const target = isLast ? index - 1 : index;
-              setState({ pendingFocusIndex: target >= 0 ? target : null });
-              deleteRow(record, index);
+              if (!isBusy) {
+                ensureSelected(record, index);
+                const target = isLast ? index - 1 : index;
+                setState({ pendingFocusIndex: target >= 0 ? target : null });
+                deleteRow(record, index);
+              }
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -332,6 +336,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
         columns={columns}
         actionRef={tempRef}
         request={requestData}
+        loading={isBusy}
         onLoad={handleTableLoad}
         rowKey={(row) => String(row?.temp_id)}
         search={false}
@@ -340,6 +345,8 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
         toolBarRender={() => [
           <Button
             key="button"
+            loading={isInserting}
+            disabled={isBusy}
             icon={<PlusOutlined />}
             onClick={handleInsertClick}
           >
@@ -348,7 +355,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
         ]}
         size="small"
         onRow={(record, index) => ({
-          onClick: () => handleRowClick(record, index || 0),
+          onClick: () => !isBusy && handleRowClick(record, index || 0),
         })}
         rowClassName={(record, index) =>
           selectedRowIndex === index ? "selected-row" : ""

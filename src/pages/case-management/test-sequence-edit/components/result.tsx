@@ -64,6 +64,8 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
     selectedRowData,
     precisionResultLoading,
   } = state;
+  const isBusy = !!state.busyRow;
+  const isInserting = state.busyRow?.type === "insert";
   const columns: any = [
     {
       title: "序号",
@@ -229,7 +231,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
             key="up"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isFirst) {
+              if (!isFirst && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
@@ -237,9 +239,9 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isFirst ? "not-allowed" : "pointer",
-              opacity: isFirst ? 0.5 : 1,
-              color: isFirst ? "#ccc" : "#1677ff",
+              cursor: isFirst || isBusy ? "not-allowed" : "pointer",
+              opacity: isFirst || isBusy ? 0.5 : 1,
+              color: isFirst || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowUpOutlined style={{ marginRight: 4 }} />
@@ -248,7 +250,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
             key="down"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isLast) {
+              if (!isLast && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
@@ -256,9 +258,9 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isLast ? "not-allowed" : "pointer",
-              opacity: isLast ? 0.5 : 1,
-              color: isLast ? "#ccc" : "#1677ff",
+              cursor: isLast || isBusy ? "not-allowed" : "pointer",
+              opacity: isLast || isBusy ? 0.5 : 1,
+              color: isLast || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowDownOutlined style={{ marginRight: 4 }} />
@@ -267,10 +269,13 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
             key="delete"
             onClick={(e) => {
               e.stopPropagation();
-              ensureSelected(record, index);
-              const target = isLast ? index - 1 : index;
-              setState({ pendingFocusIndex: target >= 0 ? target : null });
-              deleteRow(record, index);
+
+              if (!isBusy) {
+                ensureSelected(record, index);
+                const target = isLast ? index - 1 : index;
+                setState({ pendingFocusIndex: target >= 0 ? target : null });
+                deleteRow(record, index);
+              }
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -683,6 +688,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
   const handleModalCancel = () => {
     setState({ isPrecisionResultOpen: false, precisionValue: null });
   };
+
   return (
     <div className="result-page tabs-page">
       <ProTable
@@ -693,15 +699,18 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
         rowKey={(row) => String(row?.result_id)}
         search={false}
         pagination={false}
+        loading={isBusy}
         size="small"
         onRow={(record, index) => ({
-          onClick: () => handleRowClick(record, index || 0),
+          onClick: () => !isBusy && handleRowClick(record, index || 0),
         })}
         rowClassName={(record, index) =>
           selectedRowIndex === index ? "selected-row" : ""
         }
         toolBarRender={() => [
           <Button
+            loading={isInserting}
+            disabled={isBusy}
             key="button"
             icon={<PlusOutlined />}
             onClick={handleInsertClick}

@@ -77,6 +77,9 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
       selectedRowData: record,
     });
   };
+
+  const isBusy = !!state.busyRow;
+  const isInserting = state.busyRow?.type === "insert";
   const columns: any = [
     {
       title: "序号",
@@ -225,7 +228,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
             key="up"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isFirst) {
+              if (!isFirst && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
                 moveRow(record, index, "up");
@@ -233,9 +236,9 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isFirst ? "not-allowed" : "pointer",
-              opacity: isFirst ? 0.5 : 1,
-              color: isFirst ? "#ccc" : "#1677ff",
+              cursor: isFirst || isBusy ? "not-allowed" : "pointer",
+              opacity: isFirst || isBusy ? 0.5 : 1,
+              color: isFirst || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowUpOutlined style={{ marginRight: 4 }} />
@@ -244,7 +247,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
             key="down"
             onClick={(e) => {
               e.stopPropagation();
-              if (!isLast) {
+              if (!isLast && !isBusy) {
                 ensureSelected(record, index);
                 setState({ pendingFocusIndex: index + 1 });
                 moveRow(record, index, "down");
@@ -252,9 +255,9 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
             }}
             style={{
               marginRight: 10,
-              cursor: isLast ? "not-allowed" : "pointer",
-              opacity: isLast ? 0.5 : 1,
-              color: isLast ? "#ccc" : "#1677ff",
+              cursor: isLast || isBusy ? "not-allowed" : "pointer",
+              opacity: isLast || isBusy ? 0.5 : 1,
+              color: isLast || isBusy ? "#ccc" : "#1677ff",
             }}
           >
             <ArrowDownOutlined style={{ marginRight: 4 }} />
@@ -263,11 +266,13 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
             key="delete"
             onClick={(e) => {
               e.stopPropagation();
-              ensureSelected(record, index);
-              const target = isLast ? index - 1 : index;
-              setState({ pendingFocusIndex: target >= 0 ? target : null });
+              if (!isBusy) {
+                ensureSelected(record, index);
+                const target = isLast ? index - 1 : index;
+                setState({ pendingFocusIndex: target >= 0 ? target : null });
 
-              deleteRow(record, index);
+                deleteRow(record, index);
+              }
             }}
             style={{ color: "#ff4d4f" }}
           >
@@ -744,6 +749,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
         actionRef={conditionRef}
         request={requestData}
         onLoad={handleTableLoad}
+        loading={isBusy}
         rowKey={(row) => String(row?.condition_id)}
         search={false}
         pagination={false}
@@ -751,6 +757,8 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
         toolBarRender={() => [
           <Button
             key="button"
+            loading={isInserting}
+            disabled={isBusy}
             icon={<PlusOutlined />}
             onClick={handleInsertClick}
           >
@@ -759,7 +767,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
         ]}
         options={false}
         onRow={(record, index) => ({
-          onClick: () => handleRowClick(record, index || 0),
+          onClick: () => !isBusy && handleRowClick(record, index || 0),
         })}
         rowClassName={(_, index) =>
           selectedRowIndex === index ? "selected-row" : ""
