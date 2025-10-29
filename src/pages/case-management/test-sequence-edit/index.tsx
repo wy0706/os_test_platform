@@ -69,6 +69,12 @@ const Page: React.FC = () => {
     saveLoading: false,
     saveAsLoading: false,
     sequenceName: null, //文件名
+    selectedKeeper: {
+      process: { id: null as number | null, index: -1 },
+      conditions: { id: null as number | null, index: -1 },
+      result: { id: null as number | null, index: -1 },
+      temp: { id: null as number | null, index: -1 },
+    },
   });
   const {
     title,
@@ -92,7 +98,18 @@ const Page: React.FC = () => {
 
   const params = useParams();
   const [searchParams] = useSearchParams();
-
+  const updateSelected = (
+    tab: "process" | "conditions" | "result" | "temp",
+    id: number | null,
+    index: number
+  ) => {
+    setState((prev: any) => ({
+      selectedKeeper: {
+        ...prev.selectedKeeper,
+        [tab]: { id, index },
+      },
+    }));
+  };
   useEffect(() => {
     handleTabChange("1");
     let release =
@@ -325,10 +342,36 @@ const Page: React.FC = () => {
           />
 
           <div className="main-info">
-            {tabActiveKey === "1" && <Process />}
-            {tabActiveKey === "2" && <Conditions />}
-            {tabActiveKey === "3" && <ResultPage />}
-            {tabActiveKey === "4" && <TemporaryVariables />}
+            {tabActiveKey === "1" && (
+              <Process
+                selectedId={state.selectedKeeper.process.id}
+                onSelectedChange={(id, idx) =>
+                  updateSelected("process", id, idx)
+                }
+              />
+            )}
+            {tabActiveKey === "2" && (
+              <Conditions
+                selectedId={state.selectedKeeper.conditions.id}
+                onSelectedChange={(id, idx) =>
+                  updateSelected("conditions", id, idx)
+                }
+              />
+            )}
+            {tabActiveKey === "3" && (
+              <ResultPage
+                selectedId={state.selectedKeeper.result.id}
+                onSelectedChange={(id, idx) =>
+                  updateSelected("result", id, idx)
+                }
+              />
+            )}
+            {tabActiveKey === "4" && (
+              <TemporaryVariables
+                selectedId={state.selectedKeeper.temp.id}
+                onSelectedChange={(id, idx) => updateSelected("temp", id, idx)}
+              />
+            )}
           </div>
         </div>
       </div>

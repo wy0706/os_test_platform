@@ -28,10 +28,11 @@ import { buildCommandTreeData } from "./schemas";
 const { Text } = Typography;
 
 interface ProcessProps {
-  selectedRowIndex?: number; // 如需受控可保留；否则可不传
+  selectedId?: number | null; // 受控：选中 seq_id
+  onSelectedChange?: (id: number | null, index: number) => void;
 }
 
-const Process: React.FC<ProcessProps> = () => {
+const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
     // 弹窗/参数
@@ -87,11 +88,13 @@ const Process: React.FC<ProcessProps> = () => {
   const getRowCmd = (row: any) => row?.command || row?.testcommand || "";
 
   const ensureSelected = (record: any, index: number) => {
+    const id = record?.seq_id ?? null;
     setState({
-      selectedSeqId: record?.seq_id ?? null,
+      selectedSeqId: id,
       selectedRowIndex: index,
       selectedRowData: record,
     });
+    onSelectedChange?.(id, index); // ★ 回写父组件
   };
 
   const getAllTreeKeys = (treeData: any[]): string[] => {
@@ -168,14 +171,48 @@ const Process: React.FC<ProcessProps> = () => {
     ensureSelected(record, index);
     const cmd = getRowCmd(record);
     if (cmd) syncTreeWithCommand(cmd);
-    else syncTreeWithCommand(""); // 无命令则清理树选中
+    else syncTreeWithCommand("");
   };
-
   const afterMutate = () => {
     actionRef.current?.reload?.();
   };
 
-  // ProTable 数据装载：优先 pendingFocusIndex → selectedSeqId → fallback
+  // // ProTable 数据装载：优先 pendingFocusIndex → selectedSeqId → fallback
+  // const handleTableLoad = (ds: any[]) => {
+  //   setState({ tableData: ds, totalCount: ds?.length || 0 });
+
+  //   if (!ds.length) {
+  //     setState({
+  //       selectedSeqId: null,
+  //       selectedRowIndex: -1,
+  //       selectedRowData: null,
+  //       pendingFocusIndex: null,
+  //     });
+  //     syncTreeWithCommand("");
+  //     return;
+  //   }
+
+  //   // ⭐ 1) 优先：pendingFocusIndex（确保刷新后正确行被选中，进而联动右侧树）
+  //   if (state.pendingFocusIndex != null) {
+  //     const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
+  //     handleRowClick(ds[i], i); // 内部会调用 syncTreeWithCommand
+  //     setState({ pendingFocusIndex: null });
+  //     return;
+  //   }
+
+  //   // 2) 其次：selectedSeqId
+  //   let idx = -1;
+  //   if (selectedSeqId != null) {
+  //     idx = ds.findIndex((r) => String(r?.seq_id) === String(selectedSeqId));
+  //   }
+
+  //   // 3) 兜底：上次 index 或 0
+  //   if (idx < 0) {
+  //     const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
+  //     idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+  //   }
+  //   handleRowClick(ds[idx], idx); // 同样自动联动树
+  // };
   const handleTableLoad = (ds: any[]) => {
     setState({ tableData: ds, totalCount: ds?.length || 0 });
 
@@ -187,29 +224,39 @@ const Process: React.FC<ProcessProps> = () => {
         pendingFocusIndex: null,
       });
       syncTreeWithCommand("");
+      onSelectedChange?.(null, -1); // ★ 清空上报
       return;
     }
 
-    // ⭐ 1) 优先：pendingFocusIndex（确保刷新后正确行被选中，进而联动右侧树）
+    // ★ (0) 最高优先：父组件受控 selectedId
+    if (selectedId != null) {
+      const i = ds.findIndex((r) => String(r?.seq_id) === String(selectedId));
+      if (i >= 0) {
+        handleRowClick(ds[i], i);
+        return;
+      }
+    }
+
+    // (1) 其次：pendingFocusIndex
     if (state.pendingFocusIndex != null) {
       const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
-      handleRowClick(ds[i], i); // 内部会调用 syncTreeWithCommand
+      handleRowClick(ds[i], i);
       setState({ pendingFocusIndex: null });
       return;
     }
 
-    // 2) 其次：selectedSeqId
+    // (2) 再次：本地 selectedSeqId
     let idx = -1;
     if (selectedSeqId != null) {
       idx = ds.findIndex((r) => String(r?.seq_id) === String(selectedSeqId));
     }
 
-    // 3) 兜底：上次 index 或 0
+    // (3) 兜底：上次 index 或 0（满足“有数据默认第一条”）
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     }
-    handleRowClick(ds[idx], idx); // 同样自动联动树
+    handleRowClick(ds[idx], idx);
   };
 
   const moveRow = async (

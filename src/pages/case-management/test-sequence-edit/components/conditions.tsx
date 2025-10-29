@@ -29,11 +29,14 @@ import {
   valueIsExist,
 } from "./schemas";
 interface ConditionsProps {
-  onChange?: (data: any, selectedRowIndex: number) => void;
-  selectedRowIndex?: any;
+  selectedId?: number | null; // 受控选中：condition_id
+  onSelectedChange?: (id: number | null, index: number) => void;
 }
 
-const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
+const Conditions: React.FC<ConditionsProps> = ({
+  selectedId,
+  onSelectedChange,
+}) => {
   const [state, setState] = useSetState<any>({
     title: "",
     isPrecisionModalOpen: false,
@@ -71,11 +74,13 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
     return dataType === 11 && editType === 1;
   };
   const ensureSelected = (record: any, index: number) => {
+    const id = record?.condition_id ?? null;
     setState({
-      selectedSeqId: record?.condition_id ?? null,
+      selectedSeqId: id,
       selectedRowIndex: index,
       selectedRowData: record,
     });
+    onSelectedChange?.(id, index); // ★ 回写父组件
   };
 
   const isBusy = !!state.busyRow;
@@ -354,11 +359,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
   };
   // 点击行
   const handleRowClick = (record: any, index: number) => {
-    setState({
-      selectedSeqId: record?.condition_id ?? null,
-      selectedRowIndex: index,
-      selectedRowData: record,
-    });
+    ensureSelected(record, index);
   };
 
   // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
@@ -661,12 +662,24 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
         selectedSeqId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
-        pendingFocusIndex: null, // 清掉
+        pendingFocusIndex: null,
       });
+      onSelectedChange?.(null, -1); // ★ 清空上报
       return;
     }
 
-    // ⭐ 1) 优先用 pendingFocusIndex
+    // ★ (0) 最高优先：受控 selectedId
+    if (selectedId != null) {
+      const i = ds.findIndex(
+        (r) => String(r?.condition_id) === String(selectedId)
+      );
+      if (i >= 0) {
+        handleRowClick(ds[i], i);
+        return;
+      }
+    }
+
+    // (1) pendingFocusIndex
     if (state.pendingFocusIndex != null) {
       const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
       handleRowClick(ds[i], i);
@@ -674,7 +687,7 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
       return;
     }
 
-    // 2) 再用 selectedSeqId（如果你仍想保留）
+    // (2) 本地 selectedSeqId
     let idx = -1;
     if (state.selectedSeqId != null) {
       idx = ds.findIndex(
@@ -682,37 +695,13 @@ const Conditions: React.FC<ConditionsProps> = ({ onChange }) => {
       );
     }
 
-    // 3) 兜底用上次的 index / 0
+    // (3) 兜底：上次 index 或 0
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     }
     handleRowClick(ds[idx], idx);
   };
-
-  // const handleTableLoad = (ds: any[]) => {
-  //   setState({ tableData: ds, totalCount: ds?.length || 0 });
-  //   if (!ds.length) {
-  //     setState({
-  //       selectedSeqId: null,
-  //       selectedRowIndex: -1,
-  //       selectedRowData: null,
-  //     });
-  //     return;
-  //   }
-
-  //   let idx = -1;
-  //   if (selectedSeqId != null) {
-  //     idx = ds.findIndex(
-  //       (r) => String(r?.condition_id) === String(selectedSeqId) //  用 condition_id 对齐
-  //     );
-  //   }
-  //   if (idx < 0) {
-  //     const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
-  //     idx = Math.min(Math.max(fallback, 0), ds.length - 1);
-  //   }
-  //   handleRowClick(ds[idx], idx);
-  // };
 
   const clearUpdateValue = (type: string) => {
     //type为condition是表示ConditionModal

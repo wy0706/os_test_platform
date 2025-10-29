@@ -20,11 +20,14 @@ import { dataTypeData } from "./schemas";
 import TempModal from "./tempModal";
 
 interface ConditionsProps {
-  onChange?: (data: any, selectedRowIndex: number) => void;
-  selectedRowIndex?: any;
+  selectedId?: number | null; // 受控选中：temp_id
+  onSelectedChange?: (id: number | null, index: number) => void;
 }
 
-const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
+const TemporaryVariables: React.FC<ConditionsProps> = ({
+  selectedId,
+  onSelectedChange,
+}) => {
   const [state, setState] = useSetState<any>({
     title: "",
     isPrecisionModalOpen: false,
@@ -180,11 +183,13 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
     busyRow,
   } = state;
   const ensureSelected = (record: any, index: number) => {
+    const id = record?.temp_id ?? null;
     setState({
-      selectedSeqId: record?.temp_id ?? null,
+      selectedSeqId: id,
       selectedRowIndex: index,
       selectedRowData: record,
     });
+    onSelectedChange?.(id, index); // ★ 回写父组件
   };
   const moveRow = async (
     record: any,
@@ -243,11 +248,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
   };
 
   const handleRowClick = (record: any, index: number) => {
-    setState({
-      selectedSeqId: record?.temp_id ?? null,
-      selectedRowIndex: index,
-      selectedRowData: record,
-    });
+    ensureSelected(record, index);
   };
   // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
   const handleInsertClick = async () => {
@@ -302,12 +303,22 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
         selectedSeqId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
-        pendingFocusIndex: null, // 清掉
+        pendingFocusIndex: null,
       });
+      onSelectedChange?.(null, -1);
       return;
     }
 
-    // ⭐ 1) 优先用 pendingFocusIndex
+    // ★ (0) 受控 selectedId
+    if (selectedId != null) {
+      const i = ds.findIndex((r) => String(r?.temp_id) === String(selectedId));
+      if (i >= 0) {
+        handleRowClick(ds[i], i);
+        return;
+      }
+    }
+
+    // (1) pendingFocusIndex
     if (state.pendingFocusIndex != null) {
       const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
       handleRowClick(ds[i], i);
@@ -315,7 +326,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       return;
     }
 
-    // 2) 再用 selectedSeqId（如果你仍想保留）
+    // (2) 本地 selectedSeqId
     let idx = -1;
     if (state.selectedSeqId != null) {
       idx = ds.findIndex(
@@ -323,7 +334,7 @@ const TemporaryVariables: React.FC<ConditionsProps> = ({ onChange }) => {
       );
     }
 
-    // 3) 兜底用上次的 index / 0
+    // (3) 兜底：上次 index 或 0
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);

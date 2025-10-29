@@ -28,11 +28,14 @@ import {
 } from "./schemas";
 
 interface ResultPageProps {
-  onChange?: (data: any, selectedRowIndex: number) => void;
-  selectedRowIndex?: any;
+  selectedId?: number | null; // 受控选中：result_id
+  onSelectedChange?: (id: number | null, index: number) => void;
 }
 
-const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
+const ResultPage: React.FC<ResultPageProps> = ({
+  selectedId,
+  onSelectedChange,
+}) => {
   const [state, setState] = useSetState<any>({
     isPrecisionResultOpen: false,
     precisionValue: null, //当前点击数据类型的整行数据
@@ -286,11 +289,13 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
     },
   ];
   const ensureSelected = (record: any, index: number) => {
+    const id = record?.result_id ?? null;
     setState({
-      selectedSeqId: record?.result_id ?? null,
+      selectedSeqId: id,
       selectedRowIndex: index,
       selectedRowData: record,
     });
+    onSelectedChange?.(id, index); // ★ 回写父组件
   };
   // 数组设置弹框的表格数据
   const [arrayTableData, setArrayTableData] = useState<any[]>([]);
@@ -359,11 +364,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
   };
 
   const handleRowClick = (record: any, index: number) => {
-    setState({
-      selectedSeqId: record?.result_id ?? null,
-      selectedRowIndex: index,
-      selectedRowData: record,
-    });
+    ensureSelected(record, index);
   };
   // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
   const handleInsertClick = async () => {
@@ -404,12 +405,24 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
         selectedSeqId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
-        pendingFocusIndex: null, // 清掉
+        pendingFocusIndex: null,
       });
+      onSelectedChange?.(null, -1);
       return;
     }
 
-    // ⭐ 1) 优先用 pendingFocusIndex
+    // ★ (0) 受控 selectedId
+    if (selectedId != null) {
+      const i = ds.findIndex(
+        (r) => String(r?.result_id) === String(selectedId)
+      );
+      if (i >= 0) {
+        handleRowClick(ds[i], i);
+        return;
+      }
+    }
+
+    // (1) pendingFocusIndex
     if (state.pendingFocusIndex != null) {
       const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
       handleRowClick(ds[i], i);
@@ -417,7 +430,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       return;
     }
 
-    // 2) 再用 selectedSeqId（如果你仍想保留）
+    // (2) 本地 selectedSeqId
     let idx = -1;
     if (state.selectedSeqId != null) {
       idx = ds.findIndex(
@@ -425,7 +438,7 @@ const ResultPage: React.FC<ResultPageProps> = ({ onChange }) => {
       );
     }
 
-    // 3) 兜底用上次的 index / 0
+    // (3) 兜底：上次 index 或 0
     if (idx < 0) {
       const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
       idx = Math.min(Math.max(fallback, 0), ds.length - 1);
