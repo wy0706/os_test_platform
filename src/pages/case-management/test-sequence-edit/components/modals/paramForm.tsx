@@ -91,6 +91,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
       }
     >
   >(initialData || []);
+  const [hasParams, setHasParams] = useState(true);
 
   // 根据值，优先匹配非 contants 的类型
   const autoPickTypeForValue = (
@@ -208,6 +209,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
       }
 
       const list = Array.isArray(data?.para_list) ? data.para_list : [];
+
       const rows = list.map((p: any, idx: number) =>
         mapBackendParaToRow(p, idx)
       );
@@ -252,6 +254,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
       setDataSource(filledRows);
       form.setFieldsValue({ params: formParams });
       setRefreshKey((k) => k + 1);
+      setHasParams(filledRows.length > 0);
     } catch (e) {
       onCancel?.();
     } finally {
@@ -260,7 +263,10 @@ const ParamForm: React.FC<ParamFormProps> = ({
   };
 
   useEffect(() => {
-    if (open) initData();
+    if (open) {
+      setHasParams(true); // 初始先允许
+      initData();
+    }
   }, [
     open,
     updateValue?.testcommand,
@@ -527,7 +533,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
       width={900}
       okText="确定"
       cancelText="取消"
-      okButtonProps={{ disabled: fetching }}
+      okButtonProps={{ disabled: fetching || !hasParams }}
       maskClosable={!fetching}
       closable={!fetching}
       styles={{

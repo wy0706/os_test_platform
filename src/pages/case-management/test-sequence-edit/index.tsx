@@ -180,7 +180,7 @@ const Page: React.FC = () => {
   };
   const goAdd = (group: any, sequence: any) => {
     history.push(
-      `/case-management/test-sequence-edit/add?group=${group}sequence=${sequence}&selectedId=${selectedId}`
+      `/case-management/test-sequence-edit/add?group=${group}&sequence=${sequence}&selectedId=${selectedId}`
     );
     window.location.reload();
   };

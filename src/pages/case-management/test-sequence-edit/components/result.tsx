@@ -28,297 +28,113 @@ import {
 } from "./schemas";
 
 interface ResultPageProps {
-  selectedId?: number | null; // 受控选中：result_id
+  /** 受控选中：稳定主键 id（不是 result_id） */
+  selectedId?: number | null;
   onSelectedChange?: (id: number | null, index: number) => void;
 }
 
 const ResultPage: React.FC<ResultPageProps> = ({
-  selectedId,
+  selectedId: controlledSelectedId,
   onSelectedChange,
 }) => {
   const [state, setState] = useSetState<any>({
     isPrecisionResultOpen: false,
-    precisionValue: null, //当前点击数据类型的整行数据
+    precisionValue: null,
     isEditModalOpen: false,
     editValue: {},
     tableData: [] as any[],
     totalCount: 0,
-    selectedSeqId: null as number | null, // ⭐ 主锚（使用 condition_id）
-    selectedRowIndex: -1, // 仅用于渲染高亮
+
+    // ✅ 以稳定 id 为选中锚
+    selectedId: controlledSelectedId ?? null,
+    selectedRowIndex: -1,
     selectedRowData: null as any,
+
     // 请求中的行
     busyRow: null as null | {
       type: "insert" | "update" | "delete" | "move";
       key?: any;
     },
+
+    // 刷新后的选中策略
+    pendingSelectId: null as number | null, // 优先：按 id 精准选中（移动/删除）
+    pendingFocusIndex: null as number | null, // 兜底：按 index 选中
+
+    // 插入差集定位（当 createOneResult 不返回新 id 时使用）
+    pendingInsertHint: null as {
+      prevIdSet: Set<number>; // 插入前已有的 id 集合
+      targetIndex: number; // 期望插入位置（多候选时最近优先）
+    } | null,
+
+    // 列表态
+    isFetchingList: false,
+    listReady: false,
+
+    // 其它
     precisionResultLoading: false,
-    pendingFocusIndex: null as number | null, // 刷新后优先用它来选中
-    isFetchingList: false, // 列表请求中
-    listReady: false, // 最近一次列表请求是否成功
   });
+
   const {
     isPrecisionResultOpen,
     precisionValue,
     editValue,
     isEditModalOpen,
-    selectedSeqId,
     selectedRowIndex,
-    totalCount,
     tableData,
     busyRow,
-    selectedRowData,
     precisionResultLoading,
+    pendingSelectId,
+    pendingFocusIndex,
+    pendingInsertHint,
   } = state;
-  const isBusy = !!state.busyRow;
-  const isInserting = state.busyRow?.type === "insert";
-  const columns: any = [
-    {
-      title: "序号",
-      dataIndex: "result_id",
-      // valueType: "index",
-      ellipsis: true,
-      width: 80,
-    },
-    {
-      title: "扩展名",
-      dataIndex: "extension_name",
-      // key: "extensionName",
-      ellipsis: true,
-    },
-    {
-      title: "变量名",
-      ellipsis: true,
-      dataIndex: "variable_name",
-    },
-    {
-      title: "数据类型",
-      dataIndex: "data_type",
-      render: (text: any, record: any) => {
-        return record.data_type === 10 ||
-          record.data_type === 11 ||
-          record.data_type === 12 ? (
-          <a
-            onClick={() => {
-              setState({
-                isPrecisionResultOpen: true,
-                precisionValue: record,
-              });
-            }}
-          >
-            {(valueIsExist(record.data_type) &&
-              dataTypeData[record.data_type]) ||
-              "-"}
-          </a>
-        ) : (
-          <span>
-            {(valueIsExist(record.data_type) &&
-              dataTypeData[record.data_type]) ||
-              "-"}
-          </span>
-        );
-      },
-    },
-    {
-      title: "编辑类型",
-      ellipsis: true,
-      dataIndex: "edit_type",
-      render: (text: any, record: any) => {
-        return (
-          <span>
-            {(valueIsExist(record.edit_type) &&
-              editTypeData[record.edit_type]) ||
-              "-"}
-          </span>
-        );
-      },
-    },
 
-    {
-      title: "最小值下限",
-      ellipsis: true,
-      // dataIndex: "minOffValue",
-      dataIndex: "min_lmt_Low",
-    },
-    {
-      title: "最小值上限",
-      ellipsis: true,
-      // dataIndex: "minHighValue",
-      dataIndex: "min_lmt_Upp",
-    },
-    {
-      title: "最小值默认值",
-      ellipsis: true,
-      dataIndex: "min_Def",
-      key: "minDefaultValue",
-    },
-    {
-      title: "最大值下限",
-      ellipsis: true,
-      dataIndex: "max_lmt_Low",
-      key: "maxOffValue",
-    },
-    {
-      ellipsis: true,
-      title: "最大值上限",
-      dataIndex: "max_lmt_Upp",
-      key: "maxHighValue",
-    },
-    {
-      title: "最大值默认值",
-      ellipsis: true,
-      key: "maxDefaultValue",
-      dataIndex: "max_Def",
-    },
-    {
-      title: "精度",
-      ellipsis: true,
-      dataIndex: "precision",
-    },
+  const resultRef = useRef<ActionType>();
+  const [arrayTableData, setArrayTableData] = useState<any[]>([]);
+  const isBusy = !!busyRow;
+  const isInserting = busyRow?.type === "insert";
 
-    {
-      ellipsis: true,
-      title: "数组大小",
-      dataIndex: "array_size",
-    },
-    {
-      title: "单位",
-      ellipsis: true,
-      dataIndex: "unit",
-    },
-    {
-      title: "可见",
-      ellipsis: true,
-      dataIndex: "visibility",
-      valueType: "select",
-      key: "visible",
-      valueEnum: {
-        1: {
-          text: "✓",
-          status: "Success",
-        },
-        0: {
-          text: "✗",
-          status: "Error",
-        },
-      },
-      // editable: () => true,
-    },
-    {
-      title: "操作",
-      valueType: "option",
-      key: "option",
-      width: 140,
-      render: (
-        text: any,
-        record: { id: any },
-        index: number,
-        action: { startEditable: (arg0: any) => void }
-      ) => {
-        const isFirst = index === 0;
-        const isLast = index === tableData.length - 1;
-        return [
-          <a
-            key="editable"
-            onClick={(e) => {
-              e.stopPropagation();
-              ensureSelected(record, index);
-              setState({
-                isEditModalOpen: true,
-                editValue: record,
-                pendingFocusIndex: index,
-              });
-            }}
-            style={{ marginRight: 10, color: "#1677ff" }}
-          >
-            <EditOutlined style={{ marginRight: 4 }} />
-          </a>,
-          <a
-            key="up"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isFirst && !isBusy) {
-                ensureSelected(record, index);
-                setState({ pendingFocusIndex: index - 1 }); // 目标行新位置
-                moveRow(record, index, "up");
-              }
-            }}
-            style={{
-              marginRight: 10,
-              cursor: isFirst || isBusy ? "not-allowed" : "pointer",
-              opacity: isFirst || isBusy ? 0.5 : 1,
-              color: isFirst || isBusy ? "#ccc" : "#1677ff",
-            }}
-          >
-            <ArrowUpOutlined style={{ marginRight: 4 }} />
-          </a>,
-          <a
-            key="down"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!isLast && !isBusy) {
-                ensureSelected(record, index);
-                setState({ pendingFocusIndex: index + 1 });
-                moveRow(record, index, "down");
-              }
-            }}
-            style={{
-              marginRight: 10,
-              cursor: isLast || isBusy ? "not-allowed" : "pointer",
-              opacity: isLast || isBusy ? 0.5 : 1,
-              color: isLast || isBusy ? "#ccc" : "#1677ff",
-            }}
-          >
-            <ArrowDownOutlined style={{ marginRight: 4 }} />
-          </a>,
-          <a
-            key="delete"
-            onClick={(e) => {
-              e.stopPropagation();
-
-              if (!isBusy) {
-                ensureSelected(record, index);
-                const target = isLast ? index - 1 : index;
-                setState({ pendingFocusIndex: target >= 0 ? target : null });
-                deleteRow(record, index);
-              }
-            }}
-            style={{ color: "#ff4d4f" }}
-          >
-            <DeleteOutlined style={{ marginRight: 4 }} />
-          </a>,
-        ];
-      },
-    },
-  ];
-  const ensureSelected = (record: any, index: number) => {
-    const id = record?.result_id ?? null;
+  /** 高亮 + 回写父组件（以稳定 id） */
+  const handleRowClick = (record: any, index: number) => {
+    const id = record?.id ?? null;
     setState({
-      selectedSeqId: id,
+      selectedId: id,
       selectedRowIndex: index,
       selectedRowData: record,
     });
-    onSelectedChange?.(id, index); // ★ 回写父组件
+    onSelectedChange?.(id, index);
   };
-  // 数组设置弹框的表格数据
-  const [arrayTableData, setArrayTableData] = useState<any[]>([]);
-  const resultRef = useRef<ActionType>();
-  useEffect(() => {
-    // 当打开数组设置弹框时，初始化表格数据
-    if (isPrecisionResultOpen && precisionValue) {
-      initializeArrayTableData();
-    }
-  }, [isPrecisionResultOpen, precisionValue]);
 
+  /** 取离 target 最近的索引 */
+  const nearestIndex = (target: number, indexes: number[]) => {
+    if (!indexes.length) return -1;
+    let best = indexes[0];
+    let bestDiff = Math.abs(indexes[0] - target);
+    for (let i = 1; i < indexes.length; i++) {
+      const d = Math.abs(indexes[i] - target);
+      if (d < bestDiff) {
+        best = indexes[i];
+        bestDiff = d;
+      }
+    }
+    return best;
+  };
+
+  /** 上/下移：移动成功后仍选中“当前这条”（按稳定 id 对焦） */
   const moveRow = async (
     record: any,
     index: number,
     direction: "up" | "down"
   ) => {
     const APiFn = direction === "up" ? moveUpResult : moveDownResult;
-    const delta = direction === "up" ? -1 : 1;
+    const newIndex = direction === "up" ? index - 1 : index + 1;
 
     try {
-      setState({ busyRow: { type: "move", key: record?.result_id } });
+      setState({
+        busyRow: { type: "move", key: record?.id },
+        pendingSelectId: record?.id, // 精准选中当前这一条
+        pendingFocusIndex: newIndex, // 兜底：期望的新位置
+      });
+
       const { code, message: msg } = await APiFn({
         result_id: record.result_id,
       });
@@ -327,7 +143,6 @@ const ResultPage: React.FC<ResultPageProps> = ({
         return;
       }
       message.success(msg || "操作成功");
-
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "操作失败");
@@ -336,25 +151,31 @@ const ResultPage: React.FC<ResultPageProps> = ({
     }
   };
 
+  /** 删除：成功后选中“同 index 的行”，末尾则上一行（尽量也用 id 精确） */
   const deleteRow = async (row: any, index: number) => {
     Modal.confirm({
       title: "确认删除吗？",
       onOk: async () => {
         try {
-          setState({ busyRow: { type: "delete", key: row?.result_id } });
+          const isLast = index === tableData.length - 1;
+          const targetIndex = isLast ? index - 1 : index;
+          const neighbor =
+            targetIndex >= 0 && targetIndex < tableData.length
+              ? tableData[targetIndex]
+              : null;
+
+          setState({
+            busyRow: { type: "delete", key: row?.id },
+            pendingSelectId: neighbor ? neighbor.id : null,
+            pendingFocusIndex: neighbor ? targetIndex : null,
+          });
+
           const { code, message: msg } = await deleteResult(row.result_id);
           if (code !== 0) {
             message.error(msg || "操作失败");
             return;
           }
           message.success("删除成功");
-
-          // 如果删除的是选中行，预先调整选中 seq_id：优先选中“下一条”，否则“上一条”
-          if (state.selectedSeqId === row.result_id) {
-            const isLast = index === state.tableData.length - 1;
-            const nextSeqId = isLast ? row.result_id - 1 : row.result_id; // 中间删：下一条补位则 seq_id 不变
-            setState({ selectedSeqId: nextSeqId >= 1 ? nextSeqId : null });
-          }
           afterMutate();
         } catch (e: any) {
           message.error(e?.message || "操作失败");
@@ -365,31 +186,45 @@ const ResultPage: React.FC<ResultPageProps> = ({
     });
   };
 
-  const handleRowClick = (record: any, index: number) => {
-    ensureSelected(record, index);
-  };
-  // 插入新行（基于当前选中行之后；若无选中则追加到末尾）
+  /** 插入新行：成功后选中新插入行；若接口不回 id → 用差集定位 */
   const handleInsertClick = async () => {
-    const lastId = state.tableData?.length
-      ? Math.max(...state.tableData.map((r: any) => Number(r.result_id) || 0))
-      : 0;
-    const targetSeqId = (state.selectedSeqId ?? lastId) + 1;
+    // 目标插入位置（当前选中行之后 / 末尾）
     const targetIndex =
-      state.selectedRowIndex >= 0
-        ? state.selectedRowIndex + 1
-        : state.tableData.length; // 没选中就追加到末尾并聚焦末尾
+      selectedRowIndex >= 0 ? selectedRowIndex + 1 : tableData.length;
+
+    // 供接口使用的顺序号（result_id）
+    const lastRid = tableData?.length
+      ? Math.max(...tableData.map((r: any) => Number(r.result_id) || 0))
+      : 0;
+    const baseRid =
+      selectedRowIndex >= 0
+        ? Number(tableData[selectedRowIndex]?.result_id) || lastRid
+        : lastRid;
+    const targetResultId = baseRid + 1;
+
+    // 插入前的 id 集合：reload 后用差集定位新行
+    const prevIdSet = new Set<number>(
+      tableData.map((r: any) => Number(r?.id)).filter((x) => !Number.isNaN(x))
+    );
+
     try {
-      setState({ busyRow: { type: "insert" }, pendingFocusIndex: targetIndex });
-      const { code, message: msg } = await createOneResult(targetSeqId);
+      setState({
+        busyRow: { type: "insert" },
+        pendingSelectId: null, // 等待差集定位
+        pendingFocusIndex: targetIndex,
+        pendingInsertHint: { prevIdSet, targetIndex },
+      });
+
+      const { code, message: msg } = await createOneResult(targetResultId);
       if (code !== 0) {
         message.error(msg || "插入失败");
+        setState({ pendingInsertHint: null });
         return;
       }
-      message.success(msg || `已在第${targetSeqId}插入`);
-      // setState({ selectedSeqId: targetSeqId }); // 新插入行作为选中
-      afterMutate();
+      message.success(msg || `已在第 ${targetResultId} 插入`);
+      afterMutate(); // reload → handleTableLoad 做差集定位
     } catch (e: any) {
-      message.error(e?.message || "插入失败");
+      setState({ pendingInsertHint: null });
     } finally {
       setState({ busyRow: null });
     }
@@ -399,55 +234,81 @@ const ResultPage: React.FC<ResultPageProps> = ({
     resultRef.current?.reload?.();
   };
 
+  /** 表格加载后决定选中（优先级：插入差集 → pendingSelectId → 受控 id → pendingFocusIndex → 之前 index/0） */
   const handleTableLoad = (ds: any[]) => {
     setState({ tableData: ds, totalCount: ds?.length || 0 });
 
     if (!ds.length) {
       setState({
-        selectedSeqId: null,
+        selectedId: null,
         selectedRowIndex: -1,
         selectedRowData: null,
         pendingFocusIndex: null,
+        pendingSelectId: null,
+        pendingInsertHint: null,
       });
       onSelectedChange?.(null, -1);
       return;
     }
 
-    // ★ (0) 受控 selectedId
-    if (selectedId != null) {
+    // 0) 插入差集定位（createOneResult 不返回新 id 的情况下）
+    if (pendingInsertHint && !pendingSelectId) {
+      const { prevIdSet, targetIndex } = pendingInsertHint;
+      const candidates: number[] = [];
+      ds.forEach((r, idx) => {
+        const id = Number(r?.id);
+        if (!Number.isNaN(id) && !prevIdSet.has(id)) {
+          candidates.push(idx);
+        }
+      });
+      if (candidates.length > 0) {
+        const pick = nearestIndex(targetIndex, candidates);
+        const idx = pick >= 0 ? pick : candidates[0];
+        handleRowClick(ds[idx], idx);
+        setState({ pendingInsertHint: null, pendingFocusIndex: null });
+        return;
+      }
+      setState({ pendingInsertHint: null });
+    }
+
+    // 1) 刚刚操作指定了 pendingSelectId（移动/删除）
+    if (pendingSelectId != null) {
+      const i = ds.findIndex((r) => String(r?.id) === String(pendingSelectId));
+      if (i >= 0) {
+        handleRowClick(ds[i], i);
+        setState({ pendingSelectId: null, pendingFocusIndex: null });
+        return;
+      }
+      setState({ pendingSelectId: null });
+    }
+
+    // 2) 父组件受控 id
+    if (controlledSelectedId != null) {
       const i = ds.findIndex(
-        (r) => String(r?.result_id) === String(selectedId)
+        (r) => String(r?.id) === String(controlledSelectedId)
       );
       if (i >= 0) {
         handleRowClick(ds[i], i);
+        setState({ pendingFocusIndex: null });
         return;
       }
     }
 
-    // (1) pendingFocusIndex
-    if (state.pendingFocusIndex != null) {
-      const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
+    // 3) 兜底：pendingFocusIndex（按位置）
+    if (pendingFocusIndex != null) {
+      const i = Math.min(Math.max(pendingFocusIndex, 0), ds.length - 1);
       handleRowClick(ds[i], i);
       setState({ pendingFocusIndex: null });
       return;
     }
 
-    // (2) 本地 selectedSeqId
-    let idx = -1;
-    if (state.selectedSeqId != null) {
-      idx = ds.findIndex(
-        (r) => String(r?.result_id) === String(state.selectedSeqId)
-      );
-    }
-
-    // (3) 兜底：上次 index 或 0
-    if (idx < 0) {
-      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
-      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
-    }
+    // 4) 最终兜底：沿用原 index 或第 0 行
+    const fallback = selectedRowIndex >= 0 ? selectedRowIndex : 0;
+    const idx = Math.min(Math.max(fallback, 0), ds.length - 1);
     handleRowClick(ds[idx], idx);
   };
 
+  /** 请求数据 */
   const requestData: any = async () => {
     setState({ isFetchingList: true, listReady: false });
     try {
@@ -468,78 +329,73 @@ const ResultPage: React.FC<ResultPageProps> = ({
       setState({ isFetchingList: false });
     }
   };
-  // 初始化数组表格数据
-  const initializeArrayTableData = () => {
-    const arraySize = precisionValue.array_size || 1;
-    const minOffValues = parseArrayString(precisionValue.min_lmt_Low);
-    const minHighValues = parseArrayString(precisionValue.min_lmt_Upp);
-    const minDefaultValues = parseArrayString(precisionValue.min_Def);
-    const maxOffValues = parseArrayString(precisionValue.max_lmt_Low);
-    const maxHighValues = parseArrayString(precisionValue.max_lmt_Upp);
-    const maxDefaultValues = parseArrayString(precisionValue.max_Def);
 
-    const data = [
-      {
-        key: "MinOffValue",
-        rowName: "最小值下限",
-        ...generateArrayColumns(minOffValues, arraySize),
-      },
-      {
-        key: "MinHighValue",
-        rowName: "最小值上限",
-        ...generateArrayColumns(minHighValues, arraySize),
-      },
-      {
-        key: "MinDefaultValue",
-        rowName: "最小值默认值",
-        ...generateArrayColumns(minDefaultValues, arraySize),
-      },
-      {
-        key: "MaxOffValue",
-        rowName: "最大值下限",
-        ...generateArrayColumns(maxOffValues, arraySize),
-      },
-      {
-        key: "MaxHighValue",
-        rowName: "最大值上限",
-        ...generateArrayColumns(maxHighValues, arraySize),
-      },
-      {
-        key: "MaxDefaultValue",
-        rowName: "最大值默认值",
-        ...generateArrayColumns(maxDefaultValues, arraySize),
-      },
-    ];
-    setArrayTableData(data);
-  };
+  /** 初始化数组设置表格数据（打开精度弹窗时） */
+  useEffect(() => {
+    if (isPrecisionResultOpen && precisionValue) {
+      const arraySize = precisionValue.array_size || 1;
+      const minOffValues = parseArrayString(precisionValue.min_lmt_Low);
+      const minHighValues = parseArrayString(precisionValue.min_lmt_Upp);
+      const minDefaultValues = parseArrayString(precisionValue.min_Def);
+      const maxOffValues = parseArrayString(precisionValue.max_lmt_Low);
+      const maxHighValues = parseArrayString(precisionValue.max_lmt_Upp);
+      const maxDefaultValues = parseArrayString(precisionValue.max_Def);
 
-  // 渲染数组设置表格
+      const data = [
+        {
+          key: "MinOffValue",
+          rowName: "最小值下限",
+          ...generateArrayColumns(minOffValues, arraySize),
+        },
+        {
+          key: "MinHighValue",
+          rowName: "最小值上限",
+          ...generateArrayColumns(minHighValues, arraySize),
+        },
+        {
+          key: "MinDefaultValue",
+          rowName: "最小值默认值",
+          ...generateArrayColumns(minDefaultValues, arraySize),
+        },
+        {
+          key: "MaxOffValue",
+          rowName: "最大值下限",
+          ...generateArrayColumns(maxOffValues, arraySize),
+        },
+        {
+          key: "MaxHighValue",
+          rowName: "最大值上限",
+          ...generateArrayColumns(maxHighValues, arraySize),
+        },
+        {
+          key: "MaxDefaultValue",
+          rowName: "最大值默认值",
+          ...generateArrayColumns(maxDefaultValues, arraySize),
+        },
+      ];
+      setArrayTableData(data);
+    }
+  }, [isPrecisionResultOpen, precisionValue]);
+
+  /** 数组表格渲染与保存 */
   const renderArraySettingTable = () => {
     if (!precisionValue) return null;
     const arraySize = precisionValue.array_size || 1;
-    // 动态生成表格列
     const columns: any = [
       {
         title: "",
         dataIndex: "rowName",
         key: "rowName",
         width: 100,
-        render: (text: string) => <strong>{text}</strong>,
+        render: (t: string) => <strong>{t}</strong>,
       },
-      ...Array.from({ length: arraySize }, (_, index) => ({
-        title: `${index + 1}`,
-        dataIndex: `col${index}`,
-        key: `col${index}`,
+      ...Array.from({ length: arraySize }, (_, idx) => ({
+        title: `${idx + 1}`,
+        dataIndex: `col${idx}`,
+        key: `col${idx}`,
         align: "center",
         width: 80,
         render: (text: string, record: any) => {
-          // 当数据类型为 bytearray 时，除了默认值外其他都不可编辑
-          // const isDisabled =
-          //   precisionValue.dataType === "bytearray" &&
-          //   (record.key === "MinOffValue" ||
-          //     record.key === "MinHighValue" ||
-          //     record.key === "MaxOffValue" ||
-          //     record.key === "MaxHighValue");
           const isbyte =
             precisionValue.data_type === 12 &&
             (record.key === "MinOffValue" ||
@@ -550,21 +406,16 @@ const ResultPage: React.FC<ResultPageProps> = ({
             <Input
               value={text}
               onChange={(e) =>
-                handleArrayCellChange(record.key, `col${index}`, e.target.value)
+                handleArrayCellChange(record.key, `col${idx}`, e.target.value)
               }
               disabled={isbyte}
               size="small"
-              style={{
-                textAlign: "center",
-                // backgroundColor: isDisabled ? "#f5f5f5" : "white",
-              }}
-              // disabled={isDisabled}
+              style={{ textAlign: "center" }}
             />
           );
         },
       })),
     ];
-
     return (
       <div>
         <div className="array-info">
@@ -587,23 +438,20 @@ const ResultPage: React.FC<ResultPageProps> = ({
     );
   };
 
-  // 处理数组表格单元格值变化
   const handleArrayCellChange = (
     rowKey: string,
     colKey: string,
     value: string
   ) => {
-    setArrayTableData((prevData) =>
-      prevData.map((row) =>
+    setArrayTableData((prev) =>
+      prev.map((row) =>
         row.key === rowKey ? { ...row, [colKey]: value } : row
       )
     );
   };
 
-  // 处理数组设置弹框确定按钮
   const handleArrayModalConfirm = async () => {
     try {
-      // 将表格数据转换回字符串格式
       const arraySize = precisionValue.array_size || 1;
       const minOffRow = arrayTableData.find((row) => row.key === "MinOffValue");
       const minHighRow = arrayTableData.find(
@@ -619,23 +467,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
       const maxDefaultRow = arrayTableData.find(
         (row) => row.key === "MaxDefaultValue"
       );
-      // 辅助函数：从行中提取数组并自动补0
-      const extractArray = (row: any) => {
-        return Array.from({ length: arraySize }, (_, i) => {
-          const val = row?.[`col${i}`];
-          return val === undefined || val === null || val === "" ? "0" : val;
-        });
-      };
-      console.log(
-        minOffRow,
-        minHighRow,
-        minDefaultRow,
-        maxOffRow,
-        maxHighRow,
-        maxDefaultRow
-      );
 
-      // 检查必需的行数据是否存在
       if (
         !minOffRow ||
         !minHighRow ||
@@ -648,7 +480,12 @@ const ResultPage: React.FC<ResultPageProps> = ({
         return;
       }
 
-      // 对于 bytearray 类型，最大值和最小值保持原值不变
+      const extractArray = (row: any) =>
+        Array.from({ length: arraySize }, (_, i) => {
+          const val = row?.[`col${i}`];
+          return val === undefined || val === null || val === "" ? "0" : val;
+        });
+
       let minOffValue,
         minHighValue,
         minDefaultValue,
@@ -656,13 +493,12 @@ const ResultPage: React.FC<ResultPageProps> = ({
         maxHighValue,
         maxDefaultValue;
       if (precisionValue.dataType === 12) {
-        // 保持原来的值
+        // bytearray: 上下限保持原值
         minOffValue = precisionValue.min_lmt_Low || "";
         minHighValue = precisionValue.min_lmt_Upp || "";
         maxOffValue = precisionValue.max_lmt_Low || "";
         maxHighValue = precisionValue.max_lmt_Upp || "";
       } else {
-        //   // 其他类型正常更新
         minOffValue = JSON.stringify(extractArray(minOffRow));
         minHighValue = JSON.stringify(extractArray(minHighRow));
         maxOffValue = JSON.stringify(extractArray(maxOffRow));
@@ -670,6 +506,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
       }
       minDefaultValue = JSON.stringify(extractArray(minDefaultRow));
       maxDefaultValue = JSON.stringify(extractArray(maxDefaultRow));
+
       const params = {
         ...precisionValue,
         min_lmt_Low: minOffValue,
@@ -680,23 +517,14 @@ const ResultPage: React.FC<ResultPageProps> = ({
         max_Def: maxDefaultValue,
       };
 
-      console.log("params", params);
-
       setState({ precisionResultLoading: true });
-      // 调用更新接口
-      // await updateTestCondition(params);
-      // 模拟接口调用延时
       const { code, message: msg } = await updateOneResult(params);
-
       if (code !== 0) {
         message.error(msg || "操作失败");
         return;
       }
       message.success(msg || "操作成功");
-      setState({
-        isPrecisionResultOpen: false,
-        precisionValue: null,
-      });
+      setState({ isPrecisionResultOpen: false, precisionValue: null });
       afterMutate();
     } catch (error) {
       console.error("保存数组设置时出错:", error);
@@ -709,6 +537,145 @@ const ResultPage: React.FC<ResultPageProps> = ({
     setState({ isPrecisionResultOpen: false, precisionValue: null });
   };
 
+  const columns: any = [
+    { title: "序号", dataIndex: "result_id", ellipsis: true, width: 80 }, // 展示顺序
+    { title: "扩展名", dataIndex: "extension_name", ellipsis: true },
+    { title: "变量名", dataIndex: "variable_name", ellipsis: true },
+    {
+      title: "数据类型",
+      dataIndex: "data_type",
+      render: (_: any, record: any) =>
+        record.data_type === 10 ||
+        record.data_type === 11 ||
+        record.data_type === 12 ? (
+          <a
+            onClick={() => {
+              setState({ isPrecisionResultOpen: true, precisionValue: record });
+            }}
+          >
+            {(valueIsExist(record.data_type) &&
+              dataTypeData[record.data_type]) ||
+              "-"}
+          </a>
+        ) : (
+          <span>
+            {(valueIsExist(record.data_type) &&
+              dataTypeData[record.data_type]) ||
+              "-"}
+          </span>
+        ),
+    },
+    {
+      title: "编辑类型",
+      dataIndex: "edit_type",
+      ellipsis: true,
+      render: (_: any, record: any) => (
+        <span>
+          {(valueIsExist(record.edit_type) && editTypeData[record.edit_type]) ||
+            "-"}
+        </span>
+      ),
+    },
+    { title: "最小值下限", dataIndex: "min_lmt_Low", ellipsis: true },
+    { title: "最小值上限", dataIndex: "min_lmt_Upp", ellipsis: true },
+    { title: "最小值默认值", dataIndex: "min_Def", ellipsis: true },
+    { title: "最大值下限", dataIndex: "max_lmt_Low", ellipsis: true },
+    { title: "最大值上限", dataIndex: "max_lmt_Upp", ellipsis: true },
+    { title: "最大值默认值", dataIndex: "max_Def", ellipsis: true },
+    { title: "精度", dataIndex: "precision", ellipsis: true },
+    { title: "数组大小", dataIndex: "array_size", ellipsis: true },
+    { title: "单位", dataIndex: "unit", ellipsis: true },
+    {
+      title: "可见",
+      dataIndex: "visibility",
+      ellipsis: true,
+      valueType: "select",
+      valueEnum: {
+        1: { text: "✓", status: "Success" },
+        0: { text: "✗", status: "Error" },
+      },
+    },
+    {
+      title: "操作",
+      valueType: "option",
+      key: "option",
+      width: 140,
+      render: (_: any, record: any, index: number) => {
+        const isFirst = index === 0;
+        const isLast = index === tableData.length - 1;
+        return [
+          <a
+            key="editable"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(record, index);
+              setState({
+                isEditModalOpen: true,
+                editValue: record,
+                pendingFocusIndex: index,
+              });
+            }}
+            style={{ marginRight: 10, color: "#1677ff" }}
+          >
+            <EditOutlined style={{ marginRight: 4 }} />
+          </a>,
+          <a
+            key="up"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isFirst && !isBusy) moveRow(record, index, "up");
+            }}
+            style={{
+              marginRight: 10,
+              cursor: isFirst || isBusy ? "not-allowed" : "pointer",
+              opacity: isFirst || isBusy ? 0.5 : 1,
+              color: isFirst || isBusy ? "#ccc" : "#1677ff",
+            }}
+          >
+            <ArrowUpOutlined style={{ marginRight: 4 }} />
+          </a>,
+          <a
+            key="down"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isLast && !isBusy) moveRow(record, index, "down");
+            }}
+            style={{
+              marginRight: 10,
+              cursor: isLast || isBusy ? "not-allowed" : "pointer",
+              opacity: isLast || isBusy ? 0.5 : 1,
+              color: isLast || isBusy ? "#ccc" : "#1677ff",
+            }}
+          >
+            <ArrowDownOutlined style={{ marginRight: 4 }} />
+          </a>,
+          <a
+            key="delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isBusy) {
+                const isLastRow = index === tableData.length - 1;
+                const targetIndex = isLastRow ? index - 1 : index;
+                const neighbor =
+                  targetIndex >= 0 && targetIndex < tableData.length
+                    ? tableData[targetIndex]
+                    : null;
+                setState({
+                  pendingFocusIndex: neighbor ? targetIndex : null,
+                  pendingSelectId: neighbor ? neighbor.id : null,
+                });
+                deleteRow(record, index);
+              }
+            }}
+            style={{ color: "#ff4d4f" }}
+          >
+            <DeleteOutlined style={{ marginRight: 4 }} />
+          </a>,
+        ];
+      },
+    },
+  ];
+
   return (
     <div className="result-page tabs-page">
       <ProTable
@@ -716,7 +683,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         actionRef={resultRef}
         request={requestData}
         onLoad={handleTableLoad}
-        rowKey={(row) => String(row?.result_id)}
+        rowKey={(row) => String(row?.id)} // ✅ 稳定主键 id
         search={false}
         pagination={false}
         loading={isBusy || state.isFetchingList}
@@ -724,7 +691,7 @@ const ResultPage: React.FC<ResultPageProps> = ({
         onRow={(record, index) => ({
           onClick: () => !isBusy && handleRowClick(record, index || 0),
         })}
-        rowClassName={(record, index) =>
+        rowClassName={(_record, index) =>
           selectedRowIndex === index ? "selected-row" : ""
         }
         toolBarRender={() => [
@@ -753,31 +720,24 @@ const ResultPage: React.FC<ResultPageProps> = ({
           <Button key="cancel" onClick={handleModalCancel}>
             取消
           </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            onClick={() => {
-              // 确定按钮的处理逻辑
-              handleArrayModalConfirm();
-            }}
-          >
+          <Button key="submit" type="primary" onClick={handleArrayModalConfirm}>
             确定
           </Button>,
         ]}
       >
         {renderArraySettingTable()}
       </Modal>
+
       <ResultModal
         open={isEditModalOpen}
         onCancel={() => setState({ isEditModalOpen: false, editValue: {} })}
         type="edit"
         updateValue={editValue}
-        onOk={(values) => {
+        onOk={() => {
           setState({ isEditModalOpen: false, editValue: {} });
           afterMutate();
         }}
       />
-      {/* <Modal title="编辑测试条件" open={isEditModalOpen}></Modal> */}
     </div>
   );
 };

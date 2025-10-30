@@ -28,11 +28,14 @@ import { buildCommandTreeData } from "./schemas";
 const { Text } = Typography;
 
 interface ProcessProps {
-  selectedId?: number | null; // 受控：选中 seq_id
+  selectedId?: number | null; // 用稳定主键 id 作为受控选中
   onSelectedChange?: (id: number | null, index: number) => void;
 }
 
-const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
+const Process: React.FC<ProcessProps> = ({
+  selectedId: controlledSelectedId,
+  onSelectedChange,
+}) => {
   const actionRef = useRef<ActionType>();
   const [state, setState] = useSetState<any>({
     // 弹窗/参数
@@ -42,17 +45,18 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     paramValue: {},
     paramType: "",
     paramExplanation: null,
+
     // 树
     processedTreeData: [],
     expandedKeys: [],
     selectedTreeKeys: [] as React.Key[],
     selectedCommand: "",
 
-    // 表格与选中：以 seq_id 为锚
+    // 表格与选中（以 id 为锚）
     tableData: [] as any[],
     totalCount: 0,
-    selectedSeqId: null as number | null, // 主锚
-    selectedRowIndex: -1, // 高亮
+    selectedId: controlledSelectedId ?? null,
+    selectedRowIndex: -1,
     selectedRowData: null as any,
 
     // 忙态
@@ -61,8 +65,16 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
       key?: any;
     },
 
-    // 刷新后优先聚焦的行下标（与 Result 一致）
-    pendingFocusIndex: null as number | null,
+    // 刷新后的单次选中策略
+    pendingSelectId: null as number | null, // 优先：按 id 精准选中
+    pendingFocusIndex: null as number | null, // 兜底：按 index 选中
+
+    // 插入差集定位线索（insertCmd 不返回 id 时使用）
+    pendingInsertHint: null as {
+      commandKey: string; // 插入的 testcommand
+      prevIdSet: Set<number>; // 插入前已有的 id 集合
+      targetIndex: number; // 期望插入位置（多候选时最近优先）
+    } | null,
   });
 
   const {
@@ -74,10 +86,12 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     selectedTreeKeys,
     tableData,
     selectedRowIndex,
-    selectedSeqId,
     paramType,
     paramExplanation,
     paramValue,
+    pendingSelectId,
+    pendingFocusIndex,
+    pendingInsertHint,
   } = state;
 
   const isBusy = !!state.busyRow;
@@ -85,16 +99,123 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
 
   const getRowCmd = (row: any) => row?.command || row?.testcommand || "";
 
-  const ensureSelected = (record: any, index: number) => {
-    const id = record?.seq_id ?? null;
+  /** 仅更新表格选中（不联动树） */
+  const handleRowClick = (record: any, index: number) => {
     setState({
-      selectedSeqId: id,
+      selectedId: record?.id ?? null,
       selectedRowIndex: index,
       selectedRowData: record,
     });
-    onSelectedChange?.(id, index); // ★ 回写父组件
+    onSelectedChange?.(record?.id ?? null, index);
   };
 
+  /** 选中表格行 + 联动右侧命令树 */
+  const onRowPick = (record: any, index: number) => {
+    handleRowClick(record, index);
+    const cmd = getRowCmd(record);
+    if (cmd) syncTreeWithCommand(cmd);
+    else syncTreeWithCommand("");
+  };
+
+  // 取离 target 最近的索引
+  const nearestIndex = (target: number, indexes: number[]) => {
+    if (!indexes.length) return -1;
+    let best = indexes[0];
+    let bestDiff = Math.abs(indexes[0] - target);
+    for (let i = 1; i < indexes.length; i++) {
+      const d = Math.abs(indexes[i] - target);
+      if (d < bestDiff) {
+        best = indexes[i];
+        bestDiff = d;
+      }
+    }
+    return best;
+  };
+
+  /** 表格加载后决定选中（优先级：插入差集 → pendingSelectId → 受控 id → pendingFocusIndex → 之前 index/0） */
+  const handleTableLoad = (ds: any[]) => {
+    setState({ tableData: ds, totalCount: ds?.length || 0 });
+
+    if (!ds.length) {
+      setState({
+        selectedId: null,
+        selectedRowIndex: -1,
+        selectedRowData: null,
+        pendingFocusIndex: null,
+        pendingSelectId: null,
+        pendingInsertHint: null,
+      });
+      syncTreeWithCommand("");
+      onSelectedChange?.(null, -1);
+      return;
+    }
+
+    // 0) 插入差集定位（insertCmd 不返回 id 的情况下）
+    if (pendingInsertHint && !pendingSelectId) {
+      const { commandKey, prevIdSet, targetIndex } = pendingInsertHint;
+      const candidates: number[] = [];
+      ds.forEach((r, idx) => {
+        const id = Number(r?.id);
+        if (
+          !Number.isNaN(id) &&
+          !prevIdSet.has(id) &&
+          r?.testcommand === commandKey
+        ) {
+          candidates.push(idx);
+        }
+      });
+      if (candidates.length > 0) {
+        const pick = nearestIndex(targetIndex, candidates);
+        const idx = pick >= 0 ? pick : candidates[0];
+        onRowPick(ds[idx], idx); // ✅ 初次进入/重载后用 onRowPick 联动树
+        setState({ pendingInsertHint: null, pendingFocusIndex: null });
+        return;
+      }
+      setState({ pendingInsertHint: null });
+    }
+
+    // 1) 刚刚操作指定了 pendingSelectId
+    if (pendingSelectId != null) {
+      const i = ds.findIndex((r) => String(r?.id) === String(pendingSelectId));
+      if (i >= 0) {
+        onRowPick(ds[i], i); // ✅ 改为 onRowPick
+        setState({ pendingSelectId: null, pendingFocusIndex: null });
+        return;
+      }
+      setState({ pendingSelectId: null });
+    }
+
+    // 2) 父组件受控 id
+    if (controlledSelectedId != null) {
+      const i = ds.findIndex(
+        (r) => String(r?.id) === String(controlledSelectedId)
+      );
+      if (i >= 0) {
+        onRowPick(ds[i], i); // ✅ 改为 onRowPick
+        setState({ pendingFocusIndex: null });
+        return;
+      }
+    }
+
+    // 3) 兜底：按 index
+    if (pendingFocusIndex != null) {
+      const i = Math.min(Math.max(pendingFocusIndex, 0), ds.length - 1);
+      onRowPick(ds[i], i); // ✅ 改为 onRowPick
+      setState({ pendingFocusIndex: null });
+      return;
+    }
+
+    // 4) 再兜底：沿用原 index 或 0
+    const fallback = selectedRowIndex >= 0 ? selectedRowIndex : 0;
+    const idx = Math.min(Math.max(fallback, 0), ds.length - 1);
+    onRowPick(ds[idx], idx); // ✅ 改为 onRowPick
+  };
+
+  const afterMutate = () => {
+    actionRef.current?.reload?.();
+  };
+
+  /** —— 树相关 —— */
   const getAllTreeKeys = (treeData: any[]): string[] => {
     const keys: string[] = [];
     const traverse = (nodes: any[]) => {
@@ -124,24 +245,16 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
   };
 
   const syncTreeWithCommand = (command?: string) => {
-    // 没有命令：清空树选中 & 清空选中命令
     if (!command) {
       setState({ selectedTreeKeys: [], selectedCommand: "" });
       return;
     }
-
-    // 树尚未就绪：清空树选中，但保留 selectedCommand（注释区仍可展示）
     if (!processedTreeData?.length) {
-      setState({
-        selectedTreeKeys: [],
-        selectedCommand: command,
-      });
+      setState({ selectedTreeKeys: [], selectedCommand: command });
       return;
     }
-
     const commandPath = findCommandInTree(command, processedTreeData);
     if (commandPath) {
-      // 找到了：选中命令节点并展开父节点
       setState({
         selectedTreeKeys: [command as unknown as React.Key],
         expandedKeys: [
@@ -150,11 +263,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
         selectedCommand: command,
       });
     } else {
-      //找不到：清空树选中，但保留 selectedCommand（仅取消树上的高亮）
-      setState({
-        selectedTreeKeys: [],
-        selectedCommand: command,
-      });
+      setState({ selectedTreeKeys: [], selectedCommand: command });
     }
   };
 
@@ -162,94 +271,24 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     setState({ isparamShow: false });
     syncTreeWithCommand(command);
   };
-  // const handleCommandClick = (command: string) => {
-  //   // 点击“测试命令”列显式联动树
-  //   setState({ isparamShow: false, selectedCommand: command });
-  //   if (processedTreeData.length) {
-  //     const commandPath = findCommandInTree(command, processedTreeData);
-  //     if (commandPath) {
-  //       setState({
-  //         selectedTreeKeys: [command],
-  //         expandedKeys: [
-  //           ...new Set([...expandedKeys, ...commandPath.slice(0, -1)]),
-  //         ],
-  //       });
-  //     }
-  //   }
-  // };
 
-  // 选中表格行 → 联动树
-  const handleRowClick = (record: any, index: number) => {
-    ensureSelected(record, index);
-    const cmd = getRowCmd(record);
-    if (cmd) syncTreeWithCommand(cmd);
-    else syncTreeWithCommand("");
-  };
-  const afterMutate = () => {
-    actionRef.current?.reload?.();
-  };
-
-  const handleTableLoad = (ds: any[]) => {
-    setState({ tableData: ds, totalCount: ds?.length || 0 });
-
-    if (!ds.length) {
-      setState({
-        selectedSeqId: null,
-        selectedRowIndex: -1,
-        selectedRowData: null,
-        pendingFocusIndex: null,
-      });
-      syncTreeWithCommand("");
-      onSelectedChange?.(null, -1); // ★ 清空上报
-      return;
-    }
-
-    // ★ (0) 最高优先：父组件受控 selectedId
-    if (selectedId != null) {
-      const i = ds.findIndex((r) => String(r?.seq_id) === String(selectedId));
-      if (i >= 0) {
-        handleRowClick(ds[i], i);
-        return;
-      }
-    }
-
-    // (1) 其次：pendingFocusIndex
-    if (state.pendingFocusIndex != null) {
-      const i = Math.min(Math.max(state.pendingFocusIndex, 0), ds.length - 1);
-      handleRowClick(ds[i], i);
-      setState({ pendingFocusIndex: null });
-      return;
-    }
-
-    // (2) 再次：本地 selectedSeqId
-    let idx = -1;
-    if (selectedSeqId != null) {
-      idx = ds.findIndex((r) => String(r?.seq_id) === String(selectedSeqId));
-    }
-
-    // (3) 兜底：上次 index 或 0（满足“有数据默认第一条”）
-    if (idx < 0) {
-      const fallback = state.selectedRowIndex >= 0 ? state.selectedRowIndex : 0;
-      idx = Math.min(Math.max(fallback, 0), ds.length - 1);
-    }
-    handleRowClick(ds[idx], idx);
-  };
-
+  // 上/下移：移动成功后仍选中“当前这条”（按稳定 id 对焦），高亮跟随到新位置
   const moveRow = async (
     record: any,
     index: number,
     direction: "up" | "down"
   ) => {
     const APiFn = direction === "up" ? moveUpCmd : moveDownCmd;
-    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    const newIndex = direction === "up" ? index - 1 : index + 1;
 
     try {
-      ensureSelected(record, index); // 显式保持“当前行”
-      // 刷新后希望聚焦的新位置（从而触发行→树同步）
+      // 关键：对焦当前记录的稳定 id；index 只是兜底（防止极端情况下没找到）
       setState({
-        busyRow: { type: "move", key: record?.seq_id },
-        pendingFocusIndex: nextIndex,
+        busyRow: { type: "move", key: record?.id },
+        pendingSelectId: record?.id, // ★ 用当前这条的 id 作为精准选中锚
+        pendingFocusIndex: newIndex, // ★ 兜底：期望高亮的新位置
       });
+
       const { code, message: msg } = await APiFn({
         seq_id: record.seq_id,
         testcommand: record.testcommand,
@@ -259,6 +298,8 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
         return;
       }
       message.success(msg || "操作成功");
+
+      // 触发表格刷新 → handleTableLoad 会按 pendingSelectId 精准命中当前这条
       afterMutate();
     } catch (e: any) {
       message.error(e?.message || "操作失败");
@@ -267,18 +308,23 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     }
   };
 
+  // 删除：成功后选中“同 index 的行”，末尾则上一行
   const deleteRow = async (row: any, index: number) => {
     Modal.confirm({
       title: "确认删除吗？",
       onOk: async () => {
         try {
-          ensureSelected(row, index);
-          // 删除后聚焦“下一条”（中间删）或“上一条”（末尾删）
-          const isLast = index === state.tableData.length - 1;
-          const target = isLast ? index - 1 : index;
+          const isLast = index === tableData.length - 1;
+          const targetIndex = isLast ? index - 1 : index;
+          const neighbor =
+            targetIndex >= 0 && targetIndex < tableData.length
+              ? tableData[targetIndex]
+              : null;
+
           setState({
-            busyRow: { type: "delete", key: row?.seq_id },
-            pendingFocusIndex: target >= 0 ? target : null,
+            busyRow: { type: "delete", key: row?.id },
+            pendingSelectId: neighbor ? neighbor.id : null,
+            pendingFocusIndex: neighbor ? targetIndex : null,
           });
 
           const { code, message: msg } = await deleteCmd(row.seq_id);
@@ -289,7 +335,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
           message.success("删除成功");
           afterMutate();
         } catch (e: any) {
-          message.error(e?.message || "操作失败");
         } finally {
           setState({ busyRow: null });
         }
@@ -297,7 +342,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     });
   };
 
-  // === 插入：设置 pendingFocusIndex + 顶部 loading，reload 后选中并联动树 ===
+  // 插入：insertCmd 不返回新 id → 使用差集定位
   const insertAt = async (
     nodeKey: string,
     nodeTitle: string
@@ -307,34 +352,57 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
       return false;
     }
 
-    // 插入目标 seq_id 与 刷新后期望聚焦的 index（当前行后 or 末尾）
-    const lastSeq = state.tableData?.length
-      ? Math.max(...state.tableData.map((r: any) => Number(r.seq_id) || 0))
-      : 0;
-    const targetSeqId = (state.selectedSeqId ?? lastSeq) + 1;
+    // 目标插入位置（当前行之后 / 末尾）
     const targetIndex =
       state.selectedRowIndex >= 0
         ? state.selectedRowIndex + 1
         : state.tableData.length;
 
+    // 供接口用的 seq_id（显示顺序），但不作为选中锚
+    const lastSeq = state.tableData?.length
+      ? Math.max(...state.tableData.map((r: any) => Number(r.seq_id) || 0))
+      : 0;
+    const baseSeq =
+      state.selectedRowIndex >= 0
+        ? Number(state.tableData[state.selectedRowIndex]?.seq_id) || lastSeq
+        : lastSeq;
+    const targetSeqId = baseSeq + 1;
+
+    // 差集线索：插入前的 id 集合 + 命令 key + 目标位置
+    const prevIdSet = new Set<number>(
+      state.tableData
+        .map((r: any) => Number(r?.id))
+        .filter((x) => !Number.isNaN(x))
+    );
+
     const params = { seq_id: targetSeqId, testcommand: nodeKey };
     const loadingKey = "cmd-insert";
 
     try {
-      setState({ busyRow: { type: "insert" }, pendingFocusIndex: targetIndex });
+      setState({
+        busyRow: { type: "insert" },
+        pendingSelectId: null, // 没有后端新 id，只能靠差集
+        pendingFocusIndex: targetIndex, // 兜底按 index
+        pendingInsertHint: {
+          commandKey: String(nodeKey),
+          prevIdSet,
+          targetIndex,
+        },
+      });
       message.loading({ content: "正在插入…", key: loadingKey, duration: 0 });
 
       const { code, message: msg } = await insertCmd(params);
       if (code !== 0) {
         message.error(msg || "插入失败");
+        setState({ pendingInsertHint: null });
         return false;
       }
 
       message.success({ content: `已插入 ${nodeTitle}`, key: loadingKey });
-      afterMutate(); // reload → handleTableLoad → handleRowClick → syncTreeWithCommand
+      afterMutate(); // reload → handleTableLoad 里做差集定位
       return true;
     } catch (e: any) {
-      message.error(e?.message || "插入失败");
+      setState({ pendingInsertHint: null });
       return false;
     } finally {
       message.destroy(loadingKey);
@@ -342,7 +410,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     }
   };
 
-  // 注释
+  /** —— 注释 —— */
   const getComment = async (testcommand: any) => {
     try {
       const { code, data, message: msg } = await getCommentOne(testcommand);
@@ -357,9 +425,9 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     }
   };
 
-  // 双击树插入：也会设置 pendingFocusIndex；reload 后选中并联动树
+  /** —— 树交互 —— */
   const handleTreeDoubleClick = async (
-    event: React.MouseEvent,
+    _e: React.MouseEvent,
     node: any
   ): Promise<void> => {
     const nodeKey = node.key as React.Key;
@@ -390,10 +458,11 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     });
   };
 
+  /** —— 生命周期 —— */
   useEffect(() => {
-    // 任意时点只要 selectedCommand 变化就拉注释
-    getComment(state.selectedCommand);
+    if (state.selectedCommand) getComment(state.selectedCommand);
   }, [state.selectedCommand]);
+
   useEffect(() => {
     getTreeData();
   }, []);
@@ -403,6 +472,8 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
       syncTreeWithCommand(state.selectedCommand);
     }
   }, [processedTreeData, state.selectedCommand]);
+
+  /** —— 请求 —— */
   const requestData: any = async () => {
     const { code, data, message: msg } = await getCmdList();
     if (code !== 0) {
@@ -426,7 +497,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
         setState({ processedTreeData: [] });
         return;
       }
-
       const treeList = buildCommandTreeData(data || []);
       const allKeys = getAllTreeKeys(treeList);
       setState({ processedTreeData: treeList, expandedKeys: allKeys });
@@ -435,8 +505,9 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     }
   };
 
+  /** —— 列定义 —— */
   const columns: any[] = [
-    { title: "序号", dataIndex: "seq_id", width: 80 },
+    { title: "序号", dataIndex: "seq_id", width: 80 }, // 仅展示顺序
     {
       title: "激活",
       dataIndex: "active",
@@ -473,8 +544,9 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
         <div
           style={{ cursor: "pointer", color: "#1677ff" }}
           onClick={(e) => {
-            handleColumnClickWithRowSelect(record, index, "INPUT");
+            e.stopPropagation();
             setState({ paramType: "INPUT", paramValue: { ...record } });
+            handleColumnClickWithRowSelect(record, index, "INPUT");
           }}
         >
           {record.inputparams || "-"}
@@ -490,8 +562,9 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
         <div
           style={{ cursor: "pointer", color: "#1677ff" }}
           onClick={(e) => {
-            setState({ paramType: "OUT", paramValue: { ...record } });
-            handleColumnClickWithRowSelect(record, index, "OUT");
+            e.stopPropagation();
+            setState({ paramType: "OUTPUT", paramValue: { ...record } });
+            handleColumnClickWithRowSelect(record, index, "OUTPUT");
           }}
         >
           {record.outputparams || "-"}
@@ -517,7 +590,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
             key="editable"
             onClick={(e) => {
               e.stopPropagation();
-              ensureSelected(record, index);
+              handleRowClick(record, index);
               setState({
                 isProcessModalOpen: true,
                 updateValue: record,
@@ -573,13 +646,12 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
     },
   ];
 
-  // 列点击：行选择 + 模式切换（COMMAND 会显式联动树）
   const handleColumnClickWithRowSelect = (
     record: any,
     index: number,
     mode: string
   ) => {
-    handleRowClick(record, index);
+    onRowPick(record, index);
     if (mode === "COMMAND") {
       const cmd = getRowCmd(record);
       if (cmd) handleCommandClick(cmd);
@@ -596,7 +668,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
           actionRef={actionRef}
           columns={columns}
           request={requestData}
-          rowKey={(row) => String(row?.seq_id)}
+          rowKey={(row) => String(row?.id)} // ✅ 稳定主键 id
           search={false}
           options={false}
           pagination={false}
@@ -610,34 +682,32 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
               onClick={() => {
                 if (!selectedTreeKeys?.length)
                   return message.warning("请先选择要插入的测试命令");
-                const selectedNodeKey = selectedTreeKeys[0] as string;
 
-                const findNodeInTree = (treeData: any[], key: string): any => {
-                  for (const node of treeData) {
+                // 找到选中的叶子命令节点
+                const findNodeInTree = (tree: any[], key: string): any => {
+                  for (const node of tree) {
                     if (node.key === key) return node;
                     if (node.children?.length) {
-                      const found = findNodeInTree(node.children, key);
-                      if (found) return found;
+                      const res = findNodeInTree(node.children, key);
+                      if (res) return res;
                     }
                   }
                   return null;
                 };
-                const selectedNode = findNodeInTree(
-                  processedTreeData,
-                  selectedNodeKey
-                );
+                const nodeKey = String(selectedTreeKeys[0]);
+                const selectedNode = findNodeInTree(processedTreeData, nodeKey);
                 if (!selectedNode)
                   return message.warning("未找到选中的测试命令");
                 if (selectedNode.children?.length)
                   return message.warning("请选择具体的测试命令进行插入");
 
-                // 工具栏插入：当前选中行后 or 末尾；reload 后选中并联动树
+                // 设置兜底 index，并走插入（reload 后差集定位）
                 const targetIndex =
                   state.selectedRowIndex >= 0
                     ? state.selectedRowIndex + 1
                     : state.tableData.length;
                 setState({ pendingFocusIndex: targetIndex });
-                insertAt(selectedNodeKey, selectedNode.title);
+                insertAt(nodeKey, selectedNode.title);
               }}
             >
               插入
@@ -645,7 +715,7 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
           ]}
           size="small"
           onRow={(record, index) => ({
-            onClick: () => !isBusy && handleRowClick(record, index || 0),
+            onClick: () => !isBusy && onRowPick(record, index || 0),
           })}
           rowClassName={(_, index) =>
             selectedRowIndex === index ? "selected-row" : ""
@@ -656,7 +726,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
 
       {/* 右侧区域 */}
       <div className="process-right">
-        {/* 参数解释区域 */}
         <Card size="small" className="param-explanation-card">
           <div className="param-content">
             <div style={{ marginBottom: 10 }}>
@@ -670,7 +739,6 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
           </div>
         </Card>
 
-        {/* 树形结构区域 */}
         <Card size="small" className="tree-card">
           <div
             style={{
@@ -683,8 +751,31 @@ const Process: React.FC<ProcessProps> = ({ selectedId, onSelectedChange }) => {
               expandedKeys={expandedKeys}
               onExpand={(keys) => setState({ expandedKeys: keys as string[] })}
               selectedKeys={selectedTreeKeys}
-              onSelect={handleTreeSelect}
-              onDoubleClick={handleTreeDoubleClick}
+              onSelect={(keys, info) => {
+                const level = info.node.level;
+                setState({
+                  selectedTreeKeys: keys as React.Key[],
+                  selectedCommand:
+                    keys[0] && level === 2 ? String(keys[0]) : "",
+                });
+              }}
+              onDoubleClick={async (e, node) => {
+                const nodeKey = node.key as React.Key;
+                const nodeTitle = node.title;
+                if (node.children && node.children.length > 0) {
+                  message.warning("请选择具体的测试命令进行插入");
+                  return;
+                }
+                setState({
+                  selectedTreeKeys: [nodeKey],
+                  selectedCommand: String(nodeKey),
+                  pendingFocusIndex:
+                    state.selectedRowIndex >= 0
+                      ? state.selectedRowIndex + 1
+                      : state.tableData.length,
+                });
+                await insertAt(String(nodeKey), nodeTitle);
+              }}
               showIcon
               className="command-tree"
             />
