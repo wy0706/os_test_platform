@@ -59,7 +59,7 @@ const Page: React.FC = () => {
     isDirty: false,
     isRelease: false, //是否为已发布
     isPromptModalOpen: false, //
-    promptModalType: null, // 2）如果文件为未发布且已经改动 code：1  message：文件已经改动，需要保存吗？ 3）文件流程为空  code：2  ，message：尚未创建测试流程
+    promptModalType: null, // 2）如果文件为未发布且已经改动 code：1  message：文件已经改动，需要保存吗？文件流程为空  code：2  ，message：尚未创建测试流程
     autoId: null,
     isSaveAsModalOpen: false, //另存为
     addModalType: "",
@@ -69,6 +69,7 @@ const Page: React.FC = () => {
     saveLoading: false,
     saveAsLoading: false,
     sequenceName: null, //文件名
+    infoMsg: null,
     selectedKeeper: {
       process: { id: null as number | null, index: -1 },
       conditions: { id: null as number | null, index: -1 },
@@ -94,6 +95,7 @@ const Page: React.FC = () => {
     saveLoading,
     saveAsLoading,
     sequenceName,
+    infoMsg,
   } = state;
 
   const params = useParams();
@@ -139,7 +141,13 @@ const Page: React.FC = () => {
   };
 
   const handleGoBack = async () => {
-    const { code, message: msg } = await setNewOrBack();
+    if (!sequenceName || sequenceName.trim() === "") {
+      message.info("序列名称不能为空");
+      return;
+    }
+    const { code, message: msg } = await setNewOrBack({
+      sequence_name: sequenceName,
+    });
     if (code === 0) {
       goList();
       return;
@@ -147,9 +155,13 @@ const Page: React.FC = () => {
       setState({
         promptModalType: code,
         isPromptModalOpen: true,
+        infoMsg: msg || null,
       });
     } else {
       message.error(msg || "操作失败");
+      setState({
+        infoMsg: null,
+      });
     }
   };
 
@@ -190,9 +202,16 @@ const Page: React.FC = () => {
       setState({
         addLoading: true,
       });
-      const { code, message: msg } = await setNewOrBack();
+
+      if (!sequenceName || sequenceName.trim() === "") {
+        message.info("序列名称不能为空");
+        return;
+      }
+      const { code, message: msg } = await setNewOrBack({
+        sequence_name: sequenceName,
+      });
       if (code === 0) {
-        //支持新建，直接弹出新建Modal
+        //文件已保存支持新建，直接弹出新建Modal
         setState({
           addModalType: "add",
           isSaveAsModalOpen: true,
@@ -201,10 +220,14 @@ const Page: React.FC = () => {
         //文件已改动，且未保存
         Modal.confirm({
           title: "提示",
-          content:
-            "您正在编辑一个测试项目，如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗？",
-          onOk: async () => {
-            await saveRequest();
+          content: msg
+            ? `${msg} 如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗？`
+            : "您正在编辑一个测试项目，如果当前编辑的测试项目尚未保存，新建后当前数据将丢失，确定要打开另一个测试项目吗？",
+          onOk: () => {
+            setState({
+              addModalType: "add",
+              isSaveAsModalOpen: true,
+            });
           },
         });
         return;
@@ -227,7 +250,7 @@ const Page: React.FC = () => {
     Modal.confirm({
       title: "提示",
       content: text
-        ? `${text} 请选择 "另存为" 重新命名后保存；无需保存，请选择 "取消" `
+        ? `${text} 无需保存，请选择 "取消" `
         : `此测试项目已存在，且已发布，不能保存！如需保存，请选择 "另存为" 重新命名后保存；无需保存，请选择 "取消" `,
       okText: "另存为",
       onOk: () => {
@@ -235,7 +258,7 @@ const Page: React.FC = () => {
       },
     });
   };
-  const saveRequest = async () => {
+  const saveRequest = async (type?: string) => {
     if (!sequenceName || sequenceName.trim() === "") {
       message.info("序列名称不能为空");
       return;
@@ -248,7 +271,8 @@ const Page: React.FC = () => {
       return;
     } else if (code === 0) {
       message.success("保存成功");
-      goList(); // 保存成功后，返回上一页
+
+      type === "JUMP" && goList(); //返回上一页
     } else {
       message.error(msg || "保存失败");
     }
@@ -260,6 +284,7 @@ const Page: React.FC = () => {
       hasAlreadyExists();
       return;
     }
+
     try {
       setState({
         saveLoading: true,
@@ -424,28 +449,31 @@ const Page: React.FC = () => {
       <PromptModal
         open={isPromptModalOpen}
         type={promptModalType}
+        title={infoMsg}
         onCancel={() => {
           setState({
             isPromptModalOpen: false,
+            infoMsg: null,
           });
         }}
         onNo={() => {
           // 不保存直接返回
           setState({
             isPromptModalOpen: false,
+            infoMsg: null,
           });
           goList();
         }}
         onOk={() => {
           setState({
             isPromptModalOpen: false,
+            infoMsg: null,
           });
           if (promptModalType === 1) {
-            saveRequest();
+            saveRequest("JUMP");
             //需要保存，先保存后跳转
           } else if (promptModalType === 2) {
             goList();
-            // 确认直接返回
           }
         }}
       />

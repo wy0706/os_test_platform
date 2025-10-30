@@ -482,10 +482,12 @@ export async function saveData(data: any) {
 }
 /**
  *界面中 新建和返回的处理
+sequence_name 文件名
  */
-export async function setNewOrBack() {
+export async function setNewOrBack(data: any) {
   const result: any = await request<{}>(`${BaseApi.TESTSEQUENCE}/new`, {
     method: "POST",
+    data,
   });
   return result;
 }

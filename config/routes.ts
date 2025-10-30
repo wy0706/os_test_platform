@@ -228,13 +228,12 @@ export default [
         // access: ["operationLog-preview", "operationLog-edit"],
         component: "./log-management/operation-log",
       },
-
-      // {
-      //   path: "/log-management/test-log",
-      //   name: "测试日志",
-      //   // access: ["testLog-preview", "testLog-edit"],
-      //   component: "./log-management/test-log",
-      // },
+      {
+        path: "/log-management/test-log",
+        name: "测试日志",
+        // access: ["testLog-preview", "testLog-edit"],
+        component: "./log-management/test-log",
+      },
       {
         path: "/log-management/test-log-detail/:id",
         name: "测试日志详情",

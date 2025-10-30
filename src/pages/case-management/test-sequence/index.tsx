@@ -669,7 +669,7 @@ const TestSequence: React.FC = () => {
             const group = tigroup || "-";
             const sequence = sequence_name || "-";
             history.push(
-              `/case-management/test-sequence-edit/add?group=${group}sequence=${sequence}&selectedId=${selectedNodeId}`
+              `/case-management/test-sequence-edit/add?group=${group}&sequence=${sequence}&selectedId=${selectedNodeId}`
             );
           }
         }}
