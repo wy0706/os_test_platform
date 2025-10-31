@@ -1,4 +1,9 @@
-import { DemoService } from "@/services/case-management/test-sequence.service";
+import { getList as getUserList } from "@/services/backend-management/user-management.service";
+import { editRunFileForm } from "@/services/case-management/case-library.service";
+import { getList as getFiles } from "@/services/equipment-management/equipment-library.service";
+
+import { useModel } from "@umijs/max";
+import { useSetState } from "ahooks";
 import {
   DatePicker,
   type DatePickerProps,
@@ -8,15 +13,14 @@ import {
   Modal,
   Select,
 } from "antd";
-import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import dayjs, { isDayjs } from "dayjs";
+import { useEffect } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
-  updateValue?: any;
-  currentNode?: string;
+  id?: string | number;
 }
 const { Option } = Select;
 
@@ -28,60 +32,128 @@ const RunModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  updateValue,
-  currentNode,
+  id,
 }) => {
-  const [treeData, setTreeData] = useState<any>([]);
-  const [title, setTitle] = useState("add");
   const [form] = Form.useForm();
-  const [userList, setUserList] = useState<any>([]);
+  const { initialState } = useModel("@@initialState");
+  const { currentUser } = initialState || {};
+  const [state, setState] = useSetState<any>({
+    confirmLoading: false,
+    userList: [],
+    fileList: [],
+    autoId: null,
+  });
+  const { confirmLoading, userList, fileList, autoId } = state;
   // 加载树数据
-  const loadTreeData = async () => {
+  const getFileList = async () => {
     try {
-      const response = await DemoService.getTreeData();
-      if (response.code === 200) {
-        let list =
-          response.data.length > 0 &&
-          response.data.map((item) => ({
-            ...item,
-            selectable: false,
-          }));
-        setTreeData(list || []);
-      } else {
-        message.error(response.message);
+      const params = {
+        page_index: 1,
+        page_size: 9999,
+        sort: {},
+      };
+      const { data, code, message: msg } = await getFiles(params);
+      if (code !== 0) {
+        setState({
+          fileList: [],
+        });
+        message.error(msg || "获取配置文件失败");
+        return;
       }
+      setState({
+        fileList: data?.list_info || [],
+      });
     } catch (error) {
-      message.error("加载树数据失败");
+      setState({
+        fileList: [],
+      });
     } finally {
-      // setTreeLoading(false);
+    }
+  };
+  // 获取所有用户列表
+  const fetchAllUsers = async () => {
+    try {
+      const params = {
+        page_index: 1,
+        page_size: 9999,
+      };
+      const { code, data, message: msg } = await getUserList(params);
+      if (code !== 0) {
+        setState({
+          userList: [],
+        });
+        message.error(msg || "获取用户列表失败");
+        return;
+      }
+      setState({
+        userList: data?.list || [],
+      });
+    } catch (error) {
+      setState({
+        userList: [],
+      });
     }
   };
 
   useEffect(() => {
-    if (open) {
-      loadTreeData();
-      form?.resetFields();
-      updateValue &&
-        form?.setFieldsValue({ ...updateValue, gender: currentNode });
-    }
-  }, [open, updateValue]);
+    initData();
+  }, [open]);
 
-  const onFinish = (values: any) => {
-    console.log(values);
+  const initData = async () => {
+    if (!open) return;
+    form?.resetFields();
+    setState({
+      autoId: id,
+    });
+    await fetchAllUsers();
+    await getFileList();
+    form?.setFieldsValue({
+      user_id: {
+        label: currentUser?.name,
+        value: currentUser?.id,
+      },
+    });
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    const dt = values.testtime
+      ? isDayjs(values.testtime)
+        ? values.testtime
+        : dayjs(values.testtime)
+      : null;
+    const testtime = dt ? dt.format("YYYY-MM-DD HH:mm:ss") : null;
+    values["testtime"] = testtime;
+    let users = values.user_id;
+    values["username"] = users?.label;
+    values["user_id"] = users?.value;
+    if (!autoId) {
+      message.error("缺少执行文件ID");
+      return;
+    }
+    try {
+      setState({
+        confirmLoading: false,
       });
+      const { code, message: msg } = await editRunFileForm({
+        execution_file_id: autoId,
+        ...values,
+      });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+      // 跳转到运行界面
+      if (onOk) {
+        onOk(values);
+      }
+    } catch (e) {
+    } finally {
+      setState({
+        confirmLoading: false,
+      });
+    }
   };
 
   return (
@@ -92,17 +164,25 @@ const RunModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      afterClose={() => {
+        form?.resetFields();
+        setState({
+          autoId: null,
+        });
+      }}
+      confirmLoading={confirmLoading}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
-        <Form.Item name="name" label="型号">
+      <Form {...layout} form={form}>
+        <Form.Item name="mode" label="型号">
           <Input placeholder="输入型号" maxLength={32} allowClear />
         </Form.Item>
-        <Form.Item name="gender2" label="作者">
+        <Form.Item name="user_id" label="作者">
           <Select
             placeholder="选择作者"
+            labelInValue
             allowClear
             showSearch
             filterOption={(input, option) =>
@@ -121,7 +201,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
             ))}
           </Select>
         </Form.Item>
-        <Form.Item name="time" label="时间" initialValue={dayjs()}>
+        <Form.Item name="testtime" label="时间" initialValue={dayjs()}>
           <DatePicker
             showTime
             style={{ width: "100%" }}
@@ -134,14 +214,29 @@ const RunModal: React.FC<SetMemberModalProps> = ({
             }}
           />
         </Form.Item>
-        <Form.Item name="message" label="说明">
+        <Form.Item name="description" label="说明">
           <Input.TextArea rows={4} placeholder="输入说明" />
         </Form.Item>
-        <Form.Item name="status" label="配置文件" rules={[{ required: true }]}>
-          <Select placeholder="选择配置文件" allowClear>
-            <Option value="Pre测试">配置文件1.hwc</Option>
-            <Option value="UUT测试">配置文件2.hwc</Option>
-            <Option value="Post测试">配置文件3.hwc</Option>
+        <Form.Item
+          name="configfile"
+          label="配置文件"
+          rules={[{ required: true }]}
+        >
+          <Select
+            placeholder="选择配置文件"
+            allowClear
+            showSearch
+            filterOption={(input, option) =>
+              (option?.children as unknown as string)
+                ?.toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          >
+            {fileList.map((item: any) => (
+              <Option value={item.file_name} key={item.id}>
+                {item.file_name}
+              </Option>
+            ))}
           </Select>
         </Form.Item>
       </Form>

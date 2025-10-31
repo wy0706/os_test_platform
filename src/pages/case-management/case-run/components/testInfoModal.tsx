@@ -1,5 +1,7 @@
-import { Form, Input, Modal, Select } from "antd";
-import { useEffect, useState } from "react";
+import { getTestInfo } from "@/services/case-management/case-run.service";
+import { useSetState } from "ahooks";
+import { Form, Input, message, Modal, Select } from "antd";
+import { useEffect } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
@@ -19,32 +21,59 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
   onCancel,
   data,
 }) => {
-  const [treeData, setTreeData] = useState<any>([]);
-  const [title, setTitle] = useState("add");
+  const [state, setState] = useSetState<any>({
+    loading: false,
+    isDisabled: true,
+    confirmLoading: false,
+  });
 
-  const [userList, setUserList] = useState<any>([]);
-
+  const { loading, confirmLoading, isDisabled } = state;
   useEffect(() => {
-    if (open) {
-      form?.resetFields();
-      data && form?.setFieldsValue({ ...data });
-    }
-  }, [open, data]);
+    getDetails();
+  }, [open]);
 
+  const getDetails = async () => {
+    if (!open) return;
+    form?.resetFields();
+    try {
+      setState({
+        loading: true,
+      });
+      const { code, data, message: msg } = await getTestInfo();
+      console.log("data====", data);
+      if (code !== 0) {
+        message.error(msg || "获取测试信息失败");
+        setState({
+          isDisabled: true,
+        });
+        return;
+      }
+      setState({
+        isDisabled: false,
+      });
+    } catch (e) {
+      setState({
+        isDisabled: true,
+      });
+    } finally {
+      setState({
+        loading: false,
+      });
+    }
+  };
   const [form] = Form.useForm();
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
-      });
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+
+      if (onOk) {
+        onOk(values);
+      }
+    } catch (e) {
+    } finally {
+      setState({ confirmLoading: false });
+    }
   };
 
   return (
@@ -55,11 +84,20 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
+      confirmLoading={confirmLoading}
+      afterClose={() => {
+        form?.resetFields();
+        setState({
+          isDisabled: true,
+        });
+      }}
       styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
+      width={"35%"}
       onOk={handleOk}
+      loading={loading}
+      okButtonProps={{ disabled: isDisabled }}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item name="name" label="项目名称" rules={[{ required: true }]}>
           <Input placeholder="输入项目名称" allowClear disabled />
         </Form.Item>

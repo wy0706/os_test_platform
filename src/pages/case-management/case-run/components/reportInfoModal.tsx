@@ -1,5 +1,11 @@
-import { Checkbox, Col, Form, Input, Modal, Row, Select } from "antd";
-import { useEffect, useState } from "react";
+import {
+  GetExcelList,
+  getReportInfo,
+  getServerList,
+} from "@/services/case-management/case-run.service";
+import { useSetState } from "ahooks";
+import { Checkbox, Col, Form, Input, message, Modal, Row, Select } from "antd";
+import { useEffect } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
@@ -19,10 +25,15 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
   onCancel,
   data,
 }) => {
-  const [treeData, setTreeData] = useState<any>([]);
-  const [title, setTitle] = useState("add");
-  const [userList, setUserList] = useState<any>([]);
+  const [state, setState] = useSetState<any>({
+    loading: false,
+    isDisabled: true,
+    confirmLoading: false,
+    serveList: [],
+    excelList: [],
+  });
 
+  const { loading, confirmLoading, isDisabled } = state;
   useEffect(() => {
     if (open) {
       form?.resetFields();
@@ -33,42 +44,110 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
   }, [open, data]);
 
   const [form] = Form.useForm();
-
-  const onFinish = (values: any) => {
-    console.log(values);
+  const getReport = async () => {
+    try {
+      setState({
+        loading: true,
+      });
+      const { code, data, message: msg } = await getReportInfo();
+      if (code !== 0) {
+        message.error(msg || "获取报告详情失败");
+        setState({
+          isDisabled: true,
+        });
+        return;
+      }
+      setState({
+        isDisabled: false,
+      });
+      console.log("data", data);
+    } catch (e) {
+      setState({
+        isDisabled: true,
+      });
+    } finally {
+      setState({
+        loading: false,
+      });
+    }
+  };
+  const getServer = async () => {
+    try {
+      const { code, data, message: msg } = await getServerList();
+      if (code !== 0) {
+        message.error(msg || "获取服务器列表失败");
+        setState({
+          serveList: [],
+        });
+        return;
+      }
+      setState({
+        serveList: data || [],
+      });
+    } catch (e) {
+      setState({
+        serveList: [],
+      });
+    }
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        console.log("Form values:", values);
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const getExcel = async () => {
+    try {
+      const { code, data, message: msg } = await GetExcelList();
+      if (code !== 0) {
+        message.error(msg || "获取Excel模板失败");
+        setState({ excelList: [] });
+        return;
+      }
+      setState({ excelList: data || [] });
+    } catch (e) {
+      setState({ excelList: [] });
+    }
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form;
+
+      console.log("Form values:", values);
+      setState({
+        confirmLoading: true,
       });
+      if (onOk) {
+        onOk(values);
+      }
+    } catch (e) {
+    } finally {
+      setState({
+        confirmLoading: false,
+      });
+    }
   };
   const plainOptions = ["Apple", "Pear", "Orange"];
   return (
     <Modal
       title="报表导出设置"
       maskClosable={false}
+      loading={loading}
+      okButtonProps={{ disabled: isDisabled }}
+      confirmLoading={confirmLoading}
+      afterClose={() => {
+        form?.resetFields();
+        setState({
+          isDisabled: true,
+        });
+      }}
       open={open}
       onCancel={() => {
         onCancel && onCancel();
       }}
       styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
+      width={"35%"}
       onOk={handleOk}
     >
       <Form
         {...layout}
         form={form}
-        name="control-hooks"
-        onFinish={onFinish}
         initialValues={{
           name2: true,
           name4: true,

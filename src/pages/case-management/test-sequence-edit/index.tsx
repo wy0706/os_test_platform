@@ -433,6 +433,7 @@ const Page: React.FC = () => {
         onCancel={() => {
           setState({ isRunModalOpen: false });
         }}
+        id="-1"
         onOk={() => {
           setState({
             isRunModalOpen: false,

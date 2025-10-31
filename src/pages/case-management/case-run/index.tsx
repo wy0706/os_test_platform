@@ -1,4 +1,4 @@
-import { getList } from "@/services/task-management/test-requirement.service";
+import { getList } from "@/services/case-management/case-run.service";
 import {
   BarsOutlined,
   BookOutlined,
@@ -12,7 +12,7 @@ import {
   StopOutlined,
 } from "@ant-design/icons";
 import { ActionType, PageContainer } from "@ant-design/pro-components";
-import { history, useSearchParams } from "@umijs/max";
+import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import {
   Button,
@@ -137,7 +137,11 @@ const Page: React.FC = () => {
     isVectorInfoModalOpen,
     disableClearAll,
   } = state;
+  const params = useParams();
 
+  useEffect(() => {
+    console.log("params", params.id);
+  }, []);
   // 处理下拉菜单点击事件
   const handleMenuClick = ({ key }: { key: string }) => {
     console.log("点击的菜单项key:", key);
@@ -172,60 +176,64 @@ const Page: React.FC = () => {
       setState({ stepMode: value });
     }
   };
-  const requestData: any = async (...args: any) => {
+  const requestData: any = async () => {
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
+      if (!params.id) return;
+      const res = await getList(String(params.id));
+      console.log("res", res);
+      return;
+
       // const treeData = convertToTreeData(res);
       setState({ dataSource: res });
     } catch {
       // Mock数据
-      const mockData = [
-        {
-          id: 100,
-          title: "test add",
-          describe: "",
-          schemas: "",
-          qualified: "",
-          group: 100,
-        },
-        {
-          id: 11,
-          title: "test add",
-          describe: "PreTestItemProcessing2",
-          schemas: "1.000000,2.000000,b",
-          qualified: "",
-          group: 100,
-        },
-        {
-          id: 2,
-          title: "test add",
-          describe: "ADD",
-          schemas: "",
-          qualified: "",
-          group: 100,
-        },
-        {
-          id: 101,
-          title: "test add2",
-          describe: "",
-          schemas: "",
-          qualified: "",
-          group: 101,
-        },
-        {
-          id: 31,
-          title: "",
-          describe: "PreTestItemProcessing",
-          schemas: "1.000000,2.000000,b",
-          qualified: "PASS",
-          group: 101,
-        },
-      ];
+      // const mockData = [
+      //   {
+      //     id: 100,
+      //     title: "test add",
+      //     describe: "",
+      //     schemas: "",
+      //     qualified: "",
+      //     group: 100,
+      //   },
+      //   {
+      //     id: 11,
+      //     title: "test add",
+      //     describe: "PreTestItemProcessing2",
+      //     schemas: "1.000000,2.000000,b",
+      //     qualified: "",
+      //     group: 100,
+      //   },
+      //   {
+      //     id: 2,
+      //     title: "test add",
+      //     describe: "ADD",
+      //     schemas: "",
+      //     qualified: "",
+      //     group: 100,
+      //   },
+      //   {
+      //     id: 101,
+      //     title: "test add2",
+      //     describe: "",
+      //     schemas: "",
+      //     qualified: "",
+      //     group: 101,
+      //   },
+      //   {
+      //     id: 31,
+      //     title: "",
+      //     describe: "PreTestItemProcessing",
+      //     schemas: "1.000000,2.000000,b",
+      //     qualified: "PASS",
+      //     group: 101,
+      //   },
+      // ];
       // 转换为树形结构
       // const treeData = convertToTreeData(mockData);
       // console.log("treeData", treeData);
 
-      setState({ dataSource: mockData });
+      setState({ dataSource: [] });
     }
   };
   // useEffect(() => {
@@ -422,9 +430,9 @@ const Page: React.FC = () => {
                     setState({ tabActiveKey: key });
                   }}
                 />
-                {tabActiveKey === "1" && <TestInfo />}
+                {tabActiveKey === "1" && <TestInfo title={title} />}
                 {tabActiveKey === "2" && <TestResult />}
-                {tabActiveKey === "3" && <TestCondition />}
+                {tabActiveKey === "3" && <TestCondition id={params.id} />}
               </div>
             </Col>
           </Row>

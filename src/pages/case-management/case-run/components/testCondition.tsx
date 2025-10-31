@@ -1,9 +1,11 @@
+import { getConditionalInfoList } from "@/services/case-management/case-run.service";
 import { useSetState } from "ahooks";
-import { Checkbox, Table } from "antd";
+import { Checkbox, message, Table } from "antd";
 import React, { useEffect } from "react";
+
 interface ResultProps {
-  data?: any; //datasource数据
-  id?: any;
+  data?: any;
+  id: any;
 }
 const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
   // 处理数组展开的函数
@@ -150,6 +152,7 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
 
   // 初始化时设置dataSource为原始数据
   useEffect(() => {
+    requestData();
     const filteredData = expandArrayItems(data2);
     setState({
       dataSource: filteredData,
@@ -188,6 +191,23 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
     });
 
     return result;
+  };
+
+  const requestData: any = async () => {
+    console.log("id", id);
+
+    try {
+      if (!id) return;
+      const { code, data, message: msg } = await getConditionalInfoList(id);
+      if (code !== 0) {
+        message.error(msg || "获取测试条件失败");
+        setState({ dataSource: [] });
+        return;
+      }
+      setState({ dataSource: data ?? [] });
+    } catch {
+      setState({ dataSource: [] });
+    }
   };
 
   return (

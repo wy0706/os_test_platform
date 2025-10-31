@@ -1,4 +1,5 @@
 import { getList } from "@/services/case-management/case-library.service";
+import { transformParams } from "@/utils/params";
 import {
   ActionType,
   PageContainer,
@@ -6,6 +7,7 @@ import {
 } from "@ant-design/pro-components";
 import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
+import { message } from "antd";
 import React, { useRef, useState } from "react";
 import RunModal from "../components/runModal";
 import { schemasColumns, schemasTitle } from "./schemas";
@@ -25,29 +27,18 @@ const Page: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [
-          {
-            id: 1,
-            title: "os测试.tpf",
-            status: "success",
-            createTime: "2025-08-01 10:23:00",
-          },
-          {
-            id: 2,
-            title: "os测试1.tpf",
-            status: "error",
-            createTime: "2025-08-02 10:23:00",
-          },
-        ],
-        total: 1,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
     }
+    return {
+      data: data?.list_info || [],
+      total: data?.total_cnt,
+      success: true,
+    };
   };
 
   return (
@@ -58,10 +49,9 @@ const Page: React.FC = () => {
         actionRef={actionRef}
         cardBordered
         request={requestData}
-        rowKey="id"
+        rowKey="execution_file_id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
         headerTitle={title.label}
         onRow={(record, index) =>
@@ -83,14 +73,15 @@ const Page: React.FC = () => {
       <RunModal
         open={isRunModalOpen}
         onCancel={() => {
-          setState({ isRunModalOpen: false });
+          setState({ isRunModalOpen: false, details: null });
         }}
+        id={details?.execution_file_id}
         onOk={() => {
-          setState({ isRunModalOpen: false });
           //表示运行界面的按钮 显示全部或者部分 status：all/part 从任务跳转的只显示部分按钮
           history.push(
-            `/case-management/case-run/${details.id}?status=all&name=${details.title}`
+            `/case-management/case-run/${details.execution_file_id}?status=all&name=${details.execution_file}`
           );
+          setState({ isRunModalOpen: false, details: null });
         }}
       />
     </PageContainer>

@@ -6,21 +6,21 @@ export const schemasTitle: any = {
 export const schemasColumns: any = [
   {
     title: "文件名",
-    dataIndex: "title",
+    dataIndex: "execution_file",
     ellipsis: true,
     // sorter: true,
   },
   {
     title: "是否发布",
-    dataIndex: "status",
+    dataIndex: "is_published",
     ellipsis: true,
     valueType: "select",
     valueEnum: {
-      success: {
+      1: {
         text: "✓",
         status: "Success",
       },
-      error: {
+      0: {
         text: "✗",
         status: "Error",
       },
@@ -28,64 +28,9 @@ export const schemasColumns: any = [
   },
   {
     title: "创建时间",
-    dataIndex: "createTime",
+    dataIndex: "time",
     ellipsis: true,
     sorter: true,
     hideInSearch: true,
-  },
-];
-
-export const schemasForm: any = {
-  layoutType: "Form",
-  rowProps: {
-    gutter: [16, 16],
-  },
-  colProps: {
-    span: 12,
-  },
-  grid: true,
-  columns: [
-    {
-      title: "名称",
-      dataIndex: "title",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-
-    {
-      title: "创建时间",
-      dataIndex: "createTime",
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: "此项为必填项",
-          },
-        ],
-      },
-    },
-  ],
-};
-
-export const schemasDescriptions: any = [
-  {
-    title: "名称",
-    key: "title",
-    dataIndex: "title",
-    copyable: true,
-    ellipsis: true,
-  },
-  {
-    title: "创建时间",
-    key: "createTime",
-    dataIndex: "createTime",
-    copyable: true,
-    ellipsis: true,
   },
 ];
