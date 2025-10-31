@@ -195,7 +195,7 @@ const PlanModal: React.FC<ModalProps> = ({
         onCancel={onCancel}
         maskClosable={false}
         onOk={handleConfirm}
-        width={1200}
+        width={1000}
         zIndex={1100}
       >
         <div style={{ display: "flex", height: "600px", gap: "16px" }}>
@@ -256,8 +256,9 @@ const PlanModal: React.FC<ModalProps> = ({
                 toolBarRender={false}
                 cardBordered
                 pagination={{ pageSize: 10 }}
+                search={false}
                 rowSelection={{
-                  preserveSelectedRowKeys: true, // ✅ 跨页/切换筛选保留
+                  preserveSelectedRowKeys: true, // 跨页/切换筛选保留
                   selectedRowKeys: selectedUseCases.map((item) => item.id),
                   onChange: (
                     currentSelectedKeys: React.Key[],

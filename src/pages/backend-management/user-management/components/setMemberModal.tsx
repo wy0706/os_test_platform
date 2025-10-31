@@ -105,7 +105,6 @@ const SetMemberModal: React.FC<SetMemberModalProps> = ({
     <Modal
       title={isUpdate ? "编辑成员信息" : "新增成员信息"}
       open={open}
-      width={"50%"}
       onCancel={handleCancel}
       confirmLoading={submitLoading}
       destroyOnHidden

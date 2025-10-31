@@ -250,7 +250,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         }}
         afterClose={() => {}}
         styles={{ body: { padding: 20 } }}
-        width={"50%"}
         onOk={handleOk}
         confirmLoading={confirmLoading}
       >

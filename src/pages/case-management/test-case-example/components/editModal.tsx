@@ -168,10 +168,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       }}
       confirmLoading={submitLoading}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form}>
         {type == "copy" && (
           <Form.Item name="tc_title" label="标题" rules={[{ required: true }]}>
             <Input placeholder="输入标题" maxLength={32} />

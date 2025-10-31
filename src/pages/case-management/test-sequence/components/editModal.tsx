@@ -146,11 +146,10 @@ const EditModal: React.FC<SetMemberModalProps> = ({
         form?.resetFields();
       }}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
       confirmLoading={confirmLoading}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form}>
         {type && type !== "remove" && (
           <Form.Item
             name="sequence_name"

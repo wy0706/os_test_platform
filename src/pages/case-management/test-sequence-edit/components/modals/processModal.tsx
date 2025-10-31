@@ -70,8 +70,7 @@ const ProcessModal: React.FC<SetMemberModalProps> = ({
         onCancel && onCancel();
       }}
       confirmLoading={confirmLoading}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
+      styles={{ body: { padding: 20 } }}
       onOk={handleOk}
     >
       <Form {...layout} form={form}>

@@ -28,9 +28,8 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      styles={{ body: { padding: 20 } }}
       footer={null}
-      width={"50%"}
     >
       {/* <ProCard split="vertical" style={{ height: "100%" }}>
         <ProDescriptions

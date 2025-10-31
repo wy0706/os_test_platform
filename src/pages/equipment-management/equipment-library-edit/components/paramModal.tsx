@@ -233,7 +233,6 @@ const ParamModal: React.FC<SetMemberModalProps> = ({
       destroyOnHidden
       confirmLoading={confirmLoading}
       styles={{ body: { minHeight: 100, padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form}>

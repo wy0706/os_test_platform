@@ -91,7 +91,6 @@ const AddModelModal: React.FC<SetMemberModalProps> = ({
       styles={{ body: { padding: 20 } }}
       destroyOnHidden
       confirmLoading={submitLoading}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} onFinish={onFinish}>

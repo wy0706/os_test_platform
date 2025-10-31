@@ -129,7 +129,7 @@ const NewEditModal: React.FC<ModalProps> = ({
       >
         <div>
           <div>
-            <Form {...layout} form={form} name="control-hooks">
+            <Form {...layout} form={form}>
               <Row gutter={16}>
                 <Col span={8}>
                   <Form.Item

@@ -84,7 +84,6 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
       }}
       afterClose={() => form.resetFields()}
       styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form}>

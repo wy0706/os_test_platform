@@ -172,7 +172,6 @@ const RunModal: React.FC<SetMemberModalProps> = ({
       }}
       confirmLoading={confirmLoading}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form}>

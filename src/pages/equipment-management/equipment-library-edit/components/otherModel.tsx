@@ -60,7 +60,6 @@ const OtherModal: React.FC<SetMemberModalProps> = ({
         onCancel && onCancel();
       }}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form}>

@@ -131,10 +131,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       maskClosable={false}
       onCancel={handleCancel}
       onOk={handleOk}
-      width={"50%"}
-      styles={{ body: { minHeight: 300, padding: 20 } }}
+      styles={{ body: { padding: 20 } }}
     >
-      <Form {...layout} form={form} name="control-hooks" onFinish={onFinish}>
+      <Form {...layout} form={form}>
         <Form.Item name="title" label="标题" rules={[{ required: true }]}>
           <Input placeholder="输入标题" />
         </Form.Item>

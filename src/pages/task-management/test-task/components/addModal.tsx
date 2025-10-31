@@ -111,8 +111,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         onCancel && onCancel();
       }}
       onOk={handleOk}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
+      styles={{ body: { padding: 20 } }}
     >
       {" "}
       <Form {...layout} form={form} onFinish={onFinish}>

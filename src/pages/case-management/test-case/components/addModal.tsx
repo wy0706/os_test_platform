@@ -130,7 +130,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       destroyOnHidden
       confirmLoading={submitLoading}
       styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks">

@@ -92,10 +92,9 @@ const EditModuleModal: React.FC<SetMemberModalProps> = ({
         onCancel && onCancel();
       }}
       styles={{ body: { padding: 20 } }}
-      width={"60%"}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item
           name="module_name"
           label="模块名"

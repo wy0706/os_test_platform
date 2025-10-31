@@ -46,7 +46,6 @@ const CreateReportModal: React.FC<SetMemberModalProps> = ({
         onCancel && onCancel();
       }}
       styles={{ body: { padding: 20 } }}
-      width={"50%"}
       onOk={handleOk}
     >
       {" "}

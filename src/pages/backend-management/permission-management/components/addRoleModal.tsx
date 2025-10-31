@@ -90,7 +90,6 @@ const AddRoleModal: React.FC<SetMemberModalProps> = ({
       confirmLoading={submitLoading}
       open={open}
       onCancel={handleCancel}
-      width={"50%"}
       onOk={handleOk}
       destroyOnHidden
     >

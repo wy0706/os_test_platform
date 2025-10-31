@@ -109,9 +109,7 @@ const TempModal: React.FC<SetMemberModalProps> = ({
               <Input placeholder="输入变量名" maxLength={32} allowClear />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="data_type"
@@ -135,9 +133,7 @@ const TempModal: React.FC<SetMemberModalProps> = ({
               </Form.Item>
             </Col>
           )}
-        </Row>
 
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="unit" label="单位">
               <Select placeholder="选择单位" options={unitOptions} allowClear />

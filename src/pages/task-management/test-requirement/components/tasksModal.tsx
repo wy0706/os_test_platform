@@ -135,9 +135,9 @@ const TasksModal: React.FC<SetMemberModalProps> = ({
         open={open}
         onCancel={handleCancel}
         onOk={handleOk}
-        width={"60%"}
+        width={700}
         // footer={null}
-        styles={{ body: { minHeight: 500, padding: 20 } }}
+        styles={{ body: { minHeight: 350, padding: 20 } }}
       >
         <ProTable<TableRecord>
           columns={columns}
@@ -150,6 +150,7 @@ const TasksModal: React.FC<SetMemberModalProps> = ({
           pagination={{
             pageSize: 2,
           }}
+          search={false}
           headerTitle="测试文件列表"
           rowSelection={{
             selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT],

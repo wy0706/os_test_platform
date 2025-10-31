@@ -148,7 +148,7 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
         title="选择测试文件"
         open={open}
         onCancel={handleCancel}
-        width={"60%"}
+        width={700}
         onOk={() => {
           if (onOk) {
             onOk(selectedRowData);
@@ -162,12 +162,9 @@ const SequenceDataModal: React.FC<SetMemberModalProps> = ({
           cardBordered
           dataSource={mockData}
           options={false}
+          search={false}
           // request={requestData}
           rowKey="id"
-          pagination={{
-            pageSize: 10,
-            onChange: (page) => requestData,
-          }}
           headerTitle="测试文件列表"
           rowSelection={{
             type: "radio", // 单选模式

@@ -205,7 +205,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       onOk={handleOk}
       destroyOnHidden
     >
-      <Form {...layout} form={form} name="control-hooks">
+      <Form {...layout} form={form}>
         <Form.Item name="tc_title" label="标题" rules={[{ required: true }]}>
           <Input placeholder="输入标题" maxLength={32} />
         </Form.Item>
