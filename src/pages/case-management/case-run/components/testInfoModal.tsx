@@ -91,8 +91,7 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
           isDisabled: true,
         });
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
-      width={"35%"}
+      styles={{ body: { padding: 20 } }}
       onOk={handleOk}
       loading={loading}
       okButtonProps={{ disabled: isDisabled }}
