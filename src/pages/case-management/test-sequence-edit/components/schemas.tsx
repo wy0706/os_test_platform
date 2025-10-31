@@ -265,3 +265,36 @@ export const generateArrayColumns = (values: string[], arraySize: number) => {
   }
   return columns;
 };
+
+/**
+ * 从数组对象中过滤字段
+ * @param arr 源数组
+ * @param keys 要操作的字段数组
+ * @param mode 模式："pick" 保留指定字段；"omit" 去除指定字段（默认）
+ * @returns 新数组
+ */
+export function filterFieldsFromArray<T extends Record<string, any>>(
+  arr: T[],
+  keys: (keyof T)[],
+  mode: "pick" | "omit" = "omit"
+): Partial<T>[] {
+  if (!Array.isArray(arr)) return [];
+
+  return arr.map((item) => {
+    if (mode === "pick") {
+      // 只保留指定字段
+      const picked: Partial<T> = {};
+      keys.forEach((key) => {
+        if (key in item) picked[key] = item[key];
+      });
+      return picked;
+    } else {
+      // 去除指定字段
+      const cloned: Partial<T> = { ...item };
+      keys.forEach((key) => {
+        if (key in cloned) delete cloned[key];
+      });
+      return cloned;
+    }
+  });
+}

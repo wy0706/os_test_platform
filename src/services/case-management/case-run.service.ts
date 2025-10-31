@@ -1,16 +1,16 @@
-
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/caseManagement/caseRun";
+const baseUrl = "/executionfile";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: 'GET',
+    method: "GET",
     params: params,
   });
   return result;
 }
 
+// ==============================================
 export async function createOne(data: any) {
   const result: any = await request<{}>(`${baseUrl}/createOne`, {
     method: "POST",

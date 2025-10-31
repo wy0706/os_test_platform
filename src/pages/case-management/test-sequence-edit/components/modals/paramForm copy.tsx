@@ -6,7 +6,7 @@ import {
 } from "@/services/case-management/test-sequence-edit.service";
 import { Form, Input, message, Modal, Select, Table } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
-import { filterFieldsFromArray } from "../schemas";
+
 interface ParamItem {
   id: string;
   name: string;
@@ -476,14 +476,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
   const handleOk = async () => {
     const values = await form.validateFields();
     try {
-      const realData = filterFieldsFromArray(
-        dataSource,
-        ["allowedTypeKeys", "optionsByType"],
-        "omit"
-      );
-      console.log("realData", realData);
       // 值数组（与行顺序一致）
-
       const rawList = dataSource.map((item, index) => {
         const v = values?.params?.[index]?.value ?? item.value;
         return v != null ? String(v).trim() : "";
@@ -507,12 +500,8 @@ const ParamForm: React.FC<ParamFormProps> = ({
         testcommand: updateValue.testcommand,
         inputparams: type === "INPUT" ? finalString : undefined,
         outputparams: type === "OUTPUT" ? finalString : undefined,
-        // inputparamstype: type === "INPUT" ? inputparamstype : undefined,
-        inputparamstype: type === "INPUT" ? realData : undefined,
-        onputparamstype: type === "OUTPUT" ? realData : undefined,
+        inputparamstype: type === "INPUT" ? inputparamstype : undefined,
       };
-
-      console.log("params", params);
 
       setConfirmLoading(true);
       const ApiFn = type === "INPUT" ? editInPara : editOutPara;
