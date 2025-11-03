@@ -20,6 +20,7 @@ import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, message, Modal, Space, Tabs } from "antd";
+import { isArray } from "lodash";
 import PromptModal from "../components/promptModal";
 import RunModal from "../components/runModal";
 import AddModal from "../test-sequence/components/addModal";
@@ -175,7 +176,12 @@ const Page: React.FC = () => {
         // 如果检查有误，展示错误信息
         Modal.error({
           title: "以下参数设置错误，请重新设置",
-          content: <div>{data || "-"}</div>,
+          content:
+            data && isArray(data) ? (
+              data.map((item) => <div key={item}>{item}</div>)
+            ) : (
+              <div>{data || "-"}</div>
+            ),
           okText: "确定",
         });
         return;
@@ -242,8 +248,19 @@ const Page: React.FC = () => {
     }
   };
   // 另存为
-  const handleSaveAs = () => {
-    setState({ isSaveAsModalOpen: true, addModalType: "saveAs" });
+  const handleSaveAs = async () => {
+    try {
+      setState({
+        saveAsLoading: true,
+      });
+      await saveAndErrorCheck();
+      setState({ isSaveAsModalOpen: true, addModalType: "saveAs" });
+    } catch (e) {
+    } finally {
+      setState({
+        saveAsLoading: false,
+      });
+    }
   };
 
   const hasAlreadyExists = (text?: string) => {
@@ -289,12 +306,30 @@ const Page: React.FC = () => {
       setState({
         saveLoading: true,
       });
+      await saveAndErrorCheck();
       await saveRequest();
     } catch (e) {
     } finally {
       setState({
         saveLoading: false,
       });
+    }
+  };
+  const saveAndErrorCheck = async () => {
+    const { code, data, message: msg } = await getErrorCheck();
+    if (code !== 0) {
+      // 如果检查有误，展示错误信息
+      Modal.error({
+        title: "以下参数设置错误，请重新设置",
+        content:
+          data && isArray(data) ? (
+            data.map((item) => <div key={item}>{item}</div>)
+          ) : (
+            <div>{data || "-"}</div>
+          ),
+        okText: "确定",
+      });
+      throw new Error("参数校验失败");
     }
   };
 
@@ -465,14 +500,19 @@ const Page: React.FC = () => {
           });
           goList();
         }}
-        onOk={() => {
-          setState({
-            isPromptModalOpen: false,
-            infoMsg: null,
-          });
+        onOk={async () => {
           if (promptModalType === 1) {
-            saveRequest("JUMP");
-            //需要保存，先保存后跳转
+            //需要保存，先检查错误后保存再跳转
+            try {
+              await saveAndErrorCheck();
+              saveRequest("JUMP");
+            } catch {
+            } finally {
+              setState({
+                isPromptModalOpen: false,
+                infoMsg: null,
+              });
+            }
           } else if (promptModalType === 2) {
             goList();
           }
