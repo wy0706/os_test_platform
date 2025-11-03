@@ -399,6 +399,7 @@ const Page: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <RunLeftPage
+                autoId={params.id}
                 ref={runLeftRef}
                 isSelfCheck={isSelfCheck}
                 isSelfChecking={isSelfChecking}
@@ -430,7 +431,7 @@ const Page: React.FC = () => {
                     setState({ tabActiveKey: key });
                   }}
                 />
-                {tabActiveKey === "1" && <TestInfo title={title} />}
+                {tabActiveKey === "1" && <TestInfo autoId={params.id} />}
                 {tabActiveKey === "2" && <TestResult />}
                 {tabActiveKey === "3" && <TestCondition id={params.id} />}
               </div>
@@ -439,18 +440,21 @@ const Page: React.FC = () => {
         </div>
       </div>
       <TestInfoModal
+        autoId={params.id}
         open={isTestInfoModalOpen}
         onCancel={() => {
           setState({ isTestInfoModalOpen: false });
         }}
       />
       <ReportInfoModal
+        autoId={params.id}
         open={isReportInfoModalOpen}
         onCancel={() => {
           setState({ isReportInfoModalOpen: false });
         }}
       />
       <VectorInfoModal
+        autoId={params.id}
         open={isVectorInfoModalOpen}
         onCancel={() => {
           setState({ isVectorInfoModalOpen: false });

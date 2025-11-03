@@ -17,14 +17,14 @@ export async function getList(sequence_id: any) {
 /**
  * 获取测试信息
  * @param data
- * testprogram 测试序列名称
+ * execution_file_id 测试序列id
  * @returns
  */
 
-export async function getTestInfoList(testprogram: any) {
+export async function getTestInfoList(execution_file_id: any) {
   const result: any = await request<{}>(`${baseUrl}/getTestiInfoList`, {
     method: "GET",
-    params: { testprogram },
+    params: { execution_file_id },
   });
   return result;
 }
@@ -47,11 +47,15 @@ export async function getConditionalInfoList(execution_file_id: any) {
 /**
  * 获取测试信息详情
  * @param data
+ * execution_file_id 当前测试序列id
  * @returns
  */
-export async function getTestInfo() {
+export async function getTestInfo(execution_file_id: any) {
   const result: any = await request<{}>(`${baseUrl}/GetTestInf`, {
     method: "GET",
+    params: {
+      execution_file_id,
+    },
   });
   return result;
 }

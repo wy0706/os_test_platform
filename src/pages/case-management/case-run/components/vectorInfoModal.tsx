@@ -7,6 +7,7 @@ interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
+  autoId: any;
   data?: any;
 }
 const { Option } = Select;

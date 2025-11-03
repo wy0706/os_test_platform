@@ -12,6 +12,7 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   data?: any;
+  autoId: any;
 }
 const { Option } = Select;
 
@@ -37,12 +38,17 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
   useEffect(() => {
     if (open) {
       form?.resetFields();
-      if (data) {
-        form?.setFieldsValue({ ...data });
-      }
+      initData();
+      // if (data) {
+      //   form?.setFieldsValue({ ...data });
+      // }
     }
   }, [open, data]);
-
+  const initData = async () => {
+    await getReport();
+    await getServer();
+    await getExcel();
+  };
   const [form] = Form.useForm();
   const getReport = async () => {
     try {

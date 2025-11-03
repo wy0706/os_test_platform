@@ -7,6 +7,7 @@ interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
+  autoId: any;
   data?: any;
 }
 const { Option } = Select;
@@ -20,6 +21,7 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
   onOk,
   onCancel,
   data,
+  autoId,
 }) => {
   const [state, setState] = useSetState<any>({
     loading: false,
@@ -39,8 +41,12 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
       setState({
         loading: true,
       });
-      const { code, data, message: msg } = await getTestInfo();
-      console.log("data====", data);
+      if (!autoId) {
+        message.error("缺少序列ID");
+        return;
+      }
+      const { code, data, message: msg } = await getTestInfo(autoId);
+      form?.setFieldsValue({ ...data });
       if (code !== 0) {
         message.error(msg || "获取测试信息失败");
         setState({
@@ -97,19 +103,23 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
       okButtonProps={{ disabled: isDisabled }}
     >
       <Form {...layout} form={form}>
-        <Form.Item name="name" label="项目名称" rules={[{ required: true }]}>
+        <Form.Item
+          name="ProjectName"
+          label="项目名称"
+          rules={[{ required: true }]}
+        >
           <Input placeholder="输入项目名称" allowClear disabled />
         </Form.Item>
-        <Form.Item name="name1" label="样品名称">
+        <Form.Item name="SampleName" label="样品名称">
           <Input placeholder="输入样品名称" allowClear />
         </Form.Item>
-        <Form.Item name="name2" label="型号">
+        <Form.Item name="Model" label="型号">
           <Input placeholder="输入型号" allowClear />
         </Form.Item>
-        <Form.Item name="name3" label="测试单位">
+        <Form.Item name="TestOrg" label="测试单位">
           <Input placeholder="输入测试单位" allowClear />
         </Form.Item>
-        <Form.Item name="gender2" label="检验人员">
+        <Form.Item name="Tester" label="检验人员">
           <Input placeholder="输入检验人员" allowClear />
 
           {/* <Select
@@ -132,10 +142,10 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
             ))}
           </Select> */}
         </Form.Item>
-        <Form.Item name="name4" label="环境温度">
+        <Form.Item name="Temperature" label="环境温度">
           <Input placeholder="输入环境温度" allowClear />
         </Form.Item>
-        <Form.Item name="name5" label="测试依据">
+        <Form.Item name="Law" label="测试依据">
           <Input placeholder="输入测试依据" allowClear />
         </Form.Item>
       </Form>

@@ -4,54 +4,52 @@ import {
   ProDescriptionsActionType,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import React, { useEffect, useRef } from "react";
+import { message } from "antd";
+import React, { useRef } from "react";
 import { testInfoDescriptions } from "../schemas";
 interface testInfoProps {
-  title: string;
+  autoId: any;
 }
-const TestInfo: React.FC<testInfoProps> = ({ title }) => {
+const TestInfo: React.FC<testInfoProps> = ({ autoId }) => {
   const [state, setState] = useSetState<any>({
-    name: "",
+    loading: false,
   });
-  const { name } = state;
+  const { loading } = state;
   const actionRef = useRef<ProDescriptionsActionType>();
-  useEffect(() => {
-    requestData();
-  }, []);
+
   const requestData: any = async () => {
     try {
-      if (!title) return;
-      const res = await getTestInfoList(title);
-      console.log("res", res);
-      return;
+      if (!autoId) return;
+      setState({
+        loading: true,
+      });
+      const { code, data, message: msg } = await getTestInfoList(autoId);
+      if (code !== 0) {
+        message.error(msg || "获取数据失败");
+        return {
+          success: false,
+          data: {},
+        };
+      }
+      return {
+        success: true,
+        data,
+      };
     } catch {
       return {
         success: false,
         data: {},
       };
+    } finally {
+      setState({
+        loading: false,
+      });
     }
   };
-  // async () => {
-  //           return Promise.resolve({
-  //             success: true,
-  //             data: {
-  //               id: 1,
-  //               title: "testadd ",
-  //               name: "",
-  //               programDate: "2024-08-05",
-  //               programTime: "10:00:00",
-  //               configure: "YSW-GC-nocom.hwc",
-  //               format: "",
-  //               testType: "ESWIN_TEST",
-  //               type: "",
-  //               order: "",
-  //               startTime: "",
-  //             },
-  //           });
-  //         }
   return (
     <div className="testInfo-page" style={{ paddingTop: 10 }}>
       <ProDescriptions
+        loading={loading}
         column={2}
         bordered
         columns={testInfoDescriptions}

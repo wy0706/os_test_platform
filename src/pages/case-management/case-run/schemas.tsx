@@ -67,64 +67,83 @@ export const schemasForm: any = {
 export const testInfoDescriptions: any = [
   {
     title: "测试程序",
-    key: "title",
-    dataIndex: "title",
+    dataIndex: "testprogram",
     ellipsis: true,
     copyable: true,
   },
   {
     title: "编程人员",
-    key: "name",
-    dataIndex: "name",
+    dataIndex: "user",
     ellipsis: true,
   },
   {
     title: "编程日期",
-    key: "programDate",
-    dataIndex: "programDate",
+    dataIndex: "editdate",
     ellipsis: true,
   },
   {
     title: "编程时间",
-    key: "programTime",
-    dataIndex: "programTime",
-
+    dataIndex: "edittime",
     ellipsis: true,
   },
   {
     title: "设备配置",
-    key: "configure",
-    dataIndex: "configure",
+    dataIndex: "configname",
     ellipsis: true,
   },
   {
     title: "报表格式",
-    key: "format",
-    dataIndex: "format",
+    dataIndex: "rptformat",
     ellipsis: true,
   },
+
   {
     title: "产品类型",
-    key: "testType",
-    dataIndex: "testType",
-    ellipsis: true,
-  },
-  {
-    title: "产品输出种类",
-    key: "type",
-    dataIndex: "type",
+    dataIndex: "mode",
     ellipsis: true,
   },
   {
     title: "产品序列号",
-    key: "order",
-    dataIndex: "order",
+    dataIndex: "SN",
     ellipsis: true,
   },
   {
     title: "测试开始时间",
-    key: "startTime",
-    dataIndex: "startTime",
+    dataIndex: "TestStartTime",
     ellipsis: true,
   },
 ];
+/**
+ * 将后端返回的数据格式化为 Antd Table 树形结构
+ * @param list 原始数据数组
+ * @returns 格式化后的树形数据
+ */
+export function formatTableTreeData(list: any[] = []) {
+  if (!Array.isArray(list) || list.length === 0) return [];
+
+  return list.map((item) => {
+    const { id, Rownumber, Sequence_name, active, iteminfo = [] } = item || {};
+
+    return {
+      key: id ?? Math.random(), // 防止 id 为空时报错
+      id,
+      rownumber: Rownumber,
+      sequence_name: Sequence_name || "-",
+      active: String(active ?? "-"),
+      breakpoint: false,
+      // 子节点映射
+      children:
+        Array.isArray(iteminfo) && iteminfo.length > 0
+          ? iteminfo.map((info, idx) => ({
+              key: `${id || "row"}-${idx}`,
+              command: info?.command ?? "-",
+              InPara: info?.InPara ?? "-",
+              OutPara: info?.OutPara ?? "-",
+              Qualified: info?.Qualified ?? "_",
+              breakpoint: false,
+              isLeaf: true,
+            }))
+          : undefined, // 空数组就不生成 children
+    };
+  });
+}

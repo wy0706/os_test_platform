@@ -4,252 +4,207 @@ import { Checkbox, message, Table } from "antd";
 import React, { useEffect } from "react";
 
 interface ResultProps {
-  data?: any;
   id: any;
 }
-const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
-  // 处理数组展开的函数
 
-  const expandArrayItems = (items: any[]): any[] => {
-    return items.map((item) => {
-      if (item.children) {
-        return {
-          ...item,
-          children: expandArrayItems(item.children),
-        };
-      } else if (Array.isArray(item.testValue)) {
-        // testValue 是数组 → 转换成子节点
+type ApiItem = {
+  itemindex: number;
+  UUTType: string;
+  itemName: string;
+  info: Array<{
+    conditionindex: number;
+    conditionname: string;
+    conditionvalue: any;
+  }>;
+};
+
+const TestCondition: React.FC<ResultProps> = ({ id }) => {
+  /** ---------- 映射函数：API -> Table 树数据 ---------- */
+  const mapApiToTree = (list: ApiItem[] = []) => {
+    if (!Array.isArray(list) || list.length === 0) return [];
+
+    return list.map((it) => {
+      const parentId = `p-${it.itemindex}`;
+      return {
+        id: parentId,
+        extension: `${it.UUTType} 测试项目 * ${it.info?.length ?? 0}`, // ✅ 拼接
+        sequenceName1: it.itemName, // 父节点显示 itemName（蓝色）
+        testValue: "",
+        children: (it.info || []).map((c) => ({
+          id: `c-${it.itemindex}-${c.conditionindex}`,
+          extension: "", // 子节点不显示扩展名
+          sequenceName1: c.conditionname, // 子节点变量名
+          testValue: c.conditionvalue,
+        })),
+      };
+    });
+  };
+
+  /** ---------- 展开数组变量 ---------- */
+  const expandArrayItems = (items: any[]): any[] =>
+    items.map((item) => {
+      const hasChildren = Array.isArray(item.children) && item.children.length;
+      if (hasChildren) {
+        return { ...item, children: expandArrayItems(item.children) };
+      }
+      if (Array.isArray(item.testValue)) {
         const children = item.testValue.map((value: any, index: number) => ({
           id: `${item.id}_${index}`,
+          extension: "",
           sequenceName1: index,
           testValue: value,
           isArrayItem: true,
         }));
-
-        return {
-          ...item,
-          children, // 把展开的数组作为 children
-        };
-      } else {
-        return item;
+        return { ...item, children };
       }
+      return item;
     });
-  };
 
-  const data2 = [
-    {
-      id: 1,
-      extension: "uut测试项目",
-      sequenceName1: "	CAN通信测试",
-      children: [
-        {
-          id: 12,
-          extension: "CAN报文",
-          sequenceName1: "CAN_MSG",
-          testValue: "00 01 00 01",
-        },
-      ],
-    },
-    {
-      id: 3,
-      extension: "UUT test测试项目 *2",
-      sequenceName1: "LIN通信测试",
-      children: [
-        {
-          id: 5,
-          extension: "输入电压",
-          sequenceName1: "Vdc",
-          testValue: "5.00",
-        },
-        {
-          id: 6,
-          extension: "PBZ20 20电压",
-          sequenceName1: "V PBZ2020",
-          testValue: "5.00",
-        },
-        {
-          id: 7,
-          extension: "CAN报文",
-          sequenceName1: "CAN_MSG",
-          testValue: "5.00",
-        },
-        {
-          id: 8,
-          extension: "CAN通道使能",
-          sequenceName1: "CAN通道[(2)]",
-          testValue: [1, 1],
-        },
-        {
-          id: 10,
-          extension: "示波器通道",
-          sequenceName1: "示波器通道[(4)]",
-          testValue: [0, 1, 0, 0],
-        },
-      ],
-    },
-  ];
-
-  const [state, setState] = useSetState<any>({
-    isExpandAll: true,
-    expandedRowKeys: [],
-    originalData: data2,
-    dataSource: [],
-    columns: [
-      {
-        title: "扩展名",
-        dataIndex: "extension",
-        render: (value: any, record: any) => {
-          return (
-            <span
-              style={{
-                color:
-                  record.children && !Array.isArray(record.testValue)
-                    ? "#1890ff"
-                    : "#6c757d",
-              }}
-            >
-              {value}
-            </span>
-          );
-        },
-      },
-      {
-        title: "变量名",
-        dataIndex: "sequenceName1",
-        render: (value: any, record: any) => {
-          return (
-            <span
-              style={{
-                color:
-                  record.children && !Array.isArray(record.testValue)
-                    ? "#1890ff"
-                    : "#6c757d",
-              }}
-            >
-              {value}
-            </span>
-          );
-        },
-      },
-      {
-        title: "设定值",
-        dataIndex: "testValue",
-        render: (value: any, record: any) => {
-          if (Array.isArray(value)) {
-            // 如果是数组且未展开，显示完整数组
-            return (
-              <span style={{ color: "#6c757d" }}>{JSON.stringify(value)}</span>
-              // <span>......</span>
-            );
-          }
-          return <span style={{ color: "#6c757d" }}>{value}</span>;
-        },
-      },
-    ],
-  });
-  const { isExpandAll, expandedRowKeys, dataSource, columns, originalData } =
-    state;
-
-  // 初始化时设置dataSource为原始数据
-  useEffect(() => {
-    requestData();
-    const filteredData = expandArrayItems(data2);
-    setState({
-      dataSource: filteredData,
-      expandedRowKeys: getAllKeys(filteredData), // 这里控制展开});
+  const collapseArrayItems = (items: any[]): any[] =>
+    items.map((item) => {
+      if (Array.isArray(item.children) && item.children.length) {
+        return { ...item, children: collapseArrayItems(item.children) };
+      }
+      return item;
     });
-  }, []);
-  // 递归取出所有 key
+
   const getAllKeys = (data: any[]): React.Key[] => {
     const keys: React.Key[] = [];
-    const dfs = (items: any[]) => {
-      items.forEach((item) => {
-        keys.push(item.id); // 用 rowKey 对应的字段
-        if (item.children) {
-          dfs(item.children);
-        }
+    const dfs = (arr: any[]) => {
+      arr.forEach((it) => {
+        keys.push(it.id);
+        if (Array.isArray(it.children) && it.children.length) dfs(it.children);
       });
     };
     dfs(data);
     return keys;
   };
 
-  // 处理非数组展开的函数 - 保持数组为原始格式
-  const collapseArrayItems = (items: any[]): any[] => {
-    const result: any[] = [];
+  const [state, setState] = useSetState<any>({
+    isExpandAll: true,
+    expandedRowKeys: [],
+    originalData: [],
+    dataSource: [],
 
-    items.forEach((item) => {
-      if (item.children) {
-        const collapsedChildren = collapseArrayItems(item.children);
-        result.push({
-          ...item,
-          children: collapsedChildren,
-        });
-      } else {
-        result.push(item);
-      }
-    });
+    loading: false,
+  });
 
-    return result;
-  };
+  const {
+    isExpandAll,
+    expandedRowKeys,
+    originalData,
+    dataSource,
 
-  const requestData: any = async () => {
-    console.log("id", id);
-
+    loading,
+  } = state;
+  const columns: any = [
+    {
+      title: "扩展名",
+      dataIndex: "extension",
+      render: (value: any) => (
+        <span style={{ color: "#1890ff", fontWeight: 500 }}>{value}</span>
+      ),
+    },
+    {
+      title: "变量名",
+      dataIndex: "sequenceName1",
+      render: (value: any, record: any) => {
+        // 父节点(有children)是蓝色，子节点是灰色
+        const color =
+          record.children && !Array.isArray(record.testValue)
+            ? "#1890ff"
+            : "#6c757d";
+        return <span style={{ color }}>{value}</span>;
+      },
+    },
+    {
+      title: "设定值",
+      dataIndex: "testValue",
+      render: (value: any) =>
+        Array.isArray(value) ? (
+          <span style={{ color: "#6c757d" }}>{JSON.stringify(value)}</span>
+        ) : (
+          <span style={{ color: "#6c757d" }}>{value}</span>
+        ),
+    },
+  ];
+  /** ---------- 拉取数据并映射 ---------- */
+  const requestData = async () => {
     try {
       if (!id) return;
+      setState({
+        loading: true,
+      });
       const { code, data, message: msg } = await getConditionalInfoList(id);
       if (code !== 0) {
         message.error(msg || "获取测试条件失败");
-        setState({ dataSource: [] });
+        setState({ originalData: [], dataSource: [], expandedRowKeys: [] });
         return;
       }
-      setState({ dataSource: data ?? [] });
+
+      const mapped = mapApiToTree(data as ApiItem[]);
+      const ds = isExpandAll
+        ? expandArrayItems(mapped)
+        : collapseArrayItems(mapped);
+
+      setState({
+        originalData: mapped,
+        dataSource: ds,
+        expandedRowKeys: getAllKeys(ds),
+      });
     } catch {
-      setState({ dataSource: [] });
+      setState({ originalData: [], dataSource: [], expandedRowKeys: [] });
+    } finally {
+      setState({
+        loading: false,
+      });
     }
   };
 
+  useEffect(() => {
+    requestData();
+  }, [id]);
+
   return (
     <div className="testCondition-page">
-      <div
-        style={{
-          marginBottom: 10,
-        }}
-      >
+      <div style={{ marginBottom: 10 }}>
         <Checkbox
           style={{ marginRight: 15 }}
           checked={isExpandAll}
           onChange={(e) => {
             const checked = e.target.checked;
+            const ds = checked
+              ? expandArrayItems(originalData)
+              : collapseArrayItems(originalData);
             setState({
               isExpandAll: checked,
-              dataSource: checked
-                ? expandArrayItems(originalData)
-                : collapseArrayItems(originalData),
+              dataSource: ds,
+              expandedRowKeys: getAllKeys(ds),
             });
           }}
         >
           展开所有数组变量
         </Checkbox>
       </div>
-      <Table<any>
+
+      <Table
         bordered
+        loading={loading}
         columns={columns}
         dataSource={dataSource}
-        rowKey={(record) => record.key || record.id}
+        rowKey={(record) => record.id}
         pagination={false}
         scroll={{ y: 500 }}
         expandable={{
-          expandedRowKeys: expandedRowKeys,
+          expandedRowKeys,
           onExpand: (expanded, record) => {
             setState({
               expandedRowKeys: expanded
                 ? [...expandedRowKeys, record.id]
-                : expandedRowKeys.filter((key: any) => key !== record.id),
+                : expandedRowKeys.filter((k: any) => k !== record.id),
             });
           },
-          showExpandColumn: false, // 隐藏展开列
+          showExpandColumn: false,
         }}
       />
     </div>

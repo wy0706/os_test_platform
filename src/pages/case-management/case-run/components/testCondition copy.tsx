@@ -1,103 +1,89 @@
+import { getConditionalInfoList } from "@/services/case-management/case-run.service";
 import { useSetState } from "ahooks";
-import { Checkbox, Table } from "antd";
-import React from "react";
+import { Checkbox, message, Table } from "antd";
+import React, { useEffect } from "react";
+
 interface ResultProps {
-  data?: any; //datasource数据
-  id?: any;
+  data?: any;
+  id: any;
 }
 const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
   // 处理数组展开的函数
-  const expandArrayItems = (items: any[]): any[] => {
-    const result: any[] = [];
 
-    items.forEach((item) => {
+  const expandArrayItems = (items: any[]): any[] => {
+    return items.map((item) => {
       if (item.children) {
-        const expandedChildren = expandArrayItems(item.children);
-        result.push({
+        return {
           ...item,
-          children: expandedChildren,
-        });
+          children: expandArrayItems(item.children),
+        };
       } else if (Array.isArray(item.testValue)) {
-        // 如果testValue是数组，展开为多行
-        item.testValue.forEach((value: any, index: number) => {
-          result.push({
-            ...item,
-            id: `${item.id}_${index}`,
-            testValue: value,
-            arrayIndex: index,
-            isArrayItem: true,
-            // 只有第一行显示完整信息，其他行只显示值
-            extension: index === 0 ? item.extension : "",
-            sequenceName2: index === 0 ? item.sequenceName2 : "",
-          });
-        });
+        // testValue 是数组 → 转换成子节点
+        const children = item.testValue.map((value: any, index: number) => ({
+          id: `${item.id}_${index}`,
+          sequenceName1: index,
+          testValue: value,
+          isArrayItem: true,
+        }));
+
+        return {
+          ...item,
+          children, // 把展开的数组作为 children
+        };
       } else {
-        result.push(item);
+        return item;
       }
     });
-
-    return result;
   };
 
-  const rawData = [
-    // 保存原始数据
+  const data2 = [
     {
       id: 1,
-      extension: "UUT test测试项目 *1",
+      extension: "uut测试项目",
+      sequenceName1: "	CAN通信测试",
       children: [
         {
-          id: 2,
-          sequenceName1: "CAN通信测试",
-          children: [
-            {
-              id: 12,
-              extension: "CAN报文",
-              sequenceName2: "CAN_MSG",
-              testValue: "00 01 00 01",
-            },
-          ],
+          id: 12,
+          extension: "CAN报文",
+          sequenceName1: "CAN_MSG",
+          testValue: "00 01 00 01",
         },
       ],
     },
     {
       id: 3,
       extension: "UUT test测试项目 *2",
+      sequenceName1: "LIN通信测试",
       children: [
         {
-          id: 4,
-          sequenceName1: "LIN通信测试",
-          children: [
-            {
-              id: 5,
-              extension: "输入电压",
-              sequenceName2: "Vdc",
-              testValue: "5.00",
-            },
-            {
-              id: 6,
-              extension: "PBZ20 20电压",
-              sequenceName2: "V PBZ2020",
-              testValue: "5.00",
-            },
-            {
-              id: 7,
-              extension: "CAN报文",
-              sequenceName2: "CAN_MSG",
-              testValue: "5.00",
-            },
-            {
-              id: 8,
-              extension: "CAN通道使能",
-              sequenceName2: "CAN通道[(2)]",
-              testValue: [1, 1],
-            },
-            {
-              id: 10,
-              extension: "示波器通道",
-              sequenceName2: "示波器通道[(4)]",
-              testValue: [0, 1, 0, 0],
-            },
-          ],
+          id: 5,
+          extension: "输入电压",
+          sequenceName1: "Vdc",
+          testValue: "5.00",
+        },
+        {
+          id: 6,
+          extension: "PBZ20 20电压",
+          sequenceName1: "V PBZ2020",
+          testValue: "5.00",
+        },
+        {
+          id: 7,
+          extension: "CAN报文",
+          sequenceName1: "CAN_MSG",
+          testValue: "5.00",
+        },
+        {
+          id: 8,
+          extension: "CAN通道使能",
+          sequenceName1: "CAN通道[(2)]",
+          testValue: [1, 1],
+        },
+        {
+          id: 10,
+          extension: "示波器通道",
+          sequenceName1: "示波器通道[(4)]",
+          testValue: [0, 1, 0, 0],
         },
       ],
     },
@@ -106,38 +92,43 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
   const [state, setState] = useSetState<any>({
     isExpandAll: true,
     expandedRowKeys: [],
-    originalData: rawData,
-    dataSource: expandArrayItems(rawData),
+    originalData: data2,
+    dataSource: [],
     columns: [
       {
         title: "扩展名",
         dataIndex: "extension",
         render: (value: any, record: any) => {
-          return <span style={{ color: "#6c757d" }}>{value}</span>;
+          return (
+            <span
+              style={{
+                color:
+                  record.children && !Array.isArray(record.testValue)
+                    ? "#1890ff"
+                    : "#6c757d",
+              }}
+            >
+              {value}
+            </span>
+          );
         },
       },
       {
         title: "变量名",
         dataIndex: "sequenceName1",
         render: (value: any, record: any) => {
-          return <span style={{ color: "#6c757d" }}>{value}</span>;
-        },
-      },
-      {
-        title: "变量名",
-        dataIndex: "sequenceName2",
-        render: (value: any, record: any) => {
-          return <span style={{ color: "#6c757d" }}>{value}</span>;
-        },
-      },
-      {
-        title: "数组",
-        dataIndex: "arrayIndex",
-        render: (value: any, record: any) => {
-          if (record.isArrayItem && typeof value === "number") {
-            return <span style={{ color: "#6c757d" }}>{value}</span>;
-          }
-          return null;
+          return (
+            <span
+              style={{
+                color:
+                  record.children && !Array.isArray(record.testValue)
+                    ? "#1890ff"
+                    : "#6c757d",
+              }}
+            >
+              {value}
+            </span>
+          );
         },
       },
       {
@@ -148,6 +139,7 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
             // 如果是数组且未展开，显示完整数组
             return (
               <span style={{ color: "#6c757d" }}>{JSON.stringify(value)}</span>
+              // <span>......</span>
             );
           }
           return <span style={{ color: "#6c757d" }}>{value}</span>;
@@ -157,6 +149,30 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
   });
   const { isExpandAll, expandedRowKeys, dataSource, columns, originalData } =
     state;
+
+  // 初始化时设置dataSource为原始数据
+  useEffect(() => {
+    requestData();
+    const filteredData = expandArrayItems(data2);
+    setState({
+      dataSource: filteredData,
+      expandedRowKeys: getAllKeys(filteredData), // 这里控制展开});
+    });
+  }, []);
+  // 递归取出所有 key
+  const getAllKeys = (data: any[]): React.Key[] => {
+    const keys: React.Key[] = [];
+    const dfs = (items: any[]) => {
+      items.forEach((item) => {
+        keys.push(item.id); // 用 rowKey 对应的字段
+        if (item.children) {
+          dfs(item.children);
+        }
+      });
+    };
+    dfs(data);
+    return keys;
+  };
 
   // 处理非数组展开的函数 - 保持数组为原始格式
   const collapseArrayItems = (items: any[]): any[] => {
@@ -177,6 +193,23 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
     return result;
   };
 
+  const requestData: any = async () => {
+    console.log("id", id);
+
+    try {
+      if (!id) return;
+      const { code, data, message: msg } = await getConditionalInfoList(id);
+      if (code !== 0) {
+        message.error(msg || "获取测试条件失败");
+        setState({ dataSource: [] });
+        return;
+      }
+      // setState({ dataSource: data ?? [] });
+    } catch {
+      setState({ dataSource: [] });
+    }
+  };
+
   return (
     <div className="testCondition-page">
       <div
@@ -194,7 +227,6 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
               dataSource: checked
                 ? expandArrayItems(originalData)
                 : collapseArrayItems(originalData),
-              isManualOperation: false, // 复选框操作不是手动操作
             });
           }}
         >
@@ -205,11 +237,19 @@ const TestCondition: React.FC<ResultProps> = ({ data, id }) => {
         bordered
         columns={columns}
         dataSource={dataSource}
-        rowKey={(record) => record.key || record.id}
+        rowKey={(record) => record.id}
         pagination={false}
+        scroll={{ y: 500 }}
         expandable={{
-          // expandedRowKeys: expandedRowKeys,
-          defaultExpandAllRows: true,
+          expandedRowKeys: expandedRowKeys,
+          onExpand: (expanded, record) => {
+            setState({
+              expandedRowKeys: expanded
+                ? [...expandedRowKeys, record.id]
+                : expandedRowKeys.filter((key: any) => key !== record.id),
+            });
+          },
+          showExpandColumn: false, // 隐藏展开列
         }}
       />
     </div>

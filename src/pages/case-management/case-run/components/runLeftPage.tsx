@@ -1,7 +1,10 @@
+import { getList } from "@/services/case-management/case-run.service";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
-import { Card, Checkbox, Progress, Space, Table, Tag } from "antd";
+import { Card, Checkbox, message, Progress, Space, Table, Tag } from "antd";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
+
+import { formatTableTreeData } from "../schemas";
 import "./index.less";
 interface RunProps {
   data?: any;
@@ -14,6 +17,7 @@ interface RunProps {
   onDataChange?: (newData: any[]) => void;
   onPonitChange: (value: any) => void;
   onRowSelect?: (row: any) => void; // 把选中行数据回传给父组件
+  autoId: any;
 }
 interface SelfCheckMessage {
   id: number;
@@ -40,6 +44,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     expandedRowKeys: [],
     selectedRowKey: null, // ✅ 当前仅选中一条
   });
+
   const { isExpandAll, dataSource, expandedRowKeys, selectedRowKey } = state;
 
   const selectRow = (record: any) => {
@@ -48,51 +53,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     onRowSelect?.(record);
   };
   useEffect(() => {
-    const mockData = [
-      {
-        id: 100,
-        title: "test add",
-        describe: "",
-        schemas: "",
-        qualified: "",
-        group: 100,
-      },
-      {
-        id: 11,
-        title: "test add",
-        describe: "PreTestItemProcessing2",
-        schemas: "1.000000,2.000000,b",
-        qualified: "",
-        group: 100,
-      },
-      {
-        id: 2,
-        title: "test add",
-        describe: "ADD",
-        schemas: "",
-        qualified: "",
-        group: 100,
-      },
-      {
-        id: 101,
-        title: "test add2",
-        describe: "",
-        schemas: "",
-        qualified: "",
-        group: 101,
-      },
-      {
-        id: 31,
-        title: "",
-        describe: "PreTestItemProcessing",
-        schemas: "1.000000,2.000000,b",
-        qualified: "PASS",
-        group: 101,
-      },
-    ];
-    setState({
-      dataSource: convertToTreeData(mockData),
-    });
+    requestData();
   }, []);
 
   // 数据加载后，若开启“按命令展开所有项目”，默认展开全部可展开的行
@@ -110,32 +71,58 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     }
   }, [dataSource, onDataChange]);
 
+  const requestData: any = async () => {
+    try {
+      if (!props.autoId) return;
+      const { code, data, message: msg } = await getList(String(props.autoId));
+      if (code !== 0) {
+        message.error(msg || "获取数据失败");
+        setState({ dataSource: [] });
+        return;
+      }
+      console.log("formatTableTreeData(data) ", formatTableTreeData(data));
+
+      setState({ dataSource: formatTableTreeData(data) });
+    } catch {
+      setState({ dataSource: [] });
+    }
+  };
+
   // 定义表格列
   const columns = [
     {
       title: "序列名称",
-      dataIndex: "title",
+      dataIndex: "sequence_name",
       ellipsis: true,
       render: (text: string, record: any) => (
-        <span style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
           {record.breakpoint && <span className="breakpoint-dot" />}
           {text}
-        </span>
+        </div>
       ),
     },
     {
       title: "命令名称",
-      dataIndex: "describe",
+      dataIndex: "command",
       ellipsis: true,
     },
     {
       title: "命令参数",
-      dataIndex: "schemas",
+      dataIndex: "InPara",
       ellipsis: true,
+      render: (text: any, record: any) => {
+        return record?.InPara ? (
+          <span>
+            {record?.InPara},{record?.OutPara}
+          </span>
+        ) : (
+          <span>{record?.OutPara}</span>
+        );
+      },
     },
     {
       title: "是否合格",
-      dataIndex: "qualified",
+      dataIndex: "Qualified",
       ellipsis: true,
     },
   ];
@@ -143,89 +130,32 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
   useImperativeHandle(ref, () => ({
     clearAllBreakpoints,
   }));
-  // 将平铺数据转换为按group分组的树形结构
-  const convertToTreeData = (flatData: any[]) => {
-    if (!flatData || flatData.length === 0) return [];
 
-    // 按group分组
-    const groupMap = new Map();
-    flatData.forEach((item) => {
-      const group = item.group;
-      if (!groupMap.has(group)) {
-        groupMap.set(group, []);
-      }
-      groupMap.get(group).push(item);
-    });
-
-    // 转换为树形结构
-    const treeData: any[] = [];
-
-    groupMap.forEach((items, group) => {
-      if (items.length === 1) {
-        // 如果组内只有一个项目，直接作为根节点
-        treeData.push({
-          ...items[0],
-          key: items[0].id,
-        });
-      } else {
-        // 查找id等于group的项目作为父节点
-        const parentItem = items.find(
-          (item: any) => String(item.id) === String(group)
-        );
-        const childItems = items.filter(
-          (item: any) => String(item.id) !== String(group)
-        );
-
-        if (parentItem) {
-          // 如果找到了父节点，将其他项目作为子节点
-          const groupNode = {
-            ...parentItem,
-            key: parentItem.id,
-            children: childItems.map((item: any) => ({
-              ...item,
-              key: item.id,
-            })),
-          };
-          treeData.push(groupNode);
-        } else {
-          // 如果没有找到id等于group的项目，使用第一个项目作为父节点
-          const firstItem = items[0];
-          const otherItems = items.slice(1);
-          const groupNode = {
-            ...firstItem,
-            key: firstItem.id,
-            children: otherItems.map((item: any) => ({
-              ...item,
-              key: item.id,
-            })),
-          };
-          treeData.push(groupNode);
-        }
-      }
-    });
-
-    return treeData;
-  };
-
-  // 打断点
-  const setBreakpoint = (id: any, nodes: any = dataSource) => {
+  const setBreakpoint = (targetKey: any, nodes: any = dataSource) => {
     const newData = nodes.map((item: any) => {
-      if (item.id === id) return { ...item, breakpoint: true };
+      const itemKey = item.key ?? item.id;
+      if (itemKey === targetKey) return { ...item, breakpoint: true };
       if (item.children)
-        return { ...item, children: setBreakpoint(id, item.children) };
+        return { ...item, children: setBreakpoint(targetKey, item.children) };
       return item;
     });
+
+    console.log("newData", newData);
+
     setState({ dataSource: newData });
     onPonitChange?.(newData);
     return newData;
   };
 
-  // 取消断点
-  const cancelBreakpoint = (id: any, nodes: any = dataSource) => {
+  const cancelBreakpoint = (targetKey: any, nodes: any = dataSource) => {
     const newData = nodes.map((item: any) => {
-      if (item.id === id) return { ...item, breakpoint: false };
+      const itemKey = item.key ?? item.id;
+      if (itemKey === targetKey) return { ...item, breakpoint: false };
       if (item.children)
-        return { ...item, children: cancelBreakpoint(id, item.children) };
+        return {
+          ...item,
+          children: cancelBreakpoint(targetKey, item.children),
+        };
       return item;
     });
     setState({ dataSource: newData });
@@ -309,12 +239,14 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
         onRow={(record) => ({
           onClick: () => {
             selectRow(record);
-            cancelBreakpoint(record.id);
+            const targetKey = record.key ?? record.id;
+            cancelBreakpoint(targetKey);
           },
 
           onDoubleClick: () => {
             selectRow(record);
-            setBreakpoint(record.id);
+            const targetKey = record.key ?? record.id;
+            setBreakpoint(targetKey);
           },
         })}
         expandable={{
