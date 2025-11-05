@@ -27,15 +27,22 @@ const TestCondition: React.FC<ResultProps> = ({ id }) => {
       const parentId = `p-${it.itemindex}`;
       return {
         id: parentId,
-        extension: `${it.UUTType} 测试项目 * ${it.info?.length ?? 0}`, // ✅ 拼接
-        sequenceName1: it.itemName, // 父节点显示 itemName（蓝色）
+        level: 0, // 父层
+        extension: `${it.UUTType} 测试项目 * ${it.info?.length ?? 0}`,
+        sequenceName1: it.itemName,
         testValue: "",
-        children: (it.info || []).map((c) => ({
-          id: `c-${it.itemindex}-${c.conditionindex}`,
-          extension: "", // 子节点不显示扩展名
-          sequenceName1: c.conditionname, // 子节点变量名
-          testValue: c.conditionvalue,
-        })),
+        children: (it.info || []).map((c) => {
+          const isArray = Array.isArray(c.conditionvalue);
+          return {
+            id: `c-${it.itemindex}-${c.conditionindex}`,
+            level: 1, // 子层（变量）
+            extension: "",
+            sequenceName1: isArray
+              ? `${c.conditionname}  [ ${c.conditionvalue.length} ]`
+              : c.conditionname,
+            testValue: c.conditionvalue,
+          };
+        }),
       };
     });
   };
@@ -48,12 +55,14 @@ const TestCondition: React.FC<ResultProps> = ({ id }) => {
         return { ...item, children: expandArrayItems(item.children) };
       }
       if (Array.isArray(item.testValue)) {
+        const baseLevel = item.level ?? 1;
         const children = item.testValue.map((value: any, index: number) => ({
           id: `${item.id}_${index}`,
+          level: baseLevel + 1, // 索引行为更深一层
           extension: "",
           sequenceName1: index,
           testValue: value,
-          isArrayItem: true,
+          isArrayItem: true, // 标注为数组项（索引行）
         }));
         return { ...item, children };
       }
@@ -109,12 +118,19 @@ const TestCondition: React.FC<ResultProps> = ({ id }) => {
       title: "变量名",
       dataIndex: "sequenceName1",
       render: (value: any, record: any) => {
-        // 父节点(有children)是蓝色，子节点是灰色
+        const hasChildren =
+          Array.isArray(record.children) && record.children.length;
+        const isArrayItem = !!record.isArrayItem; // 0/1/2/3 这些
         const color =
-          record.children && !Array.isArray(record.testValue)
+          hasChildren && !Array.isArray(record.testValue)
             ? "#1890ff"
             : "#6c757d";
-        return <span style={{ color }}>{value}</span>;
+
+        return (
+          <div style={{ paddingLeft: isArrayItem ? 10 : 0, color }}>
+            {value}
+          </div>
+        );
       },
     },
     {
@@ -122,7 +138,8 @@ const TestCondition: React.FC<ResultProps> = ({ id }) => {
       dataIndex: "testValue",
       render: (value: any) =>
         Array.isArray(value) ? (
-          <span style={{ color: "#6c757d" }}>{JSON.stringify(value)}</span>
+          // <span style={{ color: "#6c757d" }}>{JSON.stringify(value)}</span>
+          <span style={{ color: "#6c757d" }}>...</span>
         ) : (
           <span style={{ color: "#6c757d" }}>{value}</span>
         ),

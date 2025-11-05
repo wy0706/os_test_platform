@@ -1,8 +1,11 @@
-import { getList } from "@/services/case-management/case-run.service";
+import {
+  getVectorList,
+  updateVectorOne,
+} from "@/services/case-management/case-run.service";
 import { ActionType, ProTable } from "@ant-design/pro-components";
-import { Modal, Select } from "antd";
-import { useEffect, useRef } from "react";
-
+import { message, Modal, Select } from "antd";
+import { isArray } from "lodash";
+import { useRef } from "react";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -20,71 +23,53 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  data,
+  autoId,
 }) => {
   const actionRef = useRef<ActionType>();
 
-  useEffect(() => {
-    if (open) {
-    }
-  }, [open]);
-
-  // const handleOk = () => {
-  //   form
-  //     .validateFields()
-  //     .then((values) => {
-  //       console.log("Form values:", values);
-  //       if (onOk) {
-  //         onOk(values);
-  //       }
-  //     })
-  //     .catch((errorInfo) => {
-  //       console.error("Validation failed:", errorInfo);
-  //     });
-  // };
-
   const columns = [
+    // {
+    //   title: "序号",
+    //   dataIndex: "index",
+    //   valueType: "index",
+    //   width: 80,
+    // },
     {
-      title: "序号",
-      dataIndex: "index",
-      valueType: "index",
-      width: 80,
+      ellipsis: true,
+      title: "通道索引",
+      dataIndex: "Chnlindex",
+      editable: () => false,
     },
     {
       title: "通道名称",
-      dataIndex: "name",
+      dataIndex: "ChannelName",
       editable: () => false,
       ellipsis: true,
     },
     {
       title: "通道类型",
-      dataIndex: "type",
+      dataIndex: "ChannelType",
       ellipsis: true,
       editable: () => false,
     },
     {
       title: "使能状态",
-      dataIndex: "status",
+      dataIndex: "Enable",
       ellipsis: true,
       valueType: "select",
-      width: 100,
+      width: 120,
       valueEnum: {
-        success: {
+        True: {
           text: "✓",
           status: "Success",
         },
-        error: {
+        False: {
           text: "✗",
           status: "Error",
         },
       },
     },
-    {
-      ellipsis: true,
-      title: "通道索引",
-      dataIndex: "order",
-      editable: () => false,
-    },
+
     {
       title: "操作",
       dataIndex: "option",
@@ -92,6 +77,7 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
       width: 100,
       render: (text: any, record: any, _: any, action: any) => [
         <a
+          style={{ marginLeft: 5 }}
           key="editable"
           onClick={() => {
             action?.startEditable?.(record.id);
@@ -105,41 +91,40 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
 
   const requestData = async (...args: any) => {
     try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
+      const { code, data, message: msg } = await getVectorList();
+      if (code !== 0) {
+        message.error(msg || "获取列表失败");
+        return {
+          success: false,
+          total: 0,
+          data: [],
+        };
+      }
+      let list = isArray(data) ? data : [];
+      return {
+        success: true,
+        total: list.length,
+        data: list,
+      };
     } catch {
       return {
-        total: 2,
-        data: [
-          {
-            name: "Virtual Channel",
-            type: "CAN",
-            status: "success",
-            order: "0",
-            id: 1,
-          },
-          {
-            name: "Virtual Channel",
-            type: "CAN",
-            status: "success",
-            order: "1",
-            id: 2,
-          },
-        ],
+        success: false,
+        total: 0,
+        data: [],
       };
     }
   };
   return (
     <Modal
       title="VECTOR通道配置"
-      //   maskClosable={false}
+      maskClosable={false}
+      destroyOnHidden
       open={open}
       onCancel={() => {
         onCancel && onCancel();
       }}
       styles={{ body: { minHeight: 200, padding: 20 } }}
       width={"50%"}
-      // onOk={handleOk}
       footer={null}
     >
       <ProTable
@@ -156,6 +141,12 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
           },
           onSave: async (rowKey, data, row) => {
             console.log("保存数据:", data);
+            const { code, message: msg } = await updateVectorOne({ ...data });
+            if (code === 0) {
+              message.success(msg || "操作成功");
+            } else {
+              message.error(msg || "操作失败");
+            }
           },
           onCancel: async (rowKey, data, row) => {
             console.log("取消编辑");
@@ -166,7 +157,6 @@ const VectorInfoModal: React.FC<SetMemberModalProps> = ({
         rowKey="id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
       />
     </Modal>

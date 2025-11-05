@@ -62,6 +62,14 @@ export async function getTestInfo(execution_file_id: any) {
 /**
  * 保存当前编辑测试信息
  * @param data
+ * execution_file_id 文件id
+ * ProjectName 项目名称
+ * SampleName样品名称
+ * Model 型号
+ * TestOrg 测试单位
+ * Tester 测试人员
+ * Temperature 环境温度
+ * Law 测试依据
  * @returns
  */
 export async function updateTestInfo(data: any) {
@@ -73,12 +81,13 @@ export async function updateTestInfo(data: any) {
 }
 /**
  * 获取报告详情
- * @param data
+ * @param execution_file_id  当前测试序列id
  * @returns
  */
-export async function getReportInfo() {
+export async function getReportInfo(execution_file_id: any) {
   const result: any = await request<{}>(`${baseUrl}/GetReportInf`, {
     method: "GET",
+    params: { execution_file_id },
   });
   return result;
 }
@@ -103,14 +112,48 @@ export async function GetExcelList() {
   });
   return result;
 }
+/**
+ * 保存当前编辑报告信息
+ * execution_file_id 文件id
+ * ReportOperate报告操作方式
+ * ReportSufx 报告后缀
+ * ReportSufxflag 是否使能报告后缀
+ * ReportServer 报告服务器
+ * ReportServerflag 报告服务器是否使能
+ * ReportModule报告模版
+ * ReportModuleflag报告模版是否使能
+ */
 
-// export async function createOne(data: any) {
-//   const result: any = await request<{}>(`${baseUrl}/createOne`, {
-//     method: "POST",
-//     data: data,
-//   });
-//   return result;
-// }
+export async function updateReportOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/EditReportInf`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+/**
+ * 获取VECTOR列表
+ * @param data
+ * @returns
+ */
+export async function getVectorList() {
+  const result: any = await request<{}>(`${baseUrl}/GetVectorList`, {
+    method: "GET",
+  });
+  return result;
+}
+/**
+ * 保存编辑vector状态信息
+ * @param data
+ * @returns
+ */
+export async function updateVectorOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/EditVector`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
 
 // export async function getAll(params: any) {
 //   const result: any = await request<{}>(`${baseUrl}/getAll`, {

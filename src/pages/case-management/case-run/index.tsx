@@ -11,7 +11,7 @@ import {
   SettingOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { ActionType, PageContainer } from "@ant-design/pro-components";
+import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import {
@@ -43,17 +43,13 @@ interface SelfCheckMessage {
   timestamp: Date;
 }
 const Page: React.FC = () => {
-  const actionRef = useRef<ActionType>();
   const runLeftRef = useRef<any>(null);
-
   const [searchParams] = useSearchParams();
   useEffect(() => {
     setState({
       title: searchParams.get("name") || "-",
       isShowAllBtn: searchParams.get("status") === "all",
     });
-
-    requestData();
   }, []);
   const [state, setState] = useSetState<any>({
     isShowAllBtn: false, //是否展示全部操作按钮 ，从任务列表跳转的不需要展示某些按钮
@@ -147,19 +143,15 @@ const Page: React.FC = () => {
     console.log("点击的菜单项key:", key);
     switch (key) {
       case "1":
-        console.log("点击了测试信息");
         setState({ isTestInfoModalOpen: true });
         break;
       case "2":
-        console.log("点击了报告信息");
         setState({ isReportInfoModalOpen: true });
         break;
       case "3":
-        console.log("点击了VECTOR通道配置");
         setState({ isVectorInfoModalOpen: true });
         break;
       case "4":
-        console.log("点击了自检");
         setState({ isSelfCheck: true });
         break;
       default:
@@ -445,11 +437,17 @@ const Page: React.FC = () => {
         onCancel={() => {
           setState({ isTestInfoModalOpen: false });
         }}
+        onOk={() => {
+          setState({ isTestInfoModalOpen: false });
+        }}
       />
       <ReportInfoModal
         autoId={params.id}
         open={isReportInfoModalOpen}
         onCancel={() => {
+          setState({ isReportInfoModalOpen: false });
+        }}
+        onOk={() => {
           setState({ isReportInfoModalOpen: false });
         }}
       />

@@ -1,4 +1,7 @@
-import { getTestInfo } from "@/services/case-management/case-run.service";
+import {
+  getTestInfo,
+  updateTestInfo,
+} from "@/services/case-management/case-run.service";
 import { useSetState } from "ahooks";
 import { Form, Input, message, Modal, Select } from "antd";
 import { useEffect } from "react";
@@ -70,9 +73,21 @@ const TestInfoModal: React.FC<SetMemberModalProps> = ({
   const [form] = Form.useForm();
 
   const handleOk = async () => {
+    const values = await form.validateFields();
     try {
-      const values = await form.validateFields();
-
+      if (!autoId) return;
+      setState({
+        confirmLoading: true,
+      });
+      const { code, message: msg } = await updateTestInfo({
+        ...values,
+        execution_file_id: autoId,
+      });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
       if (onOk) {
         onOk(values);
       }

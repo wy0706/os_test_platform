@@ -55,41 +55,49 @@ const EditTypeModal: React.FC<SetMemberModalProps> = ({
   };
   const isNumeric = (v: any) => /^-?\d+(\.\d+)?$/.test(String(v).trim());
   const handleOk = async () => {
-    const values = await form.validateFields();
-    console.log("valuaes", values);
+    setState({ confirmLoading: true });
+    try {
+      const values = await form.validateFields();
 
-    const list: Array<{ key: string; value: any }> = values?.project ?? [];
-    const trimmedKeys = list.map((i) => String(i?.key ?? "").trim());
-    if (trimmedKeys.some((k) => !k)) {
-      message.error("存在空的枚举名，请填写完整");
+      const list: Array<{ key: string; value: any }> = values?.project ?? [];
+      const trimmedKeys = list.map((i) => String(i?.key ?? "").trim());
+      if (trimmedKeys.some((k) => !k)) {
+        message.error("存在空的枚举名，请填写完整");
+        return;
+      }
+      const dup = trimmedKeys.find((k, idx) => trimmedKeys.indexOf(k) !== idx);
+      if (dup) {
+        message.error(`存在重复枚举名：${dup}，请修改后再提交`);
+        return;
+      }
+      // 2) 严格“按当前顺序”映射为 [{ item1: 1 }, { item2: 2 }]
+      const payloadProject = list.map((item) => {
+        const k = String(item.key).trim();
+        const rawV = item.value;
+        const vStr = String(rawV).trim();
+        const v = isNumeric(vStr) ? Number(vStr) : rawV; // 数字字符串转 number
+        return { [k]: v };
+      });
+      // console.log("list", payloadProject);
+      // console.log("updateValue", updateValue);
+
+      const { code, message: msg } = await updateOneEnum({
+        condition_id: updateValue.condition_id,
+        enum: payloadProject,
+      });
+
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      message.success(msg || "操作成功");
+      console.log("Form values:", values);
+
+      onOk?.(values);
+    } catch (e) {
+    } finally {
       setState({ confirmLoading: false });
-      return;
     }
-    const dup = trimmedKeys.find((k, idx) => trimmedKeys.indexOf(k) !== idx);
-    if (dup) {
-      message.error(`存在重复枚举名：${dup}，请修改后再提交`);
-      setState({ confirmLoading: false });
-      return;
-    }
-    // 2) 严格“按当前顺序”映射为 [{ item1: 1 }, { item2: 2 }]
-    const payloadProject = list.map((item) => {
-      const k = String(item.key).trim();
-      const rawV = item.value;
-      const vStr = String(rawV).trim();
-      const v = isNumeric(vStr) ? Number(vStr) : rawV; // 数字字符串转 number
-      return { [k]: v };
-    });
-    console.log("list", payloadProject);
-
-    console.log("updateValue", updateValue);
-
-    const { code, message: msg } = await updateOneEnum({
-      condition_id: updateValue.condition_id,
-      enum: payloadProject,
-    });
-    console.log("Form values:", values);
-
-    onOk?.(values);
   };
 
   return (

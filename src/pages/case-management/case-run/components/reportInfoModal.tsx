@@ -1,7 +1,7 @@
 import {
   GetExcelList,
   getReportInfo,
-  getServerList,
+  updateReportOne,
 } from "@/services/case-management/case-run.service";
 import { useSetState } from "ahooks";
 import { Checkbox, Col, Form, Input, message, Modal, Row, Select } from "antd";
@@ -11,20 +11,45 @@ interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
   onCancel?: () => void;
-  data?: any;
   autoId: any;
 }
 const { Option } = Select;
 
-const layout = {
-  labelCol: { span: 24 },
+const layout = { labelCol: { span: 24 } };
+
+const OPERATE_OPTIONS = [
+  { label: "报表显示", value: "display" },
+  { label: "报表保存", value: "save" },
+  { label: "仅记录UDS", value: "uds" },
+];
+
+const n2b = (v: any) => v === 1 || v === "1" || v === true;
+const b2n = (v: any) => (v ? 1 : 0);
+
+// 操作选项转换函数
+const operateFromBackend = (arr: any): string[] => {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((v, i) => (v === 1 || v === "1" ? OPERATE_OPTIONS[i]?.value : null))
+    .filter(Boolean) as string[];
+};
+
+const operateToBackend = (selected: string[] | undefined | null): number[] => {
+  const len = OPERATE_OPTIONS.length;
+  const res = Array(len).fill(0) as number[];
+  (selected || []).forEach((v) => {
+    const i = OPERATE_OPTIONS.findIndex((opt) => opt.value === v);
+    if (i !== -1) res[i] = 1;
+  });
+  return res;
 };
 
 const ReportInfoModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-  data,
+
+  autoId,
 }) => {
   const [state, setState] = useSetState<any>({
     loading: false,
@@ -33,67 +58,47 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
     serveList: [],
     excelList: [],
   });
-
-  const { loading, confirmLoading, isDisabled } = state;
-  useEffect(() => {
-    if (open) {
-      form?.resetFields();
-      initData();
-      // if (data) {
-      //   form?.setFieldsValue({ ...data });
-      // }
-    }
-  }, [open, data]);
-  const initData = async () => {
-    await getReport();
-    await getServer();
-    await getExcel();
-  };
+  const { loading, confirmLoading, isDisabled, excelList } = state;
   const [form] = Form.useForm();
+  useEffect(() => {
+    initData();
+  }, [open, autoId]);
+
+  const initData = async () => {
+    if (!open) return;
+    form?.resetFields();
+    await Promise.all([getReport(), getExcel()]);
+  };
   const getReport = async () => {
+    if (!autoId) {
+      message.error("缺少文件ID");
+      return;
+    }
     try {
-      setState({
-        loading: true,
-      });
-      const { code, data, message: msg } = await getReportInfo();
+      setState({ loading: true });
+      const { code, data: report, message: msg } = await getReportInfo(autoId);
       if (code !== 0) {
         message.error(msg || "获取报告详情失败");
-        setState({
-          isDisabled: true,
-        });
+        setState({ isDisabled: true });
         return;
       }
-      setState({
-        isDisabled: false,
-      });
-      console.log("data", data);
-    } catch (e) {
-      setState({
-        isDisabled: true,
-      });
+
+      // 映射后端数据到表单
+      const formValues = {
+        ReportOperate: operateFromBackend(report?.ReportOperate),
+        ReportSufxflag: n2b(report?.ReportSufxflag),
+        ReportServerflag: n2b(report?.ReportServerflag),
+        ReportModuleflag: n2b(report?.ReportModuleflag),
+        ReportSufx: report?.ReportSufx ?? undefined,
+        ReportServer: report?.ReportServer ?? undefined,
+        ReportModule: report?.ReportModule ?? undefined,
+      };
+      form?.setFieldsValue(formValues);
+      setState({ isDisabled: false });
+    } catch {
+      setState({ isDisabled: true });
     } finally {
-      setState({
-        loading: false,
-      });
-    }
-  };
-  const getServer = async () => {
-    try {
-      const { code, data, message: msg } = await getServerList();
-      if (code !== 0) {
-        message.error(msg || "获取服务器列表失败");
-        setState({
-          serveList: [],
-        });
-        return;
-      }
-      setState({
-        serveList: data || [],
-      });
-    } catch (e) {
-      setState({
-        serveList: [],
-      });
+      setState({ loading: false });
     }
   };
 
@@ -106,88 +111,93 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
         return;
       }
       setState({ excelList: data || [] });
-    } catch (e) {
+    } catch {
       setState({ excelList: [] });
     }
   };
 
   const handleOk = async () => {
     try {
-      const values = await form;
-
-      console.log("Form values:", values);
       setState({
         confirmLoading: true,
       });
-      if (onOk) {
-        onOk(values);
+      const values = await form.validateFields();
+
+      //  表单 → 后端
+      const payload = {
+        execution_file_id: autoId,
+        ...values,
+        ReportSufxflag: b2n(values.ReportSufxflag),
+        ReportServerflag: b2n(values.ReportServerflag),
+        ReportModuleflag: b2n(values.ReportModuleflag),
+        ReportOperate: operateToBackend(values.ReportOperate),
+      };
+
+      const { code, message: msg } = await updateReportOne(payload);
+      if (code !== 0) {
+        throw new Error(msg || "操作失败");
       }
-    } catch (e) {
+      message.success(msg || "操作成功");
+      onOk?.(payload);
+    } catch {
+      // 校验未通过
     } finally {
-      setState({
-        confirmLoading: false,
-      });
+      setState({ confirmLoading: false });
     }
   };
-  const plainOptions = ["Apple", "Pear", "Orange"];
+
   return (
     <Modal
       title="报表导出设置"
       maskClosable={false}
-      loading={loading}
       okButtonProps={{ disabled: isDisabled }}
       confirmLoading={confirmLoading}
-      afterClose={() => {
-        form?.resetFields();
-        setState({
-          isDisabled: true,
-        });
-      }}
+      destroyOnHidden
       open={open}
       onCancel={() => {
-        onCancel && onCancel();
+        form?.resetFields();
+        setState({ isDisabled: true });
+        onCancel?.();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      styles={{ body: { padding: 20 } }}
       width={"35%"}
       onOk={handleOk}
+      loading={loading}
     >
       <Form
         {...layout}
         form={form}
         initialValues={{
-          name2: true,
-          name4: true,
-          name6: true,
+          ReportSufxflag: false,
+          ReportServerflag: false,
+          ReportModuleflag: false,
+          ReportOperate: [],
         }}
       >
+        {/*  导出设置 */}
         <Form.Item
-          name="name"
-          label=""
+          name="ReportOperate"
           rules={[{ required: true, message: "请选择导出设置" }]}
         >
           <Checkbox.Group style={{ width: "100%" }}>
             <Row gutter={16}>
-              <Col span={8}>
-                <Checkbox value="1">报表显示</Checkbox>
-              </Col>
-
-              <Col span={8}>
-                <Checkbox value="3">报表保存</Checkbox>
-              </Col>
-
-              <Col span={8}>
-                <Checkbox value="4">仅记录UDS</Checkbox>
-              </Col>
+              {OPERATE_OPTIONS.map((opt) => (
+                <Col span={8} key={opt.value}>
+                  <Checkbox value={opt.value}>{opt.label}</Checkbox>
+                </Col>
+              ))}
             </Row>
           </Checkbox.Group>
         </Form.Item>
+
+        {/* 报表名后缀 */}
         <Row gutter={16}>
           <Col span={6}>
-            <Form.Item name="name2" label="" valuePropName="checked">
+            <Form.Item name="ReportSufxflag" valuePropName="checked">
               <Checkbox
                 onChange={(e) => {
                   if (!e.target.checked) {
-                    form.setFieldValue("name3", undefined);
+                    form?.setFieldValue("ReportSufx", undefined);
                   }
                 }}
               >
@@ -197,29 +207,23 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
           </Col>
           <Col span={8}>
             <Form.Item
-              shouldUpdate={(prevValues, currentValues) =>
-                prevValues.name2 !== currentValues.name2
+              shouldUpdate={(prev, cur) =>
+                prev.ReportSufxflag !== cur.ReportSufxflag
               }
             >
               {({ getFieldValue }) => {
-                const isChecked = getFieldValue("name2");
+                const isChecked = getFieldValue("ReportSufxflag");
                 return (
                   <Form.Item
-                    name="name3"
-                    label=""
-                    rules={[
-                      {
-                        required: isChecked,
-                        message: "请输入间隔符",
-                      },
-                    ]}
+                    name="ReportSufx"
+                    rules={[{ required: isChecked, message: "请输入间隔符" }]}
                   >
                     <Input
                       placeholder="输入间隔符"
                       allowClear
                       addonAfter="间隔符"
                       disabled={!isChecked}
-                      style={{ color: isChecked ? "#000000" : "#6c757d" }}
+                      style={{ color: isChecked ? "#000" : "#6c757d" }}
                     />
                   </Form.Item>
                 );
@@ -227,62 +231,35 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
             </Form.Item>
           </Col>
         </Row>
+
+        {/* 上传服务器 */}
         <Row gutter={16}>
           <Col span={6}>
-            <Form.Item name="name4" label="" valuePropName="checked">
-              <Checkbox
-                onChange={(e) => {
-                  if (!e.target.checked) {
-                    form.setFieldValue("name5", undefined);
-                  }
-                }}
-              >
-                上传服务器
-              </Checkbox>
+            <Form.Item name="ReportServerflag" valuePropName="checked">
+              <Checkbox>上传服务器</Checkbox>
             </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item
-              shouldUpdate={(prevValues, currentValues) =>
-                prevValues.name4 !== currentValues.name4
+              shouldUpdate={(prev, cur) =>
+                prev.ReportServerflag !== cur.ReportServerflag
               }
             >
-              {({ getFieldValue }) => {
-                const isChecked = getFieldValue("name4");
-                return (
-                  <Form.Item
-                    name="name5"
-                    label=""
-                    rules={[
-                      {
-                        required: isChecked,
-                        message: "请选择服务器",
-                      },
-                    ]}
-                  >
-                    <Select
-                      placeholder="选择服务器"
-                      allowClear
-                      disabled={!isChecked}
-                      style={{ color: isChecked ? "#000000" : "#6c757d" }}
-                    >
-                      <Option value="1">服务器1</Option>
-                      <Option value="2">服务器2</Option>
-                      <Option value="3">服务器3</Option>
-                    </Select>
-                  </Form.Item>
-                );
-              }}
+              <Form.Item name="ReportServer">
+                <Input disabled placeholder="服务器" />
+              </Form.Item>
             </Form.Item>
           </Col>
         </Row>
+
+        {/* EXCEL模板 */}
         <Row gutter={16}>
           <Col span={6}>
-            <Form.Item name="name6" label="" valuePropName="checked">
+            <Form.Item name="ReportModuleflag" valuePropName="checked">
               <Checkbox
                 onChange={(e) => {
                   if (!e.target.checked) {
-                    form.setFieldValue("name7", undefined);
+                    form?.setFieldValue("ReportModule", undefined);
                   }
                 }}
               >
@@ -292,34 +269,30 @@ const ReportInfoModal: React.FC<SetMemberModalProps> = ({
           </Col>
           <Col span={8}>
             <Form.Item
-              shouldUpdate={(prevValues, currentValues) =>
-                prevValues.name6 !== currentValues.name6
+              shouldUpdate={(prev, cur) =>
+                prev.ReportModuleflag !== cur.ReportModuleflag
               }
             >
               {({ getFieldValue }) => {
-                const isChecked = getFieldValue("name6");
+                const isChecked = getFieldValue("ReportModuleflag");
                 return (
                   <Form.Item
-                    name="name7"
-                    label=""
+                    name="ReportModule"
                     rules={[
-                      {
-                        required: isChecked,
-                        message: "请选择EXCEL模板路径",
-                      },
+                      { required: isChecked, message: "请选择EXCEL模板路径" },
                     ]}
                   >
                     <Select
-                      placeholder="EXCEl模版路径"
+                      placeholder="EXCEL模板路径"
                       allowClear
                       disabled={!isChecked}
-                      style={{
-                        color: isChecked ? "#000000" : "#6c757d",
-                      }}
+                      style={{ color: isChecked ? "#000" : "#6c757d" }}
                     >
-                      <Option value="1">路径1</Option>
-                      <Option value="2">路径2</Option>
-                      <Option value="3">路径3</Option>
+                      {excelList.map((item: any) => (
+                        <Option value={item} key={item}>
+                          {item}
+                        </Option>
+                      ))}
                     </Select>
                   </Form.Item>
                 );

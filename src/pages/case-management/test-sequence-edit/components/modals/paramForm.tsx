@@ -481,7 +481,7 @@ const ParamForm: React.FC<ParamFormProps> = ({
         ["allowedTypeKeys", "optionsByType"],
         "omit"
       );
-      console.log("realData", realData);
+      // console.log("realData", realData);
       // 值数组（与行顺序一致）
 
       const rawList = dataSource.map((item, index) => {

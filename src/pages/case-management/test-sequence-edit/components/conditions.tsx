@@ -52,7 +52,7 @@ const Conditions: React.FC<ConditionsProps> = ({
     tableData: [] as any[],
     totalCount: 0,
 
-    // ✅ 以稳定 id 为选中锚
+    // 以稳定 id 为选中锚
     selectedId: controlledSelectedId ?? null,
     selectedRowIndex: -1,
     selectedRowData: null as any,
