@@ -1,4 +1,5 @@
 import { useWebSocket } from "@/utils/useWebSockt";
+import { dispatchDown } from "@/utils/ws/dispatch";
 import type { UpMsg } from "@/utils/ws/protocol";
 import {
   BarsOutlined,
@@ -54,30 +55,22 @@ const Page: React.FC = () => {
   const params = useParams();
 
   const [state, setState] = useSetState<any>({
-    // 顶部控制
     isShowAllBtn: false,
     title: null,
-
-    // 左侧树 & 断点
     breakpoints: [],
-    disableClearAll: true,
-    selectRowData: null,
-
-    // 运行态 / 右侧 tab
-    currentStatus: "IDLE", // IDLE | TEST | BREAK | PASS | FAIL | ERROR
+    // 显示最后的结果，测试成功“PASS”,测试失败“FAIL”；
+    // 暂停，显示“BREAK”;当处于运行状态显示“TEST”；
+    // 当命令对应设备通信DLL不存在发生错误“ERROR”
+    currentStatus: "IDLE", // ✅ 初始空闲：IDLE | TEST | BREAK | PASS | FAIL | ERROR
     tabActiveKey: "2",
-
-    // 自检
+    dataSource: [],
     isSelfCheck: false,
     selfCheckMessages: [],
     isSelfChecking: false,
-
-    // 模态框
+    stepMode: null,
     isReportInfoModalOpen: false,
     isTestInfoModalOpen: false,
     isVectorInfoModalOpen: false,
-
-    // tab
     tabItems: [
       { key: "1", label: "测试信息", icon: <HomeOutlined /> },
       { key: "2", label: "测试结果", icon: <BookOutlined /> },
@@ -89,13 +82,15 @@ const Page: React.FC = () => {
       { key: "3", label: "VECTOR通道配置" },
       { key: "4", label: "自检" },
     ],
-
-    // 运行数据
+    disableClearAll: true,
+    selectRowData: null,
+    // 补充
+    runId: undefined,
+    logs: [] as string[],
     progress: 0,
-
+    totalResult: null as any,
     currentItemCmd: { itemindex: 0, cmdindex: 0, itemname: "", cmdname: "" },
-
-    // 结果&日志
+    runningWS: false,
     itemResults: [] as ItemResultData[],
     allLogs: [] as string[], // 所有日志（字符串）
     runLogs: [] as {
@@ -103,11 +98,8 @@ const Page: React.FC = () => {
       status: "SUCCESS" | "FAIL" | "INFO";
       message: string;
     }[],
-    stepMode: 2,
-
-    btnType: null, //点击了哪个按钮
   });
-  const { btnType } = state;
+
   useEffect(() => {
     setState({
       title: searchParams.get("name") || "-",
@@ -115,7 +107,14 @@ const Page: React.FC = () => {
     });
   }, []);
 
-  /** 日志工具 */
+  const appendLog = (text: string) => {
+    setState((prev: any) => ({
+      logs:
+        prev.logs?.[prev.logs.length - 1] === text
+          ? prev.logs
+          : [...(prev.logs || []), text],
+    }));
+  };
   const appendAllLog = (text: string) => {
     setState((prev: any) => ({
       allLogs:
@@ -124,6 +123,8 @@ const Page: React.FC = () => {
           : [...(prev.allLogs || []), text],
     }));
   };
+
+  /** 追加到 runLogs（运行日志，结构化对象） */
   const appendRunLog = (
     message: string,
     status: "SUCCESS" | "FAIL" | "INFO" = "INFO"
@@ -134,16 +135,40 @@ const Page: React.FC = () => {
     }));
     appendAllLog(`[${time}] ${status} → ${message}`);
   };
-
-  /** 把 TestProcess 统一转成前端结构 */
+  /** ============ 安全发送器：锁 + 限流 ============ */
+  type CommandKey =
+    | "RUN"
+    | "STOP"
+    | "PAUSE"
+    | "GO"
+    | "STEP"
+    | "BKPOINT"
+    | "SelfTest";
+  const cmdLocks = useRef<Record<CommandKey, boolean>>({
+    RUN: false,
+    STOP: false,
+    PAUSE: false,
+    GO: false,
+    STEP: false,
+    BKPOINT: false,
+    SelfTest: false,
+  });
+  const lastSentAt = useRef<Record<CommandKey, number>>({} as any);
+  const releaseLock = (type: CommandKey) => {
+    cmdLocks.current[type] = false;
+  };
+  /** 把后端 TestProcess 的不同层级统一成我们前端用的结构 */
   function normalizeTestProcess(raw: any) {
-    console.log("raw", raw);
+    // 后端包基本是 { type:'TestProcess', data:{ ... } }
+    const payload = raw?.data ?? raw;
 
-    const code = raw?.data?.code;
-    const info = raw?.data;
+    const code = payload?.code ?? raw?.code;
+    const info = payload?.info ?? payload; // code:2/3 在 info 里；code:1 直接在 data
 
+    // 兼容 Message(s) 两种写法
     const message = info?.Messages ?? info?.Message;
 
+    // code:1（过程）
     if (code === 1) {
       return {
         code: 1,
@@ -153,12 +178,14 @@ const Page: React.FC = () => {
         cmdname: info?.cmdname,
         progress:
           typeof info?.Progress === "number" ? info?.Progress : undefined,
-        status: info?.status, // 有则用于判定 FAIL/SUCCESS
         message,
       };
     }
+
+    // code:2（项目结束）
     if (code === 2) {
-      const ri = info?.info || [];
+      const ri = info?.resultInfo || info?.resultinfo || [];
+      // 后端字段可能是 Value/Result/Name，转成 value/result/name
       const resultInfo = ri.map((r: any) => ({
         resultid: r?.resultid ?? r?.id ?? r?.ResultId,
         name: r?.name ?? r?.Name,
@@ -167,9 +194,16 @@ const Page: React.FC = () => {
       }));
       return {
         code: 2,
-        data: {},
+        data: {
+          itemindex: info?.itemindex,
+          itemname: info?.itemname,
+          testtime: info?.testtime,
+          resultInfo,
+        },
       };
     }
+
+    // code:3（总结果）
     if (code === 3) {
       return {
         code: 3,
@@ -180,32 +214,44 @@ const Page: React.FC = () => {
         },
       };
     }
+
     return { code, data: info };
   }
 
-  /** useWebSocket（无需加锁/节流） */
   const { send, close } = useWebSocket({
     url: "ws://117.133.25.215:8000/ws/",
     onOpen: () => {
       appendAllLog("🔗 WebSocket 连接已建立");
-      setState({ currentStatus: "IDLE" });
+      setState({ currentStatus: "IDLE" }); // ✅ 连接后仍为空闲
     },
-    onMessage: (msg) => {
-      console.log("源信息msg", msg);
-      const n = msg?.data;
+    onMessage: (raw) => {
+      let msg = raw;
+      console.log("msg====", msg);
 
-      console.log("n====", n);
-      if (msg?.type === "TestProcess") {
+      // try {
+      //   msg = typeof raw === "string" ? JSON.parse(raw) : raw;
+      // } catch {
+      //   appendAllLog(`${String(raw)}`);
+      //   return;
+      // }
+
+      // ------------------------------
+      // 处理测试过程类消息（TestProcess）
+      // ------------------------------
+      const n = normalizeTestProcess(msg);
+      if (msg.type === "TestProcess") {
+        console.log("n====", n);
+
         if (n.code === 1) {
-          //表示运行到某一行
-          const status = n.Status === 1 ? "FAIL" : "SUCCESS";
+          const status = n.status === 1 ? "FAIL" : "SUCCESS";
           const message =
-            n.Message ??
+            n.message ??
             `${n.itemname ?? "-"} - ${n.cmdname ?? "-"} 进度 ${
-              n.Progress ?? 0
+              n.progress ?? 0
             }%`;
 
-          appendRunLog(message, status);
+          appendRunLog(message, status); // ✅ 结构化运行日志
+
           setState((prev: any) => ({
             currentItemCmd: {
               itemindex: n.itemindex,
@@ -214,15 +260,15 @@ const Page: React.FC = () => {
               cmdname: n.cmdname,
             },
             progress:
-              typeof n.Progress === "number" ? n.Progress : prev.progress,
+              typeof n.progress === "number" ? n.progress : prev.progress,
             currentStatus: "TEST",
           }));
+
           return;
         }
-
         if (n.code === 2) {
           setState((prev: any) => ({
-            itemResults: [...prev.itemResults, n.info],
+            itemResults: [...prev.itemResults, n.data],
           }));
           appendAllLog(`项目结果：${n.data?.itemname ?? "-"} 已完成`);
           return;
@@ -230,154 +276,148 @@ const Page: React.FC = () => {
 
         if (n.code === 3) {
           setState({
-            currentStatus: n.info?.Result || "ERROR",
+            currentStatus: n.data?.Result || "ERROR",
+            progress: 100,
           });
           appendRunLog(
-            `总结果：${n.info?.Result} 结束时间：${n.info?.TestEndTime}`,
-            n.info?.Result === "PASS" ? "SUCCESS" : "FAIL"
+            `总结果：${n.data?.Result} 结束时间：${n.data?.TestEndTime}`,
+            n.data?.Result === "PASS" ? "SUCCESS" : "FAIL"
           );
-          // 不再有后续消息，安全关闭且不重连
-          // setTimeout(() => close({ disableReconnect: true }), 150);
+          // 总结果后关闭连接（不重连）
+          setTimeout(() => close({ disableReconnect: true }), 200);
           return;
         }
       }
-
-      // 控制类最小实现
-      switch (msg?.type) {
+      switch (msg.type) {
         case "RUN":
-          if (n.code === 0) {
-            setState({ currentStatus: "TEST" });
-            appendAllLog(`▶ RUN 成功：${msg.message ?? ""}`);
-          } else {
-            appendAllLog(`❌ RUN 失败：${msg.message ?? ""}`);
+          releaseLock("RUN");
+          const timestamp = new Date().toLocaleString();
+          const text = `${timestamp}`;
+          if (n?.code === 0) {
+            setState({
+              currentStatus: "TEST",
+              itemResults: [], // ✅ 再确保清空
+              progress: 0,
+            });
           }
+          const co = n?.code === 0 ? "SUCCESS" : "FAIL";
+          appendRunLog(text, co);
+          appendAllLog(`RUN → ${text}`);
           break;
 
         case "STOP":
-          if (n.code === 0) {
+          releaseLock("STOP");
+          if (msg.code === 0) {
             appendAllLog(
-              `🛑 STOP 成功：${msg.message} (Item=${msg.CurrentItem}, Cmd=${msg.CurrentCmd})`
+              `STOP → ${msg.message} (Item=${msg.CurrentItem}, Cmd=${msg.CurrentCmd})`
             );
-            appendRunLog(`STOP ${msg.message} `, "SUCCESS");
-            setState({ currentStatus: "STOP", progress: 0 });
-            // setTimeout(() => close({ disableReconnect: true }), 150);
+            setState({
+              currentStatus: "IDLE",
+              progress: 0,
+            });
+            // 200ms 后安全关闭 websocket，不重连
+            setTimeout(() => close({ disableReconnect: true }), 200);
           } else {
-            appendAllLog(`❌ STOP 失败：${msg.message ?? ""}`);
-            appendRunLog(`STOP ${msg.message}`, "FAIL");
+            appendAllLog(` STOP 失败：${msg.message}`);
           }
           break;
 
         case "PAUSE":
+          releaseLock("PAUSE");
           if (msg.code === 1) {
             setState({ currentStatus: "BREAK" });
-            appendAllLog(`⏸ 暂停成功：${msg.message ?? ""}`);
+            appendAllLog(`⏸ 暂停成功：${msg.message}`);
           } else {
-            appendAllLog(`❌ 暂停失败：${msg.message ?? ""}`);
+            appendAllLog(`❌ 暂停失败：${msg.message}`);
           }
           break;
 
         case "GO":
+          releaseLock("GO");
           if (msg.code === 0) {
             setState({ currentStatus: "TEST" });
-            appendAllLog(`▶️ 继续测试：${msg.message ?? ""}`);
+            appendAllLog(`▶️ 继续测试：${msg.message}`);
           }
           break;
 
         case "STEP":
-          console.log("steop");
-
-          appendAllLog(`🧩 单步测试：${msg.message ?? ""}`);
+          releaseLock("STEP");
+          appendAllLog(`🧩 单步测试：${msg.message}`);
           break;
 
         case "BKPOINT":
-          appendAllLog(`🎯 断点设置：${msg.message ?? ""}`);
+          releaseLock("BKPOINT");
+          appendAllLog(`🎯 断点设置：${msg.message}`);
           break;
 
         case "SelfTest":
         case "SelfTestAll":
+          releaseLock("SelfTest");
           setState({ isSelfChecking: false });
           appendAllLog(`🧪 自检：${msg.message || "完成"}`);
           break;
         default:
           break;
       }
+
+      // return;
+      // ------------------------------
+      // 其他未识别类型，仍交给 dispatchDown
+      // ------------------------------
+
+      return;
+      dispatchDown(raw, {
+        appendLog,
+        setRunning: (b) => setState({ runningWS: b }),
+        setProgress: (p) => setState({ progress: p }),
+        highlight: ({ itemindex, cmdindex, itemname, cmdname }) =>
+          setState({
+            currentItemCmd: { itemindex, cmdindex, itemname, cmdname },
+          }),
+        pushItemResult: (d) =>
+          setState((prev: any) => ({ itemResults: [...prev.itemResults, d] })),
+        setTotalResult: (d) => setState({ totalResult: d }),
+      });
     },
-    onClose: () => appendAllLog("⚠️ WebSocket 已断开"),
+
+    onClose: () => appendLog("⚠️ WebSocket 已断开"),
     onError: () => message.error("WebSocket 出错"),
     reconnectInterval: 15000,
     heartbeatInterval: 15000,
   });
-  useEffect(() => {
-    console.log("allLogs", state.allLogs);
-  }, [state.allLogs]);
-  /** —— 基础交互 —— */
 
-  // 开始运行前的重置（清旧结果/日志/进度/指针）
-  const resetForNewRun = () => {
-    setState({
-      itemResults: [],
-      runLogs: [],
-      progress: 0,
-      currentItemCmd: { itemindex: 0, cmdindex: 0, itemname: "", cmdname: "" },
-    });
-  };
+  // 统一发送入口：加锁 + 限流
+  const sendCommand = (
+    msg: UpMsg,
+    opts?: { lock?: boolean; minInterval?: number }
+  ) => {
+    const type = msg.type as CommandKey;
+    const lock = opts?.lock ?? true;
+    const minInterval = opts?.minInterval ?? 1200;
+    const now = Date.now();
 
-  const handleRun = () => {
-    setState({
-      btnType: "RUN",
-    });
-    // 先清 UI
-    resetForNewRun();
-    // 发 RUN
-    send({ type: "RUN" } as UpMsg);
-  };
-
-  const handleStop = () => {
-    setState({
-      btnType: "STOP",
-    });
-    send({ type: "STOP" } as UpMsg);
-  };
-
-  const handleStep = () => {
-    if (!state.selectRowData) {
-      message.warning("请选择数据后进行测试");
-      return;
+    if (
+      lastSentAt.current[type] &&
+      now - lastSentAt.current[type] < minInterval
+    ) {
+      message.warning(`${type} 操作过于频繁，请稍后再试`);
+      return false;
     }
-
-    setState({
-      currentItemCmd: {},
-      progress: 0,
-      currentStatus: "IDLE",
-      btnType: "STEP",
-    });
-    const method = state.stepMode === 2 ? 0 : 1; // 0 项目单步 1命令单步
-
-    console.log("state.selectRowData", state.selectRowData);
-
-    const { itemindex = 1, cmdindex = 1 } = state.selectRowData;
-    send({
-      type: "STEP",
-      method,
-      StartItem: itemindex,
-      StartCmd: cmdindex,
-    } as UpMsg);
+    if (lock && cmdLocks.current[type]) {
+      message.warning(`${type} 正在处理，请稍候…`);
+      return false;
+    }
+    const ok = send(msg);
+    if (!ok) {
+      message.error("WebSocket 未连接，发送失败");
+      return false;
+    }
+    lastSentAt.current[type] = now;
+    if (lock) cmdLocks.current[type] = true;
+    return true;
   };
 
-  const handleGo = () => {
-    setState({
-      btnType: "GO",
-    });
-    send({ type: "GO" } as UpMsg);
-  };
-  const handlePause = () => {
-    setState({
-      btnType: "PAUSE",
-    });
-    send({ type: "PAUSE" } as UpMsg);
-  };
-
-  // 自检菜单
+  // 菜单
   const handleMenuClick = ({ key }: { key: string }) => {
     switch (key) {
       case "1":
@@ -395,12 +435,21 @@ const Page: React.FC = () => {
           break;
         }
         setState({ isSelfCheck: true, isSelfChecking: true });
-        send({ type: "SelfTest" } as UpMsg);
+        sendCommand({ type: "SelfTest" } as UpMsg, {
+          lock: true,
+          minInterval: 3000,
+        });
         break;
     }
   };
 
-  // 行选择/断点
+  // 步骤模式变化
+  const { stepMode } = state;
+  const handleStepModeChange = (value: number) => {
+    setState({ stepMode: stepMode === value ? null : value });
+  };
+
+  // 断点
   const hasAnyBreakpoint = (nodes: any[]): boolean =>
     nodes?.some(
       (node: any) =>
@@ -418,11 +467,19 @@ const Page: React.FC = () => {
     setState({ selectRowData: { ...values } });
   };
 
-  // 按钮可用性（最小逻辑）
+  // === 按钮可用性 ===
   const isRunning = state.currentStatus === "TEST";
   const isPaused = state.currentStatus === "BREAK";
-  const canRun = !isRunning && !state.isSelfChecking;
-
+  const canRun = !isRunning && !state.isSelfChecking; // 可按需增加其它限制
+  const resetForNewRun = () => {
+    setState({
+      itemResults: [], // ✅ 清空右侧 TestResult 的数据
+      runLogs: [], // 可选：清空运行日志面板
+      progress: 0, // 可选：进度清零
+      currentItemCmd: { itemindex: 0, cmdindex: 0, itemname: "", cmdname: "" }, // 可选：指针清零
+      totalResult: null, // 可选：总结果清零
+    });
+  };
   return (
     <PageContainer
       header={{
@@ -452,54 +509,111 @@ const Page: React.FC = () => {
             <Space className="operation-buttons">
               <Button
                 icon={<PlayCircleOutlined />}
-                disabled={!canRun}
-                onClick={handleRun}
+                disabled={!canRun} // ✅ 初始 IDLE 时可执行
+                onClick={() => {
+                  resetForNewRun(); // ✅ 先清
+                  sendCommand({ type: "RUN" } as UpMsg, {
+                    lock: true,
+                    minInterval: 1500,
+                  });
+                }}
               >
                 执行
               </Button>
 
               <Button
                 icon={<StopOutlined />}
-                // disabled={!isRunning}
-                onClick={handleStop}
+                disabled={!isRunning} // 仅运行中可停止
+                onClick={() => {
+                  console.log("点击停止");
+
+                  sendCommand({ type: "STOP" } as UpMsg, {
+                    lock: true,
+                    minInterval: 1200,
+                  });
+                }}
               >
                 停止
               </Button>
 
-              <Button icon={<EnterOutlined />} onClick={handleStep}>
+              <Button
+                icon={<EnterOutlined />}
+                onClick={() => {
+                  if (!state.selectRowData) {
+                    message.warning("请选择数据后进行测试");
+                    return;
+                  }
+                  const method = state.stepMode === 2 ? 1 : 0;
+                  const { itemindex = 1, cmdindex = 1 } = state.selectRowData;
+                  sendCommand(
+                    {
+                      type: "STEP",
+                      method,
+                      StartItem: itemindex,
+                      StartCmd: cmdindex,
+                    } as UpMsg,
+                    { lock: true, minInterval: 1200 }
+                  );
+                }}
+              >
                 单项测试
               </Button>
 
               {state.isShowAllBtn && (
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <Button icon={<CaretRightOutlined />} onClick={handleGo}>
+                  <Button
+                    icon={<CaretRightOutlined />}
+                    disabled={!isPaused} // 仅暂停态可继续
+                    onClick={() =>
+                      sendCommand({ type: "GO" } as UpMsg, {
+                        lock: true,
+                        minInterval: 800,
+                      })
+                    }
+                  >
                     继续
                   </Button>
-                  <Button icon={<PauseOutlined />} onClick={handlePause}>
+                  <Button
+                    icon={<PauseOutlined />}
+                    disabled={!isRunning} // 仅运行中可暂停
+                    onClick={() =>
+                      sendCommand({ type: "PAUSE" } as UpMsg, {
+                        lock: true,
+                        minInterval: 800,
+                      })
+                    }
+                  >
                     暂停
                   </Button>
                   <Button
+                    disabled={state.disableClearAll}
                     onClick={() => {
-                      send({
-                        type: "BKPOINT",
-                        method: 0,
-                        StartItem: 0,
-                        StartCmd: 0,
-                      } as UpMsg);
+                      sendCommand(
+                        {
+                          type: "BKPOINT",
+                          method: 0,
+                          StartItem: 0,
+                          StartCmd: 0,
+                        } as UpMsg,
+                        { lock: true, minInterval: 800 }
+                      );
                       handleClearAll();
                     }}
                     icon={<CloseOutlined />}
                   >
                     取消所有断点
                   </Button>
-
-                  <div style={{ marginLeft: 8 }}>
+                  <div>
                     <Radio.Group
-                      value={state.stepMode}
-                      onChange={(e) => setState({ stepMode: e.target.value })}
+                      value={stepMode}
+                      onChange={(e) => handleStepModeChange(e.target.value)}
                     >
-                      <Radio value={2}>项目单步</Radio>
-                      <Radio value={1}>命令单步</Radio>
+                      <Radio value={1} onClick={() => handleStepModeChange(1)}>
+                        项目单步
+                      </Radio>
+                      <Radio value={2} onClick={() => handleStepModeChange(2)}>
+                        命令单步
+                      </Radio>
                     </Radio.Group>
                   </div>
                 </div>
@@ -536,13 +650,12 @@ const Page: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <RunLeftPage
-                btnType={btnType}
-                ref={runLeftRef}
-                autoId={params.id}
                 currentItemCmd={state.currentItemCmd}
                 progress={state.progress}
-                logs={state.runLogs} // ✅ 运行日志给左侧 Message 展示
+                logs={state.runLogs}
                 currentStatus={state.currentStatus}
+                autoId={params.id}
+                ref={runLeftRef}
                 isSelfCheck={state.isSelfCheck}
                 isSelfChecking={state.isSelfChecking}
                 selfCheckMessages={state.selfCheckMessages}

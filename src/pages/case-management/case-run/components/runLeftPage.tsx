@@ -2,23 +2,47 @@ import { getList } from "@/services/case-management/case-run.service";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
 import { Card, Checkbox, message, Progress, Space, Table, Tag } from "antd";
-import { forwardRef, useEffect, useImperativeHandle } from "react";
-
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+} from "react";
 import { formatTableTreeData } from "../schemas";
 import "./index.less";
+
 interface RunProps {
-  data?: any;
-  id?: any;
-  isSelfCheck: Boolean;
-  isSelfChecking: boolean;
-  selfCheckMessages: any;
-  currentStatus: string;
-  breakpoints: any;
-  onDataChange?: (newData: any[]) => void;
-  onPonitChange: (value: any) => void;
-  onRowSelect?: (row: any) => void; // 把选中行数据回传给父组件
   autoId: any;
+  /** 自检 */
+  isSelfCheck: boolean;
+  isSelfChecking: boolean;
+  selfCheckMessages: any[];
+  /** 断点回传 */
+  breakpoints: any;
+  onPonitChange: (value: any) => void;
+  /** 左侧选中行传给父组件 */
+  onRowSelect?: (row: any) => void;
+  /** 运行态高亮位置（父：itemindex，子：cmdindex） */
+  currentItemCmd?: {
+    itemindex?: string | number;
+    cmdindex?: string | number;
+    itemname?: string;
+    cmdname?: string;
+  };
+  /** 右侧面板 */
+  progress?: number;
+  currentStatus: string;
+  /** 运行日志（对象数组） */
+  logs: {
+    time: string;
+    status: "SUCCESS" | "FAIL" | "INFO";
+    message: string;
+  }[];
+  /** 可选：把数据回传给父组件 */
+  onDataChange?: (data: any[]) => void;
+  btnType: any; //点击的按钮类型
 }
+
 interface SelfCheckMessage {
   id: number;
   deviceType: string;
@@ -27,68 +51,192 @@ interface SelfCheckMessage {
   message: string;
   timestamp: Date;
 }
+
 const RunLeftPage = forwardRef((props: RunProps, ref) => {
   const {
-    data,
+    autoId,
     isSelfCheck,
     isSelfChecking,
-    selfCheckMessages,
+    selfCheckMessages = [],
     currentStatus,
-    onDataChange,
     onPonitChange,
     onRowSelect,
+    currentItemCmd,
+    logs = [],
+    progress = 0,
+    btnType,
   } = props;
+
   const [state, setState] = useSetState<any>({
     isExpandAll: true,
     dataSource: [],
-    expandedRowKeys: [],
-    selectedRowKey: null, // ✅ 当前仅选中一条
+    expandedRowKeys: [] as React.Key[],
+    selectedRowKey: null as null | React.Key,
   });
-
   const { isExpandAll, dataSource, expandedRowKeys, selectedRowKey } = state;
 
+  /** 统一计算“当前激活行”的 key（优先子行 cmdindex，没有则用父行 itemindex） */
+  const activeKey = useMemo<React.Key | null>(() => {
+    if (currentItemCmd?.cmdindex != null) return currentItemCmd.cmdindex as any;
+    if (currentItemCmd?.itemindex != null)
+      return currentItemCmd.itemindex as any;
+    return null;
+  }, [currentItemCmd?.cmdindex, currentItemCmd?.itemindex]);
+
+  /** 收集所有父节点 key（用于“展开所有”） */
+  const collectAllParentKeys = (nodes: any[] = []): React.Key[] => {
+    const keys: React.Key[] = [];
+    const dfs = (arr: any[]) => {
+      arr.forEach((n) => {
+        if (Array.isArray(n.children) && n.children.length > 0) {
+          keys.push(n.key ?? n.id);
+          dfs(n.children);
+        }
+      });
+    };
+    dfs(nodes);
+    return keys;
+  };
+
+  /** 只允许“唯一一行”高亮 */
+  const isActiveRow = (record: any) => {
+    if (activeKey == null) return false;
+    return record.key === activeKey;
+  };
+
+  /** 选中一行（点击/运行命中都走此逻辑） */
   const selectRow = (record: any) => {
-    const key = record.key || record.id;
+    const key = record.key ?? record.id;
     setState({ selectedRowKey: key });
     onRowSelect?.(record);
   };
-  useEffect(() => {
-    requestData();
-  }, []);
 
-  // 数据加载后，若开启“按命令展开所有项目”，默认展开全部可展开的行
+  /** 初次请求数据 */
   useEffect(() => {
-    if (isExpandAll && dataSource && dataSource.length > 0) {
-      const allExpandableKeys = dataSource
-        .filter((item: any) => item.children && item.children.length > 0)
-        .map((item: any) => item.key || item.id);
-      setState({ expandedRowKeys: allExpandableKeys });
-    }
-  }, [dataSource, isExpandAll]);
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(dataSource);
-    }
-  }, [dataSource, onDataChange]);
-
-  const requestData: any = async () => {
-    try {
-      if (!props.autoId) return;
-      const { code, data, message: msg } = await getList(String(props.autoId));
-      if (code !== 0) {
-        message.error(msg || "获取数据失败");
-        setState({ dataSource: [] });
-        return;
+    (async () => {
+      try {
+        if (!autoId) return;
+        const { code, data, message: msg } = await getList(String(autoId));
+        if (code !== 0) {
+          message.error(msg || "获取数据失败");
+          setState({ dataSource: [], expandedRowKeys: [] });
+          return;
+        }
+        const tree = formatTableTreeData(data);
+        setState({
+          dataSource: tree,
+          expandedRowKeys: isExpandAll ? collectAllParentKeys(tree) : [],
+        });
+      } catch {
+        setState({ dataSource: [], expandedRowKeys: [] });
       }
-      console.log("formatTableTreeData(data) ", formatTableTreeData(data));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoId]);
 
-      setState({ dataSource: formatTableTreeData(data) });
-    } catch {
-      setState({ dataSource: [] });
+  /** 勾选“按命令展开所有序列” */
+  useEffect(() => {
+    if (isExpandAll && dataSource.length) {
+      setState({ expandedRowKeys: collectAllParentKeys(dataSource) });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpandAll, dataSource]);
+
+  /** 运行态高亮：展开父项 + 选中激活行 + 平滑滚动 */
+  useEffect(() => {
+    if (!currentItemCmd) return;
+
+    // 展开父项
+    if (currentItemCmd.itemindex != null) {
+      setState((prev: any) => {
+        const next = new Set(prev.expandedRowKeys);
+        next.add(currentItemCmd.itemindex as any);
+        return { expandedRowKeys: Array.from(next) };
+      });
+    }
+
+    // 选中激活行
+    if (activeKey != null) {
+      setState({ selectedRowKey: activeKey });
+    }
+
+    // 滚动到该行
+    requestAnimationFrame(() => {
+      if (activeKey == null) return;
+      const row = document.querySelector<HTMLElement>(
+        `.ant-table-row[data-row-key="${activeKey}"]`
+      );
+      const body = document.querySelector<HTMLElement>(".ant-table-body");
+      if (row && body) {
+        const rowTop = row.offsetTop;
+        const rowBottom = rowTop + row.offsetHeight;
+        const viewTop = body.scrollTop;
+        const viewBottom = viewTop + body.clientHeight;
+        if (rowTop < viewTop || rowBottom > viewBottom) {
+          body.scrollTo({ top: rowTop - 24, behavior: "smooth" });
+        }
+      }
+    });
+  }, [activeKey, currentItemCmd?.itemindex]);
+
+  /** 把最新的数据回传给父组件（如需） */
+  useEffect(() => {
+    props.onDataChange?.(dataSource);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataSource]);
+
+  /** 打断点/取消断点/清空断点 */
+  const setBreakpoint = (targetKey: any, nodes: any = dataSource) => {
+    const next = nodes.map((item: any) => {
+      const itemKey = item.key ?? item.id;
+      if (itemKey === targetKey) return { ...item, breakpoint: true };
+      if (item.children)
+        return { ...item, children: setBreakpoint(targetKey, item.children) };
+      return item;
+    });
+    setState({ dataSource: next });
+    onPonitChange?.(next);
+    return next;
+  };
+  const cancelBreakpoint = (targetKey: any, nodes: any = dataSource) => {
+    const next = nodes.map((item: any) => {
+      const itemKey = item.key ?? item.id;
+      if (itemKey === targetKey) return { ...item, breakpoint: false };
+      if (item.children)
+        return {
+          ...item,
+          children: cancelBreakpoint(targetKey, item.children),
+        };
+      return item;
+    });
+    setState({ dataSource: next });
+    onPonitChange?.(next);
+    return next;
+  };
+  const clearAllBreakpoints = (nodes: any = dataSource) => {
+    const next = nodes.map((item: any) => ({
+      ...item,
+      breakpoint: false,
+      children: item.children ? clearAllBreakpoints(item.children) : undefined,
+    }));
+    setState({ dataSource: next });
+    return next;
   };
 
-  // 定义表格列
+  /** 结果状态配置 */
+  const getStatusConfig = (status: string) => {
+    const map = {
+      IDLE: { color: "green", text: "IDLE", description: "测试结束" },
+      PASS: { color: "green", text: "PASS", description: "测试成功" },
+      FAIL: { color: "red", text: "FAIL", description: "测试失败" },
+      BREAK: { color: "orange", text: "BREAK", description: "处于暂停状态" },
+      TEST: { color: "blue", text: "TEST", description: "正在运行测试" },
+      ERROR: { color: "red", text: "ERROR", description: "设备通信DLL错误" },
+    } as const;
+    return (map as any)[status] || map.TEST;
+  };
+
+  /** 列定义（保持你的展示字段） */
   const columns = [
     {
       title: "序列名称",
@@ -101,202 +249,113 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
         </div>
       ),
     },
-    {
-      title: "命令名称",
-      dataIndex: "command",
-      ellipsis: true,
-    },
+    { title: "命令名称", dataIndex: "command", ellipsis: true },
     {
       title: "命令参数",
       dataIndex: "InPara",
       ellipsis: true,
-      render: (text: any, record: any) => {
-        return record?.InPara ? (
+      render: (_: any, record: any) =>
+        record?.InPara ? (
           <span>
             {record?.InPara},{record?.OutPara}
           </span>
         ) : (
           <span>{record?.OutPara}</span>
-        );
-      },
+        ),
     },
-    {
-      title: "是否合格",
-      dataIndex: "Qualified",
-      ellipsis: true,
-    },
+    { title: "是否合格", dataIndex: "Qualified", ellipsis: true },
   ];
-  // 暴露方法给父组件
-  useImperativeHandle(ref, () => ({
-    clearAllBreakpoints,
-  }));
 
-  const setBreakpoint = (targetKey: any, nodes: any = dataSource) => {
-    const newData = nodes.map((item: any) => {
-      const itemKey = item.key ?? item.id;
-      if (itemKey === targetKey) return { ...item, breakpoint: true };
-      if (item.children)
-        return { ...item, children: setBreakpoint(targetKey, item.children) };
-      return item;
-    });
+  /** 暴露方法给父组件 */
+  useImperativeHandle(ref, () => ({ clearAllBreakpoints }));
 
-    console.log("newData", newData);
-
-    setState({ dataSource: newData });
-    onPonitChange?.(newData);
-    return newData;
-  };
-
-  const cancelBreakpoint = (targetKey: any, nodes: any = dataSource) => {
-    const newData = nodes.map((item: any) => {
-      const itemKey = item.key ?? item.id;
-      if (itemKey === targetKey) return { ...item, breakpoint: false };
-      if (item.children)
-        return {
-          ...item,
-          children: cancelBreakpoint(targetKey, item.children),
-        };
-      return item;
-    });
-    setState({ dataSource: newData });
-    onPonitChange?.(newData);
-    return newData;
-  };
-
-  // 取消所有断点
-  const clearAllBreakpoints = (nodes: any = dataSource) => {
-    const newData = nodes.map((item: any) => ({
-      ...item,
-      breakpoint: false,
-      children: item.children ? clearAllBreakpoints(item.children) : undefined,
-    }));
-    setState({ dataSource: newData });
-    return newData;
-  };
-
-  // 获取状态配置
-  const getStatusConfig = (status: string) => {
-    const statusConfigs = {
-      PASS: { color: "green", text: "PASS", description: "测试成功" },
-      FAIL: { color: "red", text: "FAIL", description: "测试失败" },
-      BREAK: { color: "orange", text: "BREAK", description: "处于暂停状态" },
-      TEST: { color: "blue", text: "TEST", description: "正在运行测试" },
-      ERROR: {
-        color: "red",
-        text: "ERROR",
-        description: "设备通信DLL不存在或发生错误",
-      },
-    };
-    return (
-      statusConfigs[status as keyof typeof statusConfigs] || statusConfigs.TEST
-    );
-  };
   return (
     <div className="runLeftPage-page">
-      <div
-        style={{
-          marginBottom: 10,
-        }}
-      >
+      {/* 顶部：展开控制 */}
+      <div style={{ marginBottom: 10 }}>
         <Checkbox
           checked={isExpandAll}
           onChange={(e) => {
             const checked = e.target.checked;
-            if (checked) {
-              // 展开所有有children的行
-              const allExpandableKeys = dataSource
-                .filter(
-                  (item: any) => item.children && item.children.length > 0
-                )
-                .map((item: any) => item.key || item.id);
-              setState({
-                isExpandAll: true,
-                expandedRowKeys: allExpandableKeys,
-              });
-            } else {
-              // 收起所有行
-              setState({
-                isExpandAll: false,
-                expandedRowKeys: [],
-              });
-            }
+            setState({
+              isExpandAll: checked,
+              expandedRowKeys: checked ? collectAllParentKeys(dataSource) : [],
+            });
           }}
         >
           按命令展开所有序列
         </Checkbox>
       </div>
-      <Table<any>
+
+      {/* 左侧树表 */}
+      <Table
         bordered
-        columns={columns}
-        scroll={{ y: 300 }}
-        indentSize={0} // 取消树形缩进
+        columns={columns as any}
         dataSource={dataSource}
-        rowKey={(record) => record.key || record.id}
+        rowKey={(r) => r.key}
+        indentSize={0}
         pagination={false}
-        rowClassName={(record) =>
-          selectedRowKey === (record.key || record.id) ? "row-selected" : ""
-        }
+        scroll={{ y: 300 }}
+        rowClassName={(record) => {
+          const isSelected = selectedRowKey === record.key;
+          const active = isActiveRow(record);
+          return `${isSelected ? "row-selected" : ""} ${
+            active ? "row-selected" : ""
+          }`.trim();
+        }}
         onRow={(record) => ({
           onClick: () => {
-            selectRow(record);
-            const targetKey = record.key ?? record.id;
-            cancelBreakpoint(targetKey);
+            const key = record.key;
+            setState({ selectedRowKey: key });
+            onRowSelect?.(record);
+            // 单击取消该行断点（保持你的旧逻辑）
+            cancelBreakpoint(key);
           },
-
           onDoubleClick: () => {
-            selectRow(record);
-            const targetKey = record.key ?? record.id;
-            setBreakpoint(targetKey);
+            const key = record.key;
+            setState({ selectedRowKey: key });
+            onRowSelect?.(record);
+            setBreakpoint(key);
           },
         })}
         expandable={{
-          expandedRowKeys: expandedRowKeys,
+          showExpandColumn: false,
+          expandedRowKeys,
           onExpand: (expanded, record) => {
-            let newExpandedKeys: any[];
-            const recordKey = record.key || record.id;
-            if (expanded) {
-              // 展开行：添加到expandedRowKeys
-              newExpandedKeys = [...expandedRowKeys, recordKey];
-            } else {
-              // 收起行：从expandedRowKeys中移除
-              newExpandedKeys = expandedRowKeys.filter(
-                (key: any) => key !== recordKey
-              );
-            }
+            const k = record.key ?? record.id;
+            const next = expanded
+              ? [...expandedRowKeys, k]
+              : expandedRowKeys.filter((x) => x !== k);
 
-            // 检查是否所有可展开的行都已展开
-            const allExpandableKeys = dataSource
-              .filter((item: any) => item.children && item.children.length > 0)
-              .map((item: any) => item.key || item.id);
-            const allExpanded = allExpandableKeys.every((key: any) =>
-              newExpandedKeys.includes(key)
-            );
-            console.log("allExpanded", allExpanded);
+            const allParents = collectAllParentKeys(dataSource);
+            const allExpanded = allParents.every((p) => next.includes(p));
+
             setState({
-              expandedRowKeys: newExpandedKeys,
+              expandedRowKeys: next,
               isExpandAll: allExpanded,
             });
           },
-          // 只有有children的行才显示展开按钮
-          rowExpandable: (record) =>
-            !!(record.children && record.children.length > 0),
+          rowExpandable: (r) =>
+            Array.isArray(r.children) && r.children.length > 0,
         }}
       />
+
+      {/* 右侧卡片（自检 or 运行信息） */}
       {isSelfCheck ? (
         <Card className="table-card" style={{ marginTop: 10 }}>
-          {" "}
           <div className="self-check-container">
             <div className="self-check-header">
               <h3>自检信息</h3>
               {isSelfCheck && (
                 <div className="self-check-status">
-                  <span className="loading-dot"></span>
+                  <span className="loading-dot" />
                   自检中...
                 </div>
               )}
             </div>
+
             <div className="self-check-content">
-              {!selfCheckMessages || selfCheckMessages.length === 0 ? (
+              {!selfCheckMessages?.length ? (
                 <div className="no-messages">
                   {isSelfChecking ? "正在获取自检信息..." : "暂无自检信息"}
                 </div>
@@ -304,29 +363,24 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                 <div
                   className="messages-list"
                   style={{
-                    // height: "120px",
                     height: "100%",
                     overflowY: "auto",
                     backgroundColor: "#f8f9fa",
-                    // border: "1px solid #e9ecef",
-                    borderRadius: "4px",
-                    padding: "8px",
+                    borderRadius: 4,
+                    padding: 8,
                     fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                    fontSize: "11px",
-                    lineHeight: "1.4",
+                    fontSize: 11,
+                    lineHeight: 1.4,
                   }}
                 >
                   {selfCheckMessages
-                    .filter(
-                      (message: SelfCheckMessage) =>
-                        message && message.deviceType
-                    )
-                    .map((message: SelfCheckMessage) => (
-                      <div key={message.id} className="message-line">
+                    .filter((x: SelfCheckMessage) => x && x.deviceType)
+                    .map((m: SelfCheckMessage) => (
+                      <div key={m.id} className="message-line">
                         <span className="device-name">
-                          {message.deviceType} {message.serialNumber}
+                          {m.deviceType} {m.serialNumber}
                         </span>
-                        <span className="error-message">{message.message}</span>
+                        <span className="error-message">{m.message}</span>
                       </div>
                     ))}
                 </div>
@@ -335,109 +389,106 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
           </div>
         </Card>
       ) : (
-        <div>
-          {/* 运行信息卡片 */}
-          <Card
-            size="small"
-            style={{ marginTop: 16 }}
-            title={
-              <Space>
-                <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                <span>Message</span>
-              </Space>
-            }
-            bordered={true}
-          >
-            <div
-              className="console-output"
-              style={{
-                height: "120px",
-                overflowY: "auto",
-                backgroundColor: "#f8f9fa",
-                border: "1px solid #e9ecef",
-                borderRadius: "4px",
-                padding: "8px",
-                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                fontSize: "11px",
-                lineHeight: "1.4",
-              }}
-            >
-              <div style={{ color: "#6c757d" }}>
-                [2023-12-07 14:32:15] 开始执行测试序列...
-              </div>
+        // 非自检：展示运行信息 + 进度 + 结果
 
-              <div style={{ color: "#6c757d" }}>
-                [2023-12-07 14:32:16] 初始化测试环境
-              </div>
-              <div style={{ color: "#6c757d" }}>
-                [2023-12-07 14:32:17] 执行 test add - PreTestItemProcessing
-              </div>
-              <div style={{ color: "#cf1322" }}>
-                [2023-12-07 14:32:18] 错误: 参数1.000000,2.000000,b 验证失败
-              </div>
-              <div style={{ color: "#6c757d" }}>
-                [2023-12-07 14:32:19] test add 执行完成
-              </div>
-            </div>
-          </Card>
-
-          {/* 执行进度卡片 */}
-          <Card
-            size="small"
-            style={{ marginTop: 12 }}
-            title={
-              <Space>
-                <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                <span>Progress</span>
-              </Space>
-            }
-            bordered={true}
-          >
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Progress
-                percent={65}
+        <div style={{ minHeight: 400 }}>
+          {/* 运行信息 */}
+          {btnType === "RUN" && (
+            <>
+              <Card
                 size="small"
-                strokeColor="#52c41a"
-                showInfo={true}
-                // format={(percent) => `${percent}% (3/5)`}
-              />
-              {/* <div style={{ fontSize: "12px", color: "#999" }}>
-                当前执行: test add - PreTestItemProcessing2
-              </div> */}
-            </Space>
-          </Card>
-
-          {/* 运行结果卡片 */}
-          <Card
-            size="small"
-            style={{ marginTop: 12 }}
-            title={
-              <Space>
-                <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                <span>Result</span>
-              </Space>
-            }
-            bordered={true}
-          >
-            <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <Tag
-                color={getStatusConfig(currentStatus).color}
-                style={{ fontSize: "14px", padding: "4px 12px" }}
+                style={{ marginTop: 16 }}
+                title={
+                  <Space>
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                    <span>Message</span>
+                  </Space>
+                }
+                bordered
               >
-                {getStatusConfig(currentStatus).text}
-              </Tag>
-            </div>
-            <div
-              style={{
-                marginTop: 8,
-                fontSize: "12px",
-                color: "#666",
-                textAlign: "center",
-              }}
-            >
-              {getStatusConfig(currentStatus).description}
-            </div>
-          </Card>
+                <div
+                  className="console-output"
+                  style={{
+                    height: 120,
+                    overflowY: "auto",
+                    backgroundColor: "#f8f9fa",
+                    border: "1px solid #e9ecef",
+                    borderRadius: 4,
+                    padding: 8,
+                    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                    fontSize: 11,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {logs.map((line, idx) => {
+                    const color =
+                      line.status === "FAIL"
+                        ? "#cf1322"
+                        : line.status === "SUCCESS"
+                        ? "#52c41a"
+                        : "#6c757d";
+                    return (
+                      <div key={idx} style={{ color }}>
+                        [{line.time}] {line.message}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+              {/* 进度 */}
+              <Card
+                size="small"
+                style={{ marginTop: 12 }}
+                title={
+                  <Space>
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                    <span>Progress</span>
+                  </Space>
+                }
+                bordered
+              >
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Progress
+                    percent={Math.max(0, Math.min(100, Number(progress ?? 0)))}
+                    size="small"
+                    strokeColor="#52c41a"
+                    showInfo
+                  />
+                </Space>
+              </Card>
+              {/* 结果 */}
+              <Card
+                size="small"
+                style={{ marginTop: 12 }}
+                title={
+                  <Space>
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                    <span>Result</span>
+                  </Space>
+                }
+                bordered
+              >
+                <div style={{ textAlign: "center", padding: "8px 0" }}>
+                  <Tag
+                    color={getStatusConfig(currentStatus).color}
+                    style={{ fontSize: 14, padding: "4px 12px" }}
+                  >
+                    {getStatusConfig(currentStatus).text}
+                  </Tag>
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "#666",
+                    textAlign: "center",
+                  }}
+                >
+                  {getStatusConfig(currentStatus).description}
+                </div>
+              </Card>
+            </>
+          )}
         </div>
       )}
     </div>

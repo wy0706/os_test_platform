@@ -123,27 +123,47 @@ export function formatTableTreeData(list: any[] = []) {
 
   return list.map((item) => {
     const { id, Rownumber, Sequence_name, active, iteminfo = [] } = item || {};
+    const safeItemId = id ?? `row-${Math.random().toString(36).slice(2)}`;
 
     return {
-      key: id ?? Math.random(), // 防止 id 为空时报错
-      id,
+      // 父行：用 id 作为 rowKey，并把它同时作为 itemindex（便于对齐后端）
+      key: safeItemId,
+      id: safeItemId,
+      itemindex: safeItemId, // ✅ 方便高亮逻辑
       rownumber: Rownumber,
       sequence_name: Sequence_name || "-",
       active: String(active ?? "-"),
       breakpoint: false,
-      // 子节点映射
+
+      // 子节点
       children:
         Array.isArray(iteminfo) && iteminfo.length > 0
-          ? iteminfo.map((info, idx) => ({
-              key: `${id || "row"}-${idx}`,
-              command: info?.command ?? "-",
-              InPara: info?.InPara ?? "-",
-              OutPara: info?.OutPara ?? "-",
-              Qualified: info?.Qualified ?? "_",
-              breakpoint: false,
-              isLeaf: true,
-            }))
-          : undefined, // 空数组就不生成 children
+          ? iteminfo.map((info, idx) => {
+              const rawCmdId = info?.cmdid;
+              const safeCmdId =
+                rawCmdId ??
+                `${safeItemId}-cmd-${idx}-${Math.random()
+                  .toString(36)
+                  .slice(2)}`;
+
+              return {
+                // 子行：用 cmdid 作为 rowKey，并把它同时作为 cmdindex（便于对齐后端）
+                key: safeCmdId,
+                cmdid: safeCmdId,
+                cmdindex: safeCmdId, // ✅ 方便高亮逻辑
+                itemindex: safeItemId, // ✅ 回指父项，便于展开/滚动
+
+                // 展示字段
+                command: info?.command ?? "-",
+                InPara: info?.InPara ?? "-",
+                OutPara: info?.OutPara ?? "-",
+                Qualified: info?.Qualified ?? "_",
+
+                breakpoint: false,
+                isLeaf: true,
+              };
+            })
+          : undefined,
     };
   });
 }

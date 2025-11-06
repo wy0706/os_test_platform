@@ -1,86 +1,31 @@
 import { useSetState } from "ahooks";
 import { Checkbox, Table } from "antd";
 import React, { useEffect } from "react";
-interface ResultProps {
-  data?: any; //datasource数据
-  id?: any;
+
+interface BackendResultItem {
+  itemindex?: number;
+  itemname: string; // 父级变量名
+  itemtype: string; // 扩展名来源
+  resultinfo: Array<{
+    resultid?: number;
+    name: string; // 子级变量名
+    Value: any; // 测试值
+    result?: "PASS" | "FAIL" | ""; // 结果
+  }>;
 }
-const TestResult: React.FC<ResultProps> = ({ data, id }) => {
+
+interface ResultProps {
+  itemResults: BackendResultItem[]; // 后端返回数据
+}
+
+const TestResult: React.FC<ResultProps> = ({ itemResults }) => {
   const [state, setState] = useSetState<any>({
     isExpandAll: true,
     isShowPass: true,
     isShowFail: true,
-    // isManualOperation: false, // 标记是否为手动操作
     expandedRowKeys: [],
-    originalDataSource: [
-      // 保存原始数据
-      {
-        id: 1,
-        extension: "UUT test测试项目 *6",
-        result: "PASS",
-        varname: "test_add",
-        children: [
-          {
-            id: 2,
-            varname: "TestResult",
-            testValue: "PASS",
-            range: "",
-            result: "",
-          },
-          {
-            id: 3,
-            varname: "ElapsedTime",
-            testValue: "30 ms",
-            range: "",
-            result: "",
-          },
-          {
-            id: 32,
-            varname: "byte_result[4]",
-            testValue: ["01", "02", "03", "04"],
-            range: ["0 - 2000", "2 - 2000", "3 - 2000", " 0 - 20000"],
-            result: "",
-          },
-          {
-            id: 4,
-            varname: "b",
-            testValue: "3.00",
-            range: "0.00---20000.00",
-            result: "PASS",
-          },
-        ],
-      },
-      {
-        id: 6,
-        extension: "UUT test测试项目 *7",
-        result: "FAIL",
-        varname: "test_add",
-        children: [
-          {
-            id: 8,
-            varname: "TestResult",
-            testValue: "PASS",
-            range: "",
-            result: "",
-          },
-          {
-            id: 9,
-            varname: "ElapsedTime",
-            testValue: "49 ms",
-            range: "",
-            result: "",
-          },
-          {
-            id: 10,
-            varname: "b",
-            testValue: "5.00",
-            range: "0.00---4.00",
-            result: "FAIL",
-          },
-        ],
-      },
-    ],
-    dataSource: [], // 当前显示的数据，会根据过滤条件变化
+    originalDataSource: [],
+    dataSource: [],
     columns: [
       {
         title: "扩展名",
@@ -95,10 +40,8 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
         render: (text: string, record: any) => (
           <span
             style={{
-              color:
-                record.children && !Array.isArray(record.testValue)
-                  ? "#1890ff"
-                  : "#6c757d",
+              color: record.__isParent ? "#1890ff" : "#6c757d",
+              paddingLeft: !!record.isArrayItem ? 10 : 0,
             }}
           >
             {text}
@@ -108,39 +51,33 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
       {
         title: "测试值",
         dataIndex: "testValue",
-        render: (text: string, record: any) => {
+        render: (text: any, record: any) => {
           if (Array.isArray(text)) {
-            return (
-              <span style={{ color: "#6c757d" }}>{JSON.stringify(text)}</span>
-            );
-          } else {
-            return (
-              <span
-                style={{
-                  color:
-                    record.varname !== "TestResult" && record.result === "FAIL"
-                      ? "red"
-                      : "inherit",
-                }}
-              >
-                {text}
-              </span>
-            );
+            return <span style={{ color: "#6c757d" }}>...</span>;
           }
+          return (
+            <span
+              style={{
+                color:
+                  record.varname !== "TestResult" && record.result === "FAIL"
+                    ? "red"
+                    : "inherit",
+              }}
+            >
+              {String(text ?? "")}
+            </span>
+          );
         },
       },
       {
         title: "范围",
         dataIndex: "range",
-        render: (text: any, record: any) => {
-          if (Array.isArray(text)) {
-            return (
-              <span style={{ color: "#6c757d" }}>{JSON.stringify(text)}</span>
-            );
-          } else {
-            return <span>{text}</span>;
-          }
-        },
+        render: (text: any) =>
+          Array.isArray(text) ? (
+            <span style={{ color: "#6c757d" }}>...</span>
+          ) : (
+            <span>{text}</span>
+          ),
       },
       {
         title: "结果",
@@ -153,6 +90,7 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
       },
     ],
   });
+
   const {
     isExpandAll,
     isShowPass,
@@ -162,33 +100,121 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
     dataSource,
     columns,
   } = state;
-  // 处理非数组展开的函数 - 保持数组为原始格式
-  const collapseArrayItems = (items: any[]): any[] => {
-    const result: any[] = [];
-    items.forEach((item) => {
-      if (item.children) {
-        const collapsedChildren = collapseArrayItems(item.children);
-        result.push({
-          ...item,
-          children: collapsedChildren,
-        });
-      } else {
-        result.push(item);
-      }
+
+  // —— 新增：把后端数据转成表格 datasource ——
+  const transformFromBackend = (items: BackendResultItem[]) => {
+    const rows = items.map((it, parentIdx) => {
+      const children =
+        it.resultinfo?.map((ri, idx) => {
+          const { MinValue, MaxValue, Value } = ri as any;
+
+          return {
+            id: `${it.itemindex ?? parentIdx + 1}-${ri.resultid ?? idx + 1}`,
+            varname: ri.name,
+            testValue: Value ?? "",
+            range: buildRange(MinValue, MaxValue, Value), // ⭐ 关键：数组时保留为数组
+            result: ri.result ?? "",
+          };
+        }) ?? [];
+
+      // 父级汇总（可要可不要，与你的过滤逻辑一致即可）
+      const hasFail = children.some((c: any) => c.result === "FAIL");
+      const hasAny = children.some(
+        (c: any) => c.result === "PASS" || c.result === "FAIL"
+      );
+      // const parentResult = hasAny ? (hasFail ? "FAIL" : "PASS") : "";
+
+      return {
+        id: it.itemindex ?? parentIdx + 1,
+        __isParent: true,
+        extension: `${it.itemtype} 测试项目 * ${it.resultinfo?.length ?? 0}`,
+        result: "",
+        varname: it.itemname,
+        children,
+      };
     });
 
-    return result;
+    return rows;
   };
 
-  const expandArrayItems = (items: any[]): any[] => {
-    return items.map((item) => {
+  // 判断是否保留某个结果
+  const includeByResult = (r: string) =>
+    (state.isShowPass || r !== "PASS") && (state.isShowFail || r !== "FAIL");
+
+  // 核心递归过滤函数
+  const filterTreeByChildrenResult = (items: any[]): any[] => {
+    return items
+      .map((item) => {
+        const result = item.result ?? "";
+        const hasSelfResult = result === "PASS" || result === "FAIL";
+
+        // 1️⃣ 如果自身是 PASS/FAIL 且被过滤掉，则整个节点（含子树）删除
+        if (hasSelfResult && !includeByResult(result)) {
+          return null;
+        }
+
+        // 2️⃣ 处理子节点（递归）
+        let keptChildren: any[] = [];
+        if (Array.isArray(item.children) && item.children.length > 0) {
+          keptChildren = filterTreeByChildrenResult(item.children);
+        }
+
+        // 3️⃣ 决定是否保留父节点：
+        // - 有子节点 ⇒ 只保留那些子节点不为空的父节点
+        // - 没有子节点 ⇒ 如果自身 result 被保留则保留，否则删掉
+        const shouldKeep =
+          keptChildren.length > 0 ||
+          (!hasSelfResult && !item.children?.length) ||
+          (hasSelfResult && includeByResult(result));
+
+        if (!shouldKeep) return null;
+
+        return keptChildren.length > 0
+          ? { ...item, children: keptChildren }
+          : { ...item, children: [] };
+      })
+      .filter(Boolean) as any[];
+  };
+  const buildRange = (MinValue: any, MaxValue: any, Value: any) => {
+    const toText = (v: any) =>
+      v !== undefined && v !== "" ? String(v) : "占位";
+
+    // 数组范围：一一对应
+    if (Array.isArray(MinValue) && Array.isArray(MaxValue)) {
+      const len = Math.max(
+        MinValue.length,
+        MaxValue.length,
+        Array.isArray(Value) ? Value.length : 0
+      );
+      const arr: string[] = [];
+      for (let i = 0; i < len; i++) {
+        arr.push(`${toText(MinValue[i])} ~ ${toText(MaxValue[i])}`);
+      }
+      return arr; // ← 保留为数组，供 expandArrayItems 对应到子行
+    }
+
+    // 标量范围：单个字符串
+    if (MinValue !== undefined || MaxValue !== undefined) {
+      return `${toText(MinValue)} ~ ${toText(MaxValue)}`;
+    }
+
+    return ""; // 无范围
+  };
+  useEffect(() => {
+    console.log("itemResults", itemResults);
+
+    // 后端数据到达时，刷新原始数据并触发过滤/展开
+    if (Array.isArray(itemResults)) {
+      setState({ originalDataSource: transformFromBackend(itemResults) });
+    }
+  }, [itemResults]);
+
+  // —— 你原有的展开数组/合并逻辑保留（以防某些 testValue 是数组） ——
+  const expandArrayItems = (items: any[]): any[] =>
+    items.map((item) => {
       if (item.children) {
-        return {
-          ...item,
-          children: expandArrayItems(item.children),
-        };
+        return { ...item, children: expandArrayItems(item.children) };
       } else if (Array.isArray(item.testValue)) {
-        // testValue 是数组 → 转换成子节点
         const children = item.testValue.map((value: any, index: number) => ({
           id: `${item.id}_${index}`,
           varname: index,
@@ -198,109 +224,64 @@ const TestResult: React.FC<ResultProps> = ({ data, id }) => {
             ? item.range[index]
             : item.range || "",
         }));
-
-        return {
-          ...item,
-          children, // 把展开的数组作为 children
-        };
-      } else {
-        return item;
+        return { ...item, children };
       }
+      return item;
     });
-  };
 
-  // 根据过滤条件计算当前应显示的数据
-  const getFilteredDataSource = (data: any): any[] => {
-    let filtered = [...data];
-    // 根据PASS和FAIL的勾选状态过滤数据
-    if (!isShowPass && !isShowFail) {
-      // 两个都不选，显示空数据
-      return [];
-    } else if (isShowPass && !isShowFail) {
-      // 只显示PASS
-      filtered = filtered.filter((item: any) => item.result === "PASS");
-    } else if (!isShowPass && isShowFail) {
-      // 只显示FAIL
-      filtered = filtered.filter((item: any) => item.result === "FAIL");
-    }
-    // 如果两个都选中，显示所有数据（不过滤）
-
-    return filtered;
+  const getAllKeys = (data: any[]): React.Key[] => {
+    const keys: React.Key[] = [];
+    const dfs = (items: any[]) =>
+      items.forEach((item) => {
+        keys.push(item.id);
+        if (item.children) dfs(item.children);
+      });
+    dfs(data);
+    return keys;
   };
 
   const updateDataSource = () => {
     const processed = isExpandAll
       ? expandArrayItems(originalDataSource)
       : originalDataSource;
-    const filtered = getFilteredDataSource(processed);
+
+    const filtered = filterTreeByChildrenResult(processed);
+
     setState({
       dataSource: filtered,
-      expandedRowKeys: getAllKeys(filtered), // 默认展开所有行
+      expandedRowKeys: getAllKeys(filtered),
     });
   };
+
   useEffect(() => {
     updateDataSource();
   }, [isShowPass, isShowFail, isExpandAll, originalDataSource]);
 
-  // 递归取出所有 key
-  const getAllKeys = (data: any[]): React.Key[] => {
-    const keys: React.Key[] = [];
-    const dfs = (items: any[]) => {
-      items.forEach((item) => {
-        keys.push(item.id); // 用 rowKey 对应的字段
-        if (item.children) {
-          dfs(item.children);
-        }
-      });
-    };
-    dfs(data);
-    return keys;
-  };
-
   return (
     <div className="TestResult-page">
-      <div
-        style={{
-          marginBottom: 10,
-        }}
-      >
+      <div style={{ marginBottom: 10 }}>
         <Checkbox
           style={{ marginRight: 15 }}
           checked={isExpandAll}
-          onChange={(e) => {
-            const checked = e.target.checked;
-            setState({
-              isExpandAll: checked,
-              // expandedRowKeys: checked ? getAllKeys(dataSource) : [],
-            });
-          }}
+          onChange={(e) => setState({ isExpandAll: e.target.checked })}
         >
           展开所有数组变量
         </Checkbox>
         <Checkbox
           style={{ marginRight: 15 }}
           checked={isShowPass}
-          onChange={(e) => {
-            const checked = e.target.checked;
-            setState({
-              isShowPass: checked,
-            });
-          }}
+          onChange={(e) => setState({ isShowPass: e.target.checked })}
         >
           显示PASS数据
         </Checkbox>
         <Checkbox
           checked={isShowFail}
-          onChange={(e) => {
-            const checked = e.target.checked;
-            setState({
-              isShowFail: checked,
-            });
-          }}
+          onChange={(e) => setState({ isShowFail: e.target.checked })}
         >
           显示FAIL数据
         </Checkbox>
       </div>
+
       <Table<any>
         bordered
         scroll={{ y: 500 }}
