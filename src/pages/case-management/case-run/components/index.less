@@ -1,10 +1,12 @@
 /* 小红点样式 */
-.breakpoint-dot {
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
-  background-color: red;
+.bp-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 6px; // 改 6/8/10 都行
+  vertical-align: middle;
+  background-color: #ff4d4f; // 红点
   border-radius: 50%;
+  aspect-ratio: 1 / 1; // 强制正圆比例
 }
 /* 选中行高亮 */
 .row-selected {

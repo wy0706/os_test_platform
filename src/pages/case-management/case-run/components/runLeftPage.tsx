@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
 } from "react";
 import { formatTableTreeData } from "../schemas";
 import "./index.less";
@@ -14,12 +15,11 @@ import "./index.less";
 interface RunProps {
   autoId: any;
   /** 自检 */
-  isSelfCheck: boolean;
-  isSelfChecking: boolean;
+  isSelfChecking: boolean; //是否正在自检中
   selfCheckMessages: any[];
   /** 断点回传 */
   breakpoints: any;
-  onPonitChange: (value: any) => void;
+  onPonitChange?: (payload: { data: any[]; pointsSeq: React.Key[] }) => void;
   /** 左侧选中行传给父组件 */
   onRowSelect?: (row: any) => void;
   /** 运行态高亮位置（父：itemindex，子：cmdindex） */
@@ -55,7 +55,6 @@ interface SelfCheckMessage {
 const RunLeftPage = forwardRef((props: RunProps, ref) => {
   const {
     autoId,
-    isSelfCheck,
     isSelfChecking,
     selfCheckMessages = [],
     currentStatus,
@@ -72,9 +71,35 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     dataSource: [],
     expandedRowKeys: [] as React.Key[],
     selectedRowKey: null as null | React.Key,
+    pointsSeq: [] as React.Key[], // ← 统一命名
   });
-  const { isExpandAll, dataSource, expandedRowKeys, selectedRowKey } = state;
+  const {
+    isExpandAll,
+    dataSource,
+    expandedRowKeys,
+    selectedRowKey,
+    pointsSeq,
+  } = state;
+  const messageBoxRef = useRef<HTMLDivElement | null>(null);
+  const selfCheckBoxRef = useRef<HTMLDivElement | null>(null);
+  const smartScrollToBottom = (el: HTMLElement | null) => {
+    if (!el) return;
+    const threshold = 24; // 距离底部阈值（像素）
+    const isNearBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+    if (!isNearBottom) return; // 用户在看历史时，不打断
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  };
+  useEffect(() => {
+    smartScrollToBottom(messageBoxRef.current);
+  }, [logs]);
 
+  // 自检消息变化时自动滚动到底（自检面板）
+  useEffect(() => {
+    smartScrollToBottom(selfCheckBoxRef.current);
+  }, [selfCheckMessages]);
   /** 统一计算“当前激活行”的 key（优先子行 cmdindex，没有则用父行 itemindex） */
   const activeKey = useMemo<React.Key | null>(() => {
     if (currentItemCmd?.cmdindex != null) return currentItemCmd.cmdindex as any;
@@ -82,7 +107,17 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
       return currentItemCmd.itemindex as any;
     return null;
   }, [currentItemCmd?.cmdindex, currentItemCmd?.itemindex]);
-
+  const initBreakpointSeqFromTree = (nodes: any[]): React.Key[] => {
+    const seq: React.Key[] = [];
+    const dfs = (arr: any[]) => {
+      arr.forEach((n) => {
+        if (n.breakpoint) seq.push(n.key ?? n.id);
+        if (Array.isArray(n.children)) dfs(n.children);
+      });
+    };
+    dfs(nodes);
+    return seq;
+  };
   /** 收集所有父节点 key（用于“展开所有”） */
   const collectAllParentKeys = (nodes: any[] = []): React.Key[] => {
     const keys: React.Key[] = [];
@@ -104,13 +139,6 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     return record.key === activeKey;
   };
 
-  /** 选中一行（点击/运行命中都走此逻辑） */
-  const selectRow = (record: any) => {
-    const key = record.key ?? record.id;
-    setState({ selectedRowKey: key });
-    onRowSelect?.(record);
-  };
-
   /** 初次请求数据 */
   useEffect(() => {
     (async () => {
@@ -126,6 +154,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
         setState({
           dataSource: tree,
           expandedRowKeys: isExpandAll ? collectAllParentKeys(tree) : [],
+          pointsSeq: initBreakpointSeqFromTree(tree),
         });
       } catch {
         setState({ dataSource: [], expandedRowKeys: [] });
@@ -141,11 +170,21 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpandAll, dataSource]);
-
+  const isCmdEmpty =
+    !currentItemCmd ||
+    (typeof currentItemCmd === "object" &&
+      currentItemCmd !== null &&
+      Object.keys(currentItemCmd).length === 0) ||
+    (currentItemCmd?.itemindex == null && currentItemCmd?.cmdindex == null);
+  // 当运行结束（或被清空）时，清除选中与高亮
+  useEffect(() => {
+    if (isCmdEmpty) {
+      setState({ selectedRowKey: null });
+    }
+  }, [isCmdEmpty]);
   /** 运行态高亮：展开父项 + 选中激活行 + 平滑滚动 */
   useEffect(() => {
-    if (!currentItemCmd) return;
-
+    if (isCmdEmpty) return;
     // 展开父项
     if (currentItemCmd.itemindex != null) {
       setState((prev: any) => {
@@ -155,7 +194,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
       });
     }
 
-    // 选中激活行
+    // 选中激活行（运行时高亮）
     if (activeKey != null) {
       setState({ selectedRowKey: activeKey });
     }
@@ -177,61 +216,111 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
         }
       }
     });
-  }, [activeKey, currentItemCmd?.itemindex]);
+  }, [activeKey, currentItemCmd?.itemindex, isCmdEmpty]);
 
-  /** 把最新的数据回传给父组件（如需） */
+  /** 把最新的数据回传给父组件 */
   useEffect(() => {
     props.onDataChange?.(dataSource);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource]);
 
-  /** 打断点/取消断点/清空断点 */
-  const setBreakpoint = (targetKey: any, nodes: any = dataSource) => {
-    const next = nodes.map((item: any) => {
-      const itemKey = item.key ?? item.id;
-      if (itemKey === targetKey) return { ...item, breakpoint: true };
-      if (item.children)
-        return { ...item, children: setBreakpoint(targetKey, item.children) };
-      return item;
-    });
-    setState({ dataSource: next });
-    onPonitChange?.(next);
-    return next;
-  };
-  const cancelBreakpoint = (targetKey: any, nodes: any = dataSource) => {
-    const next = nodes.map((item: any) => {
-      const itemKey = item.key ?? item.id;
-      if (itemKey === targetKey) return { ...item, breakpoint: false };
-      if (item.children)
-        return {
-          ...item,
-          children: cancelBreakpoint(targetKey, item.children),
-        };
-      return item;
-    });
-    setState({ dataSource: next });
-    onPonitChange?.(next);
-    return next;
-  };
-  const clearAllBreakpoints = (nodes: any = dataSource) => {
-    const next = nodes.map((item: any) => ({
-      ...item,
-      breakpoint: false,
-      children: item.children ? clearAllBreakpoints(item.children) : undefined,
+  const updateTree = (nodes: any[], updater: (n: any) => any): any[] =>
+    nodes.map((n) => ({
+      ...updater(n),
+      children: Array.isArray(n.children)
+        ? updateTree(n.children, updater)
+        : n.children,
     }));
-    setState({ dataSource: next });
-    return next;
+
+  // 在树中按 key 找节点
+  const findNodeByKey = (nodes: any[], targetKey: React.Key): any | null => {
+    for (const n of nodes) {
+      const k = n.key ?? n.id;
+      if (k === targetKey) return n;
+      if (Array.isArray(n.children)) {
+        const r = findNodeByKey(n.children, targetKey);
+        if (r) return r;
+      }
+    }
+    return null;
   };
 
+  // 生成“行数据快照”
+  const toSnapshot = (row: any) => {
+    return {
+      key: row.key ?? row.id,
+      itemindex: row.itemindex,
+      cmdindex: row.cmdindex,
+      // sequence_name: row.sequence_name,
+    };
+  };
+
+  // 根据 key 去重并把新的/更新的快照放到队尾
+  const upsertSnapshotToTail = (seq: any[], snap: any) => {
+    const next = seq.filter((x) => x?.key !== snap.key);
+    next.push(snap);
+    return next;
+  };
+  const setBreakpoint = (targetKey: React.Key) => {
+    // 1) 更新树上的 breakpoint 标记
+    const nextData = updateTree(dataSource, (item) => {
+      const k = item.key ?? item.id;
+      if (k === targetKey) return { ...item, breakpoint: true };
+      return item;
+    });
+
+    // 2) 在“更新后的树”里找到该行，做一个快照
+    const row = findNodeByKey(nextData, targetKey);
+    const snap = row ? toSnapshot(row) : null;
+
+    // 3) 维护“断点顺序（行数据快照）”
+    const nextSeq = snap
+      ? upsertSnapshotToTail(pointsSeq ?? [], snap)
+      : pointsSeq ?? [];
+
+    // 4) 一次性更新 + 回调
+    setState({ dataSource: nextData, pointsSeq: nextSeq });
+    onPonitChange?.({ data: nextData, pointsSeq: nextSeq });
+    return nextData;
+  };
+
+  const cancelBreakpoint = (targetKey: React.Key) => {
+    const nextData = updateTree(dataSource, (item) => {
+      const k = item.key ?? item.id;
+      if (k === targetKey) return { ...item, breakpoint: false };
+      return item;
+    });
+
+    // 从队列中移除该行（按 key）
+    const nextSeq = (pointsSeq ?? []).filter((x) => x?.key !== targetKey);
+
+    setState({ dataSource: nextData, pointsSeq: nextSeq });
+    onPonitChange?.({ data: nextData, pointsSeq: nextSeq });
+    return nextData;
+  };
+  useEffect(() => {
+    console.log("=====", currentStatus);
+    console.log("btnType", btnType);
+  }, [currentStatus, btnType]);
+  const clearAllBreakpoints = () => {
+    const nextData = updateTree(dataSource, (item) => ({
+      ...item,
+      breakpoint: false,
+    }));
+    const nextSeq: any[] = [];
+    setState({ dataSource: nextData, pointsSeq: nextSeq });
+    onPonitChange?.({ data: nextData, pointsSeq: nextSeq });
+    return nextData;
+  };
   /** 结果状态配置 */
   const getStatusConfig = (status: string) => {
     const map = {
-      IDLE: { color: "green", text: "IDLE", description: "测试结束" },
       PASS: { color: "green", text: "PASS", description: "测试成功" },
       FAIL: { color: "red", text: "FAIL", description: "测试失败" },
       BREAK: { color: "orange", text: "BREAK", description: "处于暂停状态" },
       TEST: { color: "blue", text: "TEST", description: "正在运行测试" },
       ERROR: { color: "red", text: "ERROR", description: "设备通信DLL错误" },
+      STOP: { color: "red", text: "STOP", description: "停止测试" },
     } as const;
     return (map as any)[status] || map.TEST;
   };
@@ -243,9 +332,9 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
       dataIndex: "sequence_name",
       ellipsis: true,
       render: (text: string, record: any) => (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          {record.breakpoint && <span className="breakpoint-dot" />}
-          {text}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {record.breakpoint && <span className="bp-dot" aria-label="断点" />}
+          <span>{text}</span>
         </div>
       ),
     },
@@ -308,14 +397,13 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
             const key = record.key;
             setState({ selectedRowKey: key });
             onRowSelect?.(record);
-            // 单击取消该行断点（保持你的旧逻辑）
-            cancelBreakpoint(key);
+            cancelBreakpoint(key); // 会把该行快照从 pointsSeq 移除
           },
           onDoubleClick: () => {
             const key = record.key;
             setState({ selectedRowKey: key });
             onRowSelect?.(record);
-            setBreakpoint(key);
+            setBreakpoint(key); // 会把该行快照放到 pointsSeq 队尾
           },
         })}
         expandable={{
@@ -339,62 +427,57 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
             Array.isArray(r.children) && r.children.length > 0,
         }}
       />
-
-      {/* 右侧卡片（自检 or 运行信息） */}
-      {isSelfCheck ? (
-        <Card className="table-card" style={{ marginTop: 10 }}>
-          <div className="self-check-container">
-            <div className="self-check-header">
-              <h3>自检信息</h3>
-              {isSelfCheck && (
-                <div className="self-check-status">
-                  <span className="loading-dot" />
-                  自检中...
-                </div>
-              )}
-            </div>
-
-            <div className="self-check-content">
-              {!selfCheckMessages?.length ? (
-                <div className="no-messages">
-                  {isSelfChecking ? "正在获取自检信息..." : "暂无自检信息"}
-                </div>
-              ) : (
+      <div style={{ minHeight: 400 }}>
+        {btnType === "CHECK_SELF" ? (
+          <Card
+            style={{ marginTop: 16 }}
+            bordered
+            size="small"
+            title={
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <Space>
+                  <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                  <span>自检信息</span>
+                </Space>
+                {isSelfChecking && (
+                  <div className="self-check-status">
+                    <span className="loading-dot" />
+                    自检中...
+                  </div>
+                )}
+              </div>
+            }
+          >
+            <div
+              ref={selfCheckBoxRef}
+              className="console-output"
+              style={{
+                height: 200,
+                overflowY: "auto",
+                backgroundColor: "#f8f9fa",
+                borderRadius: 4,
+                border: "1px solid #e9ecef",
+                padding: 8,
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                fontSize: 11,
+                lineHeight: 1.4,
+              }}
+            >
+              {selfCheckMessages.map((m: any, i: any) => (
                 <div
-                  className="messages-list"
+                  key={i}
                   style={{
-                    height: "100%",
-                    overflowY: "auto",
-                    backgroundColor: "#f8f9fa",
-                    borderRadius: 4,
-                    padding: 8,
-                    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                    fontSize: 11,
-                    lineHeight: 1.4,
+                    color: m?.status === "SUCCESS" ? "#666" : "#cf1322",
                   }}
                 >
-                  {selfCheckMessages
-                    .filter((x: SelfCheckMessage) => x && x.deviceType)
-                    .map((m: SelfCheckMessage) => (
-                      <div key={m.id} className="message-line">
-                        <span className="device-name">
-                          {m.deviceType} {m.serialNumber}
-                        </span>
-                        <span className="error-message">{m.message}</span>
-                      </div>
-                    ))}
+                  {m?.message || ""}
                 </div>
-              )}
+              ))}
             </div>
-          </div>
-        </Card>
-      ) : (
-        // 非自检：展示运行信息 + 进度 + 结果
-
-        <div style={{ minHeight: 400 }}>
-          {/* 运行信息 */}
-          {btnType === "RUN" && (
-            <>
+          </Card>
+        ) : (
+          <>
+            {(btnType === "RUN" || btnType === "STEP") && (
               <Card
                 size="small"
                 style={{ marginTop: 16 }}
@@ -408,6 +491,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
               >
                 <div
                   className="console-output"
+                  ref={messageBoxRef}
                   style={{
                     height: 120,
                     overflowY: "auto",
@@ -425,7 +509,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                       line.status === "FAIL"
                         ? "#cf1322"
                         : line.status === "SUCCESS"
-                        ? "#52c41a"
+                        ? "#6c757d"
                         : "#6c757d";
                     return (
                       <div key={idx} style={{ color }}>
@@ -435,7 +519,9 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                   })}
                 </div>
               </Card>
-              {/* 进度 */}
+            )}
+            {/* 进度 */}
+            {btnType === "RUN" && (
               <Card
                 size="small"
                 style={{ marginTop: 12 }}
@@ -456,7 +542,9 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                   />
                 </Space>
               </Card>
-              {/* 结果 */}
+            )}
+            {/* 结果 */}
+            {!!currentStatus && btnType !== "STEP" && (
               <Card
                 size="small"
                 style={{ marginTop: 12 }}
@@ -487,10 +575,10 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                   {getStatusConfig(currentStatus).description}
                 </div>
               </Card>
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 });
