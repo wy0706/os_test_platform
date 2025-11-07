@@ -63,9 +63,7 @@ const Page: React.FC = () => {
 
     currentStatus: "", // | TEST | BREAK | PASS | FAIL | ERROR |STOP
     tabActiveKey: "2",
-
     isSelfChecking: false,
-
     isReportInfoModalOpen: false,
     isTestInfoModalOpen: false,
     isVectorInfoModalOpen: false,
@@ -122,17 +120,12 @@ const Page: React.FC = () => {
     pointsList,
     checkSelfLogs,
   } = state;
+  const testResultRef = useRef<any>(null);
   useEffect(() => {
     setState({
       title: searchParams.get("name") || "-",
       isShowAllBtn: searchParams.get("status") === "all",
       pointsList: [],
-      // checkSelfLogs: [],
-      // allLogs: [],
-      // runLogs: [],
-      // progress: 0,
-      // currentItemCmd: {},
-      // itemResults: [],
     });
     handleInitData({});
   }, []);
@@ -182,8 +175,8 @@ const Page: React.FC = () => {
             `${n.itemname ?? "-"} - ${n.cmdname ?? "-"} 进度 ${
               n.Progress ?? 0
             }%`;
-
           appendRunLog(message, status);
+
           setState((prev: any) => ({
             currentItemCmd: {
               itemindex: n.itemindex,
@@ -209,8 +202,12 @@ const Page: React.FC = () => {
           setState((prev: any) => ({
             itemResults: [...prev.itemResults, n.info],
           }));
+          runLeftRef.current?.setItemQualified?.(
+            n.info?.itemindex,
+            n.info?.result
+          );
           appendAllLog(`项目结果：${n.data?.itemname ?? "-"} 已完成`);
-
+          testResultRef.current?.ensureVisibleByItemIndex?.(n.itemindex);
           if (btnType === "STEP" && stepMode === 2) {
             //单项测试中 如果是项目单步，只要收到code为2就表示执行结束
             setState({
@@ -339,6 +336,8 @@ const Page: React.FC = () => {
     } as UpMsg);
   };
   const handleInitData = (obj: any) => {
+    // 先清空左侧父级的“是否合格”
+    runLeftRef.current?.clearQualified?.();
     setState({
       currentItemCmd: {},
       itemResults: [],
@@ -398,8 +397,14 @@ const Page: React.FC = () => {
     message.success("操作成功");
   };
 
-  const handleRowSelect = (values: any) => {
-    setState({ selectRowData: { ...values } });
+  const handleRowSelect = (row: any) => {
+    console.log("values=========", row);
+    if (row?.itemindex != null) {
+      // 若需要，可切换到“测试结果”页签
+      setState({ tabActiveKey: "2" });
+      testResultRef.current?.ensureVisibleByItemIndex?.(row.itemindex);
+    }
+    setState({ selectRowData: { ...row } });
   };
   const isRunning = state.currentStatus === "TEST"; //是否处于执行状态
   const isPaused = state.currentStatus === "BREAK"; //是否处于暂停状态
@@ -557,12 +562,12 @@ const Page: React.FC = () => {
               <div style={{ background: "#fff" }}>
                 <Tabs
                   items={tabItems}
-                  defaultActiveKey={tabActiveKey}
+                  activeKey={tabActiveKey}
                   onChange={(key: any) => setState({ tabActiveKey: key })}
                 />
                 {tabActiveKey === "1" && <TestInfo autoId={params.id} />}
                 {tabActiveKey === "2" && (
-                  <TestResult itemResults={itemResults} />
+                  <TestResult ref={testResultRef} itemResults={itemResults} />
                 )}
                 {tabActiveKey === "3" && <TestCondition id={params.id} />}
               </div>

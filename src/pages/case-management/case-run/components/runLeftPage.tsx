@@ -40,6 +40,7 @@ interface RunProps {
   }[];
   /** 可选：把数据回传给父组件 */
   onDataChange?: (data: any[]) => void;
+  onRowSelectChange?: (row: any) => void;
   btnType: any; //点击的按钮类型
 }
 
@@ -219,8 +220,13 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
   }, [activeKey, currentItemCmd?.itemindex, isCmdEmpty]);
 
   /** 把最新的数据回传给父组件 */
+  // useEffect(() => {
+  //   props.onDataChange?.(dataSource);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [dataSource]);
+
   useEffect(() => {
-    props.onDataChange?.(dataSource);
+    props.onRowSelectChange?.(dataSource);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource]);
 
@@ -355,9 +361,48 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     { title: "是否合格", dataIndex: "Qualified", ellipsis: true },
   ];
 
-  /** 暴露方法给父组件 */
-  useImperativeHandle(ref, () => ({ clearAllBreakpoints }));
+  // 根据 itemindex 设置父级行的 Qualified（PASS/FAIL/...）
+  const setItemQualified = (
+    targetItemIndex: number | string,
+    result: string
+  ) => {
+    const patch = (nodes: any[]): any[] =>
+      nodes.map((n) => {
+        const hasChildren = Array.isArray(n.children) && n.children.length > 0;
+        const matchParent = hasChildren && n.itemindex === targetItemIndex;
+        return {
+          ...n,
+          Qualified: matchParent ? result : n.Qualified,
+          children: hasChildren ? patch(n.children) : n.children,
+        };
+      });
 
+    setState((prev: any) => ({
+      ...prev,
+      dataSource: patch(prev.dataSource || []),
+    }));
+  };
+  const clearQualified = () => {
+    const patch = (nodes: any[]): any[] =>
+      nodes.map((n) => {
+        const hasChildren = Array.isArray(n.children) && n.children.length > 0;
+        return {
+          ...n,
+          Qualified: hasChildren ? undefined : n.Qualified, // 仅父级清空
+          children: hasChildren ? patch(n.children) : n.children,
+        };
+      });
+
+    setState((prev: any) => ({
+      ...prev,
+      dataSource: patch(prev.dataSource || []),
+    }));
+  };
+  useImperativeHandle(ref, () => ({
+    clearAllBreakpoints,
+    setItemQualified,
+    clearQualified,
+  }));
   return (
     <div className="runLeftPage-page">
       {/* 顶部：展开控制 */}
@@ -564,7 +609,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                     {getStatusConfig(currentStatus).text}
                   </Tag>
                 </div>
-                <div
+                {/* <div
                   style={{
                     marginTop: 8,
                     fontSize: 12,
@@ -573,7 +618,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                   }}
                 >
                   {getStatusConfig(currentStatus).description}
-                </div>
+                </div> */}
               </Card>
             )}
           </>
