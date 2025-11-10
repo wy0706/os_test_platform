@@ -67,4 +67,8 @@ export const paramUnits = [
     label: "kW",
     value: "kW",
   },
+  {
+    label: "ms",
+    value: "ms",
+  },
 ];

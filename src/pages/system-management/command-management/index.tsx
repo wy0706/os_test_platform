@@ -103,7 +103,6 @@ const Page: React.FC = () => {
     {
       title: "设备类型",
       dataIndex: "device_type",
-      hideInSearch: true,
       ellipsis: true,
     },
     {
@@ -121,18 +120,6 @@ const Page: React.FC = () => {
           status: "Error",
         },
       },
-      // render: (text: any, record: any) => {
-      //   return (
-      //     <Switch
-      //       disabled
-      //       checked={!!record.active} // ✅ 更简洁安全
-      //       size="small"
-      //       style={{
-      //         backgroundColor: !!record.active ? "#52c41a" : "#ff4d4f", // ✅ 绿色 / 红色
-      //       }}
-      //     />
-      //   );
-      // },
     },
     {
       title: "添加时间",

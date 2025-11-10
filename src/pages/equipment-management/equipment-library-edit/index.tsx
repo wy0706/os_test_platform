@@ -44,7 +44,7 @@ import ParamModal from "./components/paramModal";
 import SaveModal from "./components/saveModal";
 import VXIModal from "./components/vxiModal";
 import "./index.less";
-
+type NextAction = "add" | "back";
 interface TreeNode {
   title: string;
   key: string;
@@ -137,7 +137,7 @@ const PeripheralImport: React.FC = () => {
       // 设置默认展开根节点
       setExpandedKeys(["instrument"]);
     }
-  }, []);
+  }, [params.id, searchParams]);
 
   const initData = async () => {
     const { code, data, message: msg } = await getInstrumentTree();
@@ -364,7 +364,6 @@ const PeripheralImport: React.FC = () => {
     void handleSelect([key], info, force);
   };
 
-  // 1) 真正的异步处理函数：显式声明 Promise<void>，内部只用 `return;` 结束分支即可
   const handleSelect = async (
     keys: React.Key[],
     info: any,
@@ -580,33 +579,42 @@ const PeripheralImport: React.FC = () => {
       return node;
     });
   };
-  const isTreeUpdate = async (str: string) => {
-    const { code, data, message: msg } = await treeIsUpdate();
-    if (code === 0) {
-      if (str === "add") {
-        await addNewDataBase();
-      } else {
-        history.back();
-      }
-      return;
-    }
-    // 弹窗前关闭 loading 状态
-    setState({
-      open: true,
-      addLoading: false,
-      backLoading: false,
-    });
-  };
-  // 操作按钮处理
-  const handleAdd = async () => {
-    setState({ btnType: "add", addLoading: true });
+  // 新增方法
+
+  const checkUnsavedAndProceed = async (
+    action: NextAction
+  ): Promise<boolean> => {
     try {
-      await isTreeUpdate("add");
-    } finally {
-      // 无论成功还是失败，都要关闭 loading
-      setState({ addLoading: false });
+      const { code, message: msg } = await treeIsUpdate();
+      if (code === 0) {
+        // 无未保存修改，直接执行下一步
+        if (action === "add") {
+          await addNewDataBase();
+        } else {
+          history.back();
+        }
+        return true;
+      }
+      // 有未保存修改 -> 打开弹窗，由弹窗上的“是/否/取消”决定
+      setState((s: any) => ({
+        ...s,
+        open: true,
+      }));
+      return false;
+    } catch (e) {
+      return true;
     }
   };
+
+  const handleAdd = async () => {
+    setState((s: any) => ({ ...s, btnType: "add", addLoading: true }));
+    try {
+      await checkUnsavedAndProceed("add");
+    } finally {
+      setState((s: any) => ({ ...s, addLoading: false }));
+    }
+  };
+
   const handleAddOk = async () => {
     // 保存数据后创建新的临时库
     const { code, message: msg } = await saveData({
@@ -617,14 +625,18 @@ const PeripheralImport: React.FC = () => {
       return;
     }
     message.success(msg || "操作成功");
-    history.back();
+
+    if (btnType == "back") {
+      history.back();
+    } else {
+      addNewDataBase();
+    }
   };
   const handleAddNo = async () => {
     if (btnType == "back") {
       history.back();
       return;
     }
-
     addNewDataBase();
   };
 
@@ -649,6 +661,9 @@ const PeripheralImport: React.FC = () => {
     setSelectedDevice("");
     // 重置展开状态，只展开根节点
     setExpandedKeys(["instrument"]);
+    setState({
+      open: false,
+    });
     message.success(msg || "新建成功");
   };
 
@@ -742,12 +757,13 @@ const PeripheralImport: React.FC = () => {
       },
     });
   };
+
   const handleGoBack = async () => {
-    setState({ backLoading: true, btnType: "back" });
+    setState((s: any) => ({ ...s, btnType: "back", backLoading: true }));
     try {
-      await isTreeUpdate("back");
+      await checkUnsavedAndProceed("back");
     } finally {
-      setState({ backLoading: false });
+      setState((s: any) => ({ ...s, backLoading: false }));
     }
   };
   // 添加型号

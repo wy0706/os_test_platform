@@ -732,7 +732,9 @@ const Process: React.FC<ProcessProps> = ({
               <Text strong>命令注释:</Text>
             </div>
             {paramExplanation ? (
-              <Text className="param-desc">{paramExplanation}</Text>
+              <Text style={{ whiteSpace: "pre-wrap" }} className="param-desc">
+                {paramExplanation}
+              </Text>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
