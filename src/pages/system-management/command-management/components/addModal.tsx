@@ -1,5 +1,6 @@
 import {
   createOne,
+  getUnits,
   updateOne,
 } from "@/services/system-management/command-management.service";
 
@@ -19,7 +20,7 @@ import {
   Space,
 } from "antd";
 import { useEffect } from "react";
-import { outAndInParams, paramUnits } from "../schemas";
+import { outAndInParams } from "../schemas";
 
 interface SetMemberModalProps {
   open: boolean;
@@ -112,8 +113,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
   const [state, setState] = useSetState<any>({
     confirmLoading: false,
     equipTypeList: [] as any[],
+    unitList: [],
   });
-  const { confirmLoading, equipTypeList } = state;
+  const { confirmLoading, equipTypeList, unitList } = state;
 
   const fetchTypeData = async () => {
     try {
@@ -136,10 +138,30 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     initData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, type, updateValue]);
+  const getUnitList = async () => {
+    try {
+      const { code, data, message: msg } = await getUnits();
+      if (code !== 0) {
+        message.error("获取单位列表失败");
+        setState({
+          unitList: [],
+        });
+        throw new Error("获取单位列表失败");
+      }
 
+      setState({
+        unitList: data?.unit || [],
+      });
+    } catch (e) {
+      setState({
+        unitList: [],
+      });
+    }
+  };
   const initData = async () => {
     if (!open) return;
     form.resetFields();
+    await getUnitList();
     await fetchTypeData();
 
     if (type === "edit") {
@@ -177,8 +199,8 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       });
     } else {
       form.setFieldsValue({
-        inTypeRows: [{ types: [], unit: "" }],
-        outTypeRows: [{ types: [], unit: "" }],
+        inTypeRows: [{ types: [], unit: undefined }],
+        outTypeRows: [{ types: [], unit: undefined }],
       });
     }
   };
@@ -280,10 +302,9 @@ const AddModal: React.FC<SetMemberModalProps> = ({
       <Form
         {...layout}
         form={form}
-        name="control-hooks"
         initialValues={{
-          inTypeRows: [{ types: [], unit: "" }],
-          outTypeRows: [{ types: [], unit: "" }],
+          inTypeRows: [{ types: [], unit: undefined }],
+          outTypeRows: [{ types: [], unit: undefined }],
           active: 1,
         }}
       >
@@ -318,6 +339,11 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                 labelInValue
                 placeholder="选择所属设备类型"
                 allowClear
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               >
                 {equipTypeList.map((item: any) => (
                   <Option value={item.id} key={item.id}>
@@ -392,7 +418,17 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                             mode="multiple"
                             placeholder="选择输入类型"
                             allowClear
-                            options={outAndInParams}
+                            options={[
+                              ...outAndInParams,
+                              {
+                                label: "44:Operator",
+                                value: "44",
+                              },
+                              {
+                                label: "99:Label",
+                                value: "99",
+                              },
+                            ]}
                           />
                         </Form.Item>
                         <Form.Item
@@ -400,10 +436,22 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                           style={{ width: 220, marginBottom: 0 }}
                         >
                           <Select
-                            placeholder="选择输入单位（单选，可留空）"
+                            placeholder="选择输入单位"
                             allowClear
-                            options={paramUnits}
-                          />
+                            showSearch
+                            filterOption={(input, option) =>
+                              (option?.children as unknown as string)
+                                ?.toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                          >
+                            {unitList.length > 0 &&
+                              unitList.map((item: any) => (
+                                <Option value={item} key={item}>
+                                  {item}
+                                </Option>
+                              ))}
+                          </Select>
                         </Form.Item>
                       </Col>
                       <Col
@@ -491,10 +539,22 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                           style={{ width: 220, marginBottom: 0 }}
                         >
                           <Select
-                            placeholder="选择输出单位（单选，可留空）"
+                            placeholder="选择输出单位"
                             allowClear
-                            options={paramUnits}
-                          />
+                            showSearch
+                            filterOption={(input, option) =>
+                              (option?.children as unknown as string)
+                                ?.toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                          >
+                            {unitList.length > 0 &&
+                              unitList.map((item: any) => (
+                                <Option value={item} key={item}>
+                                  {item}
+                                </Option>
+                              ))}
+                          </Select>
                         </Form.Item>
                       </Col>
                       <Col

@@ -1,3 +1,4 @@
+import { getCmdTreeList } from "@/services/case-management/test-sequence-edit.service";
 import {
   deleteOne,
   getList,
@@ -103,12 +104,24 @@ const Page: React.FC = () => {
     {
       title: "设备类型",
       dataIndex: "device_type",
-      ellipsis: true,
+      valueType: "select",
+      request: async () => {
+        const { code, data } = await getCmdTreeList();
+        if (code !== 0) return [];
+        return (data || []).map((x: any) => ({
+          label: x.name,
+          value: x.name,
+        }));
+      },
+      fieldProps: {
+        showSearch: true,
+        allowClear: true,
+        placeholder: "选择设备类型",
+      },
     },
     {
       title: "是否激活",
       dataIndex: "active",
-      // ellipsis: true,
       hideInSearch: true,
       valueEnum: {
         1: {

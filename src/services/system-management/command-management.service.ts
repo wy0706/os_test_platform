@@ -97,3 +97,14 @@ export async function deleteOne(command_id: any) {
   });
   return result;
 }
+
+/**
+ * 获取单位列表
+ */
+
+export async function getUnits() {
+  const result: any = await request<{}>(`${baseUrl}/getunitList`, {
+    method: "GET",
+  });
+  return result;
+}

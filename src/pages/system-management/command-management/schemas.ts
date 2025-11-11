@@ -32,43 +32,12 @@ export const outAndInParams = [
     label: "43:str",
     value: "43",
   },
-];
-
-export const paramUnits = [
-  {
-    label: "mV",
-    value: "mV",
-  },
-  {
-    label: "V",
-    value: "V",
-  },
-  {
-    label: "kV",
-    value: "kV",
-  },
-  {
-    label: "mA",
-    value: "mA",
-  },
-  {
-    label: "A",
-    value: "A",
-  },
-  {
-    label: "mW",
-    value: "mW",
-  },
-  {
-    label: "W",
-    value: "W",
-  },
-  {
-    label: "kW",
-    value: "kW",
-  },
-  {
-    label: "ms",
-    value: "ms",
-  },
+  // {
+  //   label: "44:Operator",
+  //   value: "44",
+  // },
+  // {
+  //   label: "99:Label",
+  //   value: "99",
+  // },
 ];
