@@ -201,7 +201,13 @@ const ParamForm: React.FC<ParamFormProps> = ({
         return;
       }
       setFetching(true);
-      const { code, data, message: msg } = await ApiFn(updateValue.testcommand);
+      const params = {
+        testcommand: updateValue.testcommand,
+        seq_id: updateValue.seq_id,
+      };
+
+      if (type !== "INPUT") delete params.seq_id;
+      const { code, data, message: msg } = await ApiFn(params);
       if (code !== 0) {
         message.error(msg || "获取参数失败");
         onCancel?.();

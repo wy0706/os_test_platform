@@ -128,29 +128,28 @@ export async function getCommentOne(testcommand: any) {
 
 /**
  * 获取输入参数列表
+ *  @param params
  * testcommand 测试命令
+ * seq_id 测试命令的序号
  */
 
-export async function getInParaList(testcommand: any) {
+export async function getInParaList(params: any) {
   const result: any = await request<{}>(`${BaseApi.TESTCOMMAND}/inparaList`, {
     method: "GET",
-    params: {
-      testcommand,
-    },
+    params,
   });
   return result;
 }
 
 /**
  * 获取输出参数列表
+ *  @param params
  * testcommand 测试命令
  */
-export async function getOutParaList(testcommand: any) {
+export async function getOutParaList(params: any) {
   const result: any = await request<{}>(`${BaseApi.TESTCOMMAND}/outparaList`, {
     method: "GET",
-    params: {
-      testcommand,
-    },
+    params,
   });
   return result;
 }
