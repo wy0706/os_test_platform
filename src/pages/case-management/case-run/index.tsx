@@ -106,11 +106,12 @@ const Page: React.FC = () => {
     pointsList: [],
     checkSelfLogs: [],
   });
+  const stepModeRef = useRef(state.stepMode);
+  const btnTypeRef = useRef(state.btnType);
+  const currentStatusRef = useRef(state.currentStatus);
   const {
-    btnType,
     projectNumber,
     currentItemCmd,
-    stepMode,
     runLogs,
     itemResults,
     progress,
@@ -119,7 +120,7 @@ const Page: React.FC = () => {
     isTestInfoModalOpen,
     isVectorInfoModalOpen,
     isSelfChecking,
-    currentStatus,
+
     tabActiveKey,
     isShowAllBtn,
     breakpoints,
@@ -127,6 +128,15 @@ const Page: React.FC = () => {
     pointsList,
     checkSelfLogs,
   } = state;
+
+  useEffect(() => {
+    stepModeRef.current = state.stepMode;
+    btnTypeRef.current = state.btnType;
+    currentStatusRef.current = state.currentStatus;
+    console.log("state.stepMode", state.stepMode);
+    console.log("state.currentStatus", state.currentStatus);
+    console.log("state.btnType", state.btnType);
+  }, [state.stepMode, state.btnType, state.currentStatus]);
   const testResultRef = useRef<any>(null);
   useEffect(() => {
     setState({
@@ -134,7 +144,7 @@ const Page: React.FC = () => {
       isShowAllBtn: searchParams.get("status") === "all",
       pointsList: [],
     });
-    handleInitData({});
+    handleInitData();
   }, []);
 
   const statusFromNumber = (n?: number): "SUCCESS" | "FAIL" =>
@@ -167,6 +177,8 @@ const Page: React.FC = () => {
     // appendAllLog(`[${time}] ${status} → ${message}`);
   };
   function handleTestProcess(n: any) {
+    const currentStepMode = stepModeRef.current; // 最新值
+    const currentBtnType = btnTypeRef.current;
     if (n?.code === 1) {
       // 运行到某一行
       const status = statusFromNumber(n?.Status);
@@ -178,22 +190,45 @@ const Page: React.FC = () => {
 
       appendRunLog(message, status);
 
+      let obj =
+        currentBtnType === "STEP" && currentStepMode === 1
+          ? {
+              itemindex: n?.nextitemindex,
+              cmdindex: n?.nextcmdindex,
+              itemname: n?.nextitemname,
+              cmdname: n?.nextcmdname,
+            }
+          : {
+              itemindex: n?.itemindex,
+              cmdindex: n?.cmdindex,
+              itemname: n?.itemname,
+              cmdname: n?.cmdname,
+            };
+
+      console.log("onk", obj);
+
       setState((prev: any) => ({
         ...prev,
-        currentItemCmd: {
-          itemindex: n?.itemindex,
-          cmdindex: n?.cmdindex,
-          itemname: n?.itemname,
-          cmdname: n?.cmdname,
-        },
+        currentItemCmd:
+          currentBtnType === "STEP" && currentStepMode === 1
+            ? {
+                //如果是命令单步 高亮展示下一行
+                itemindex: n?.nextitemindex,
+                cmdindex: n?.nextcmdindex,
+                itemname: n?.nextitemname,
+                cmdname: n?.nextcmdname,
+              }
+            : {
+                //高亮当前行
+                itemindex: n?.itemindex,
+                cmdindex: n?.cmdindex,
+                itemname: n?.itemname,
+                cmdname: n?.cmdname,
+              },
         progress: typeof n?.Progress === "number" ? n.Progress : prev.progress,
         currentStatus: "TEST",
       }));
 
-      if (btnType === "STEP" && stepMode === 1) {
-        // 单项测试中：命令单步，收到 code=1 视为执行结束
-        setState((prev: any) => ({ ...prev, currentStatus: "PASS" }));
-      }
       return;
     }
 
@@ -202,37 +237,39 @@ const Page: React.FC = () => {
         ...prev,
         itemResults: [...(prev.itemResults || []), n.info],
       }));
-
       runLeftRef.current?.setItemQualified?.(
         n?.info?.itemindex,
         n?.info?.result
       );
-
-      appendAllLog(`项目结果：${n?.data?.itemname ?? "-"} 已完成`);
+      appendAllLog(`项目结果：${n?.info?.itemname ?? "-"} 已完成`);
       testResultRef.current?.ensureVisibleByItemIndex?.(n?.itemindex);
+      //   if (currentBtnType === "STEP" && currentStepMode === 0) {
+      //     // 单项测试中：项目单步，code2  视为执行结束
 
-      if (btnType === "STEP" && stepMode === 0) {
-        // 单项测试中：项目单步，收到 code=2 视为执行结束
-        setState((prev: any) => ({ ...prev, currentStatus: "PASS" }));
-      }
+      //     setState((prev: any) => ({
+      //       ...prev,
+      //       currentStatus: n?.info?.result || "_",
+      //     }));
+      //   }
       return;
     }
 
     if (n?.code === 3) {
+      let result: any = n?.info?.Result || "_";
       setState((prev: any) => ({
         ...prev,
-        currentStatus: (n?.info?.Result as UiStatus) || "ERROR",
-        currentItemCmd: {}, // 运行结束清空当前行数
+        currentStatus: (result as UiStatus) || "ERROR",
+        // currentItemCmd: {}, // 运行结束清空当前行数
       }));
-
-      appendAllLog(
-        `执行完成：${n?.info?.Result} 结束时间：${n?.info?.TestEndTime}`
+      currentStatusRef.current = (result as UiStatus) || "ERROR";
+      appendRunLog(
+        `执行完成：${n?.info?.Result} 结束时间：${n?.info?.TestEndTime}`,
+        `${result}`
       );
       // 如需确保不再重连，可按需关闭：
       // setTimeout(() => close({ disableReconnect: true }), 150);
       return;
     }
-
     // 其它 code：可作 INFO 记录
     appendRunLog(`未处理的 TestProcess code：${String(n?.code)}`, "INFO");
   }
@@ -256,6 +293,7 @@ const Page: React.FC = () => {
             currentStatus: "TEST",
             projectNumber: n?.code === 0 ? n?.SN || "-" : prev.projectNumber,
           }));
+          // currentStatusRef.current = "TEST";
           appendRunLog(
             `${n?.code === 0 ? "开始执行" : "执行失败"}`,
             `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
@@ -269,6 +307,7 @@ const Page: React.FC = () => {
             currentStatus: "STOP",
             progress: 0,
           }));
+
           appendRunLog(
             `${n?.code === 0 ? "停止成功" : "停止失败"}`,
             `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
@@ -315,7 +354,7 @@ const Page: React.FC = () => {
 
           break;
         default:
-          appendRunLog(`收到未知消息类型：${String(t)}`, "INFO");
+          appendAllLog(`收到未知消息类型：${String(t)}`);
           break;
       }
     },
@@ -327,7 +366,8 @@ const Page: React.FC = () => {
   /** —— 基础交互 —— */
 
   const handleRun = () => {
-    handleInitData({
+    handleInitData();
+    setState({
       btnType: "RUN",
     });
     // 发 RUN
@@ -346,23 +386,25 @@ const Page: React.FC = () => {
       message.warning(`当前有任务正在运行，请先点击“停止”后再进行该操作。`);
       return;
     }
-    console.log("currentItemCmd", currentItemCmd);
 
     if (isEmptyObject(state.currentItemCmd)) {
       message.warning("请选择数据后进行测试");
       return;
     }
-    handleInitData({ btnType: "STEP" });
-
+    const modeToUse = state.stepMode; // capture now
+    handleInitData();
+    setState({ btnType: "STEP" });
+    btnTypeRef.current = "STEP"; // 同步 ref
     const { itemindex, cmdindex } = currentItemCmd;
+
     send({
       type: "STEP",
-      method: state.stepMode, // 0 项目单步 1命令单步
+      method: modeToUse, // 0 项目单步 1命令单步
       StartItem: itemindex,
       StartCmd: cmdindex,
     } as UpMsg);
   };
-  const handleInitData = (obj: any) => {
+  const handleInitData = () => {
     // 先清空左侧父级的“是否合格”
     runLeftRef.current?.clearQualified?.();
     setState({
@@ -372,7 +414,6 @@ const Page: React.FC = () => {
       currentStatus: null,
       runLogs: [],
       checkSelfLogs: [],
-      ...obj,
     });
   };
   // 3) 修改 handleGo：在继续前先拦截“其他任务正在运行”的情况
@@ -412,7 +453,8 @@ const Page: React.FC = () => {
           message.warning(`当前有任务正在运行，请先点击“停止”后再进行该操作。`);
           return;
         }
-        handleInitData({ btnType: "CHECK_SELF" });
+        handleInitData();
+        setState({ btnType: "CHECK_SELF" });
         send({ type: "SelfTest" } as UpMsg);
         break;
     }
@@ -439,9 +481,9 @@ const Page: React.FC = () => {
       },
     });
   };
-  const isRunning = state.currentStatus === "TEST"; //是否处于执行状态
-  const isPaused = state.currentStatus === "BREAK"; //是否处于暂停状态
-  const canRun = !state.isRunning && !state.isSelfChecking; //是否可以运行
+  const isRunning = currentStatusRef.current === "TEST"; //是否处于执行状态
+  const isPaused = currentStatusRef.current === "BREAK"; //是否处于暂停状态
+  const canRun = !isRunning && !isSelfChecking; //是否可以运行
 
   return (
     <PageContainer
@@ -528,8 +570,12 @@ const Page: React.FC = () => {
 
                   <div style={{ marginLeft: 8 }}>
                     <Radio.Group
-                      value={stepMode}
-                      onChange={(e) => setState({ stepMode: e.target.value })}
+                      value={state.stepMode}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setState({ stepMode: v });
+                        stepModeRef.current = v;
+                      }}
                     >
                       <Radio value={0}>项目单步</Radio>
                       <Radio value={1}>命令单步</Radio>
@@ -570,13 +616,13 @@ const Page: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <RunLeftPage
-                btnType={btnType}
+                btnType={btnTypeRef.current}
                 ref={runLeftRef}
                 autoId={params.id}
                 currentItemCmd={currentItemCmd}
                 progress={progress}
                 logs={runLogs}
-                currentStatus={currentStatus}
+                currentStatus={currentStatusRef.current}
                 isSelfChecking={isSelfChecking}
                 selfCheckMessages={checkSelfLogs}
                 onRowSelect={handleRowSelect}

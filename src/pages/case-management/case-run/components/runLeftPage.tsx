@@ -588,7 +588,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                 </Space>
               </Card>
             )}
-            {/* 结果 */}
+            {/* 结果  {!!currentStatus && btnType !== "STEP"   */}
             {!!currentStatus && btnType !== "STEP" && (
               <Card
                 size="small"

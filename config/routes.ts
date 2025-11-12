@@ -29,12 +29,6 @@ export default [
     icon: "dashboard",
     component: "./Welcome",
   },
-  // {
-  //   path: "/demos/demo",
-  //   name: "测试页",
-  //   icon: "dashboard",
-  //   component: "./demos/demo",
-  // },
   {
     path: "/task-management",
     name: "任务管理",
