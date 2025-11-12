@@ -125,7 +125,7 @@ const Page: React.FC = () => {
     const sequence = searchParams.get("sequence");
 
     setState({
-      title: params.id === "add" ? "" : `${group} / ${sequence}`,
+      title: `${group} / ${sequence}`,
       isRelease: release,
       autoId: params.id,
       selectedId: searchParams.get("selectedId"),

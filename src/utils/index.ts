@@ -78,3 +78,6 @@ export function addPrefixToLevelKey(data: any, targetLevel: any, prefix: any) {
     return item;
   });
 }
+export function isEmptyObject(obj: any) {
+  return !obj || Object.keys(obj).length === 0;
+}

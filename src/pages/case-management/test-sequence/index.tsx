@@ -665,8 +665,11 @@ const TestSequence: React.FC = () => {
               actionRef.current.reload();
             }
           } else {
-            const { tigroup, sequence_name } = values;
-            const group = tigroup || "-";
+            const {
+              tigroup: { label },
+              sequence_name,
+            } = values;
+            const group = label || "-";
             const sequence = sequence_name || "-";
             history.push(
               `/case-management/test-sequence-edit/add?group=${group}&sequence=${sequence}&selectedId=${selectedNodeId}`
