@@ -186,8 +186,6 @@ const Page: React.FC = () => {
     // appendAllLog(`[${time}] ${status} → ${message}`);
   };
   function handleTestProcess(n: any) {
-    const currentStepMode = stepModeRef.current; // 最新值
-    const currentBtnType = btnTypeRef.current;
     if (n?.code === 1) {
       // 运行到某一行
       const status = statusFromNumber(n?.Status);
@@ -210,37 +208,6 @@ const Page: React.FC = () => {
         },
         progress: typeof n?.Progress === "number" ? n.Progress : prev.progress,
       }));
-      // if (btnTypeRef.current === "RUN") {
-      //   setState((prev: any) => ({
-      //     ...prev,
-      //     stopBtnIsDisabled: false,
-      //     pauseBtnIsDisabled: false,
-      //     runBtnIsDisabled: true,
-      //     oneTestBtnIsDisabled: true,
-      //     goBtnIsDisabled: true,
-      //   }));
-      // }
-      // if (btnTypeRef.current === "STEP" && stepModeRef.current === 0) {
-      //   setState((prev: any) => ({
-      //     ...prev,
-      //     stopBtnIsDisabled: false,
-      //     pauseBtnIsDisabled: false,
-      //     runBtnIsDisabled: true,
-      //     oneTestBtnIsDisabled: true,
-      //     goBtnIsDisabled: true,
-      //   }));
-      // }
-
-      // if (btnTypeRef.current === "STEP" && stepModeRef.current === 1) {
-      //   setState((prev: any) => ({
-      //     ...prev,
-      //     stopBtnIsDisabled: false,
-      //     pauseBtnIsDisabled: true,
-      //     runBtnIsDisabled: true,
-      //     oneTestBtnIsDisabled: true,
-      //     goBtnIsDisabled: false,
-      //   }));
-      // }
       return;
     }
 
@@ -283,12 +250,6 @@ const Page: React.FC = () => {
       if (n?.info?.Result !== "BREAK") {
         btnInit();
       }
-      // if (btnTypeRef.current !== "PAUSE" ||btnTypeRef.current !=='') {
-
-      // }
-
-      // 如需确保不再重连，可按需关闭：
-      // setTimeout(() => close({ disableReconnect: true }), 150);
       return;
     }
     // 其它 code：可作 INFO 记录
