@@ -42,7 +42,6 @@ interface RunProps {
   onDataChange?: (data: any[]) => void;
   onRowSelectChange?: (row: any) => void;
   btnType: any; //点击的按钮类型
-  onRequestBreakpoint?: (action: "set" | "cancel", row: any) => void;
 }
 
 interface SelfCheckMessage {
@@ -66,7 +65,6 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     logs = [],
     progress = 0,
     btnType,
-    onRequestBreakpoint,
   } = props;
 
   const [state, setState] = useSetState<any>({
@@ -409,8 +407,6 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
     clearAllBreakpoints,
     setItemQualified,
     clearQualified,
-    setBreakpoint,
-    cancelBreakpoint,
   }));
   return (
     <div className="runLeftPage-page">
@@ -451,21 +447,14 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
           onClick: () => {
             const key = record.key;
             setState({ selectedRowKey: key });
-            onRowSelect?.(record); // 只做选中和通知父组件
+            onRowSelect?.(record);
+            cancelBreakpoint(key); // 会把该行快照从 pointsSeq 移除
           },
           onDoubleClick: () => {
             const key = record.key;
             setState({ selectedRowKey: key });
             onRowSelect?.(record);
-
-            // 双击：根据当前是否有断点来切换
-            if (record.breakpoint) {
-              // 当前有断点 → 请求取消断点
-              props.onRequestBreakpoint?.("cancel", record);
-            } else {
-              // 当前无断点 → 请求设置断点
-              props.onRequestBreakpoint?.("set", record);
-            }
+            setBreakpoint(key); // 会把该行快照放到 pointsSeq 队尾
           },
         })}
         expandable={{
@@ -539,8 +528,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
           </Card>
         ) : (
           <>
-            {/* {(btnType === "RUN" || btnType === "STEP") && ( */}
-            {!!btnType && (
+            {(btnType === "RUN" || btnType === "STEP") && (
               <Card
                 size="small"
                 style={{ marginTop: 16 }}
@@ -583,7 +571,6 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                 </div>
               </Card>
             )}
-            {/* )} */}
             {/* 进度 */}
             {btnType === "RUN" && (
               <Card

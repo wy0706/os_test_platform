@@ -36,18 +36,8 @@ import TestInfoModal from "./components/testInfoModal";
 import TestResult from "./components/testResult";
 import VectorInfoModal from "./components/vectorInfoModal";
 import "./index.less";
-type StatusRun = "SUCCESS" | "FAIL" | "PASS" | "INFO";
 type StatusCheck = "SUCCESS" | "FAIL";
 type UiStatus = "TEST" | "PASS" | "FAIL" | "STOP" | "BREAK" | "ERROR";
-type WSMsgType =
-  | "RUN"
-  | "STOP"
-  | "PAUSE"
-  | "GO"
-  | "STEP"
-  | "SelfTest"
-  | "SelfTestAll"
-  | "TestProcess";
 
 type ItemResultData = {
   itemindex: number;
@@ -64,21 +54,22 @@ type ItemResultData = {
 const Page: React.FC = () => {
   const runLeftRef = useRef<any>(null);
   const [searchParams] = useSearchParams();
+  const breakpointActionRef = useRef<{
+    type: "set" | "cancel" | "clearAll";
+    row?: any;
+  } | null>(null);
   const params = useParams();
-
   const [state, setState] = useSetState<any>({
     isShowAllBtn: false,
     title: null,
     breakpoints: [],
     disableClearAll: false,
-
-    currentStatus: "", // | TEST | BREAK | PASS | FAIL | ERROR |STOP
+    currentStatus: "", //  TEST | BREAK | PASS | FAIL | ERROR |STOP|STEP|BKPOINT
     tabActiveKey: "2",
     isSelfChecking: false,
     isReportInfoModalOpen: false,
     isTestInfoModalOpen: false,
     isVectorInfoModalOpen: false,
-
     tabItems: [
       { key: "1", label: "测试信息", icon: <HomeOutlined /> },
       { key: "2", label: "测试结果", icon: <BookOutlined /> },
@@ -105,10 +96,25 @@ const Page: React.FC = () => {
     projectNumber: null,
     pointsList: [],
     checkSelfLogs: [],
+    runBtnIsDisabled: false, //是否禁用
+    stopBtnIsDisabled: true,
+    oneTestBtnIsDisabled: false,
+    goBtnIsDisabled: true,
+    pauseBtnIsDisabled: true,
   });
+  const btnInit = () => {
+    setState({
+      runBtnIsDisabled: false,
+      stopBtnIsDisabled: true,
+      oneTestBtnIsDisabled: false,
+      goBtnIsDisabled: true,
+      pauseBtnIsDisabled: true,
+    });
+  };
   const stepModeRef = useRef(state.stepMode);
   const btnTypeRef = useRef(state.btnType);
   const currentStatusRef = useRef(state.currentStatus);
+
   const {
     projectNumber,
     currentItemCmd,
@@ -120,22 +126,24 @@ const Page: React.FC = () => {
     isTestInfoModalOpen,
     isVectorInfoModalOpen,
     isSelfChecking,
-
     tabActiveKey,
     isShowAllBtn,
     breakpoints,
     disableClearAll,
     pointsList,
     checkSelfLogs,
+    runBtnIsDisabled,
+    stopBtnIsDisabled,
+    oneTestBtnIsDisabled,
+    goBtnIsDisabled,
+    pauseBtnIsDisabled,
   } = state;
 
   useEffect(() => {
     stepModeRef.current = state.stepMode;
     btnTypeRef.current = state.btnType;
     currentStatusRef.current = state.currentStatus;
-    console.log("state.stepMode", state.stepMode);
-    console.log("state.currentStatus", state.currentStatus);
-    console.log("state.btnType", state.btnType);
+    console.log("state.currentStatus=====", state.currentStatus);
   }, [state.stepMode, state.btnType, state.currentStatus]);
   const testResultRef = useRef<any>(null);
   useEffect(() => {
@@ -143,6 +151,7 @@ const Page: React.FC = () => {
       title: searchParams.get("name") || "-",
       isShowAllBtn: searchParams.get("status") === "all",
       pointsList: [],
+      runLogs: [],
     });
     handleInitData();
   }, []);
@@ -190,45 +199,48 @@ const Page: React.FC = () => {
 
       appendRunLog(message, status);
 
-      let obj =
-        currentBtnType === "STEP" && currentStepMode === 1
-          ? {
-              itemindex: n?.nextitemindex,
-              cmdindex: n?.nextcmdindex,
-              itemname: n?.nextitemname,
-              cmdname: n?.nextcmdname,
-            }
-          : {
-              itemindex: n?.itemindex,
-              cmdindex: n?.cmdindex,
-              itemname: n?.itemname,
-              cmdname: n?.cmdname,
-            };
-
-      console.log("onk", obj);
-
       setState((prev: any) => ({
         ...prev,
-        currentItemCmd:
-          currentBtnType === "STEP" && currentStepMode === 1
-            ? {
-                //如果是命令单步 高亮展示下一行
-                itemindex: n?.nextitemindex,
-                cmdindex: n?.nextcmdindex,
-                itemname: n?.nextitemname,
-                cmdname: n?.nextcmdname,
-              }
-            : {
-                //高亮当前行
-                itemindex: n?.itemindex,
-                cmdindex: n?.cmdindex,
-                itemname: n?.itemname,
-                cmdname: n?.cmdname,
-              },
+        currentItemCmd: {
+          //高亮当前行
+          itemindex: n?.itemindex,
+          cmdindex: n?.cmdindex,
+          itemname: n?.itemname,
+          cmdname: n?.cmdname,
+        },
         progress: typeof n?.Progress === "number" ? n.Progress : prev.progress,
-        currentStatus: "TEST",
       }));
+      // if (btnTypeRef.current === "RUN") {
+      //   setState((prev: any) => ({
+      //     ...prev,
+      //     stopBtnIsDisabled: false,
+      //     pauseBtnIsDisabled: false,
+      //     runBtnIsDisabled: true,
+      //     oneTestBtnIsDisabled: true,
+      //     goBtnIsDisabled: true,
+      //   }));
+      // }
+      // if (btnTypeRef.current === "STEP" && stepModeRef.current === 0) {
+      //   setState((prev: any) => ({
+      //     ...prev,
+      //     stopBtnIsDisabled: false,
+      //     pauseBtnIsDisabled: false,
+      //     runBtnIsDisabled: true,
+      //     oneTestBtnIsDisabled: true,
+      //     goBtnIsDisabled: true,
+      //   }));
+      // }
 
+      // if (btnTypeRef.current === "STEP" && stepModeRef.current === 1) {
+      //   setState((prev: any) => ({
+      //     ...prev,
+      //     stopBtnIsDisabled: false,
+      //     pauseBtnIsDisabled: true,
+      //     runBtnIsDisabled: true,
+      //     oneTestBtnIsDisabled: true,
+      //     goBtnIsDisabled: false,
+      //   }));
+      // }
       return;
     }
 
@@ -241,16 +253,19 @@ const Page: React.FC = () => {
         n?.info?.itemindex,
         n?.info?.result
       );
+      if (btnTypeRef.current === "STEP" && stepModeRef.current === 0) {
+        setState((prev: any) => ({
+          ...prev,
+          stopBtnIsDisabled: false,
+          pauseBtnIsDisabled: true,
+          runBtnIsDisabled: true,
+          oneTestBtnIsDisabled: true,
+          goBtnIsDisabled: false,
+        }));
+      }
       appendAllLog(`项目结果：${n?.info?.itemname ?? "-"} 已完成`);
       testResultRef.current?.ensureVisibleByItemIndex?.(n?.itemindex);
-      //   if (currentBtnType === "STEP" && currentStepMode === 0) {
-      //     // 单项测试中：项目单步，code2  视为执行结束
 
-      //     setState((prev: any) => ({
-      //       ...prev,
-      //       currentStatus: n?.info?.result || "_",
-      //     }));
-      //   }
       return;
     }
 
@@ -261,11 +276,17 @@ const Page: React.FC = () => {
         currentStatus: (result as UiStatus) || "ERROR",
         // currentItemCmd: {}, // 运行结束清空当前行数
       }));
-      currentStatusRef.current = (result as UiStatus) || "ERROR";
-      appendRunLog(
-        `执行完成：${n?.info?.Result} 结束时间：${n?.info?.TestEndTime}`,
-        `${result}`
-      );
+      if (result == "PASS" || result == "FAIL" || result == "BREAK") {
+        appendRunLog(`执行完成 结束时间：${n?.info?.TestEndTime}`, `${result}`);
+      }
+
+      if (n?.info?.Result !== "BREAK") {
+        btnInit();
+      }
+      // if (btnTypeRef.current !== "PAUSE" ||btnTypeRef.current !=='') {
+
+      // }
+
       // 如需确保不再重连，可按需关闭：
       // setTimeout(() => close({ disableReconnect: true }), 150);
       return;
@@ -288,54 +309,130 @@ const Page: React.FC = () => {
       }
       switch (t) {
         case "RUN":
-          setState((prev: any) => ({
-            ...prev,
-            currentStatus: "TEST",
-            projectNumber: n?.code === 0 ? n?.SN || "-" : prev.projectNumber,
-          }));
-          // currentStatusRef.current = "TEST";
-          appendRunLog(
-            `${n?.code === 0 ? "开始执行" : "执行失败"}`,
-            `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
-          );
+          if (n?.code === 0) {
+            setState((prev: any) => ({
+              ...prev,
+              currentStatus: "TEST",
+              projectNumber: n?.code === 0 ? n?.SN || "-" : prev.projectNumber,
+              stopBtnIsDisabled: false,
+              pauseBtnIsDisabled: false,
+              runBtnIsDisabled: true,
+              oneTestBtnIsDisabled: true,
+              goBtnIsDisabled: true,
+            }));
+            appendRunLog(`开始执行`, `SUCCESS`);
+          } else {
+            appendRunLog(`执行失败`, `FAIL`);
+          }
 
           break;
 
         case "STOP":
-          setState((prev: any) => ({
-            ...prev,
-            currentStatus: "STOP",
-            progress: 0,
-          }));
-
-          appendRunLog(
-            `${n?.code === 0 ? "停止成功" : "停止失败"}`,
-            `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
-          );
+          appendRunLog(`停止成功`, `SUCCESS`);
+          if (n?.code === 0) {
+            setState((prev: any) => ({
+              ...prev,
+              currentStatus: "STOP",
+              progress: 0,
+            }));
+          } else {
+            appendRunLog(`停止失败`, `FAIL`);
+          }
           // setTimeout(() => close({ disableReconnect: true }), 150);
           break;
-        case "PAUSE":
-          setState((prev: any) => ({ ...prev, currentStatus: "BREAK" }));
-          appendRunLog(
-            `${n?.code === 0 ? "暂停成功" : "暂停失败"}`,
-            `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
-          );
+        case "PAUSE": //暂停 停止和继续高亮
+          if (n?.code === 0) {
+            setState((prev: any) => ({
+              ...prev,
+              currentStatus: "BREAK",
+              stopBtnIsDisabled: false,
+              pauseBtnIsDisabled: true,
+              runBtnIsDisabled: true,
+              oneTestBtnIsDisabled: true,
+              goBtnIsDisabled: false,
+            }));
+            appendRunLog(`暂停成功`, `SUCCESS`);
+          } else {
+            appendRunLog(`暂停失败`, `FAIL`);
+          }
 
           break;
 
-        case "GO":
-          setState((prev: any) => ({ ...prev, currentStatus: "TEST" }));
-          appendRunLog(
-            `${n?.code === 0 ? "继续执行" : "继续执行失败"}`,
-            `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
-          );
+        case "GO": //点击继续 停止和继续高亮
+          if (n?.code === 0) {
+            setState((prev: any) => ({
+              ...prev,
+              currentStatus: "TEST",
+              stopBtnIsDisabled: false,
+              pauseBtnIsDisabled: true,
+              runBtnIsDisabled: true,
+              oneTestBtnIsDisabled: true,
+              goBtnIsDisabled: false,
+            }));
+            appendRunLog(`继续执行`, `SUCCESS`);
+          } else {
+            appendRunLog(`继续执行失败`, `FAIL`);
+          }
+
           break;
-        case "STEP":
-          setState((prev: any) => ({ ...prev, currentStatus: "TEST" }));
-          appendRunLog(
-            `${n?.code === 0 ? "开始单步测试" : "单步测试失败"}`,
-            `${n?.code === 0 ? "SUCCESS" : "FAIL"}`
-          );
+        case "STEP": //点单步
+          if (n?.code === 0) {
+            appendRunLog(`开始单步测试`, `SUCCESS`);
+            if (stepModeRef.current === 0) {
+              //项目单步
+              setState((prev: any) => ({
+                ...prev,
+                currentStatus: "TEST",
+                stopBtnIsDisabled: false,
+                pauseBtnIsDisabled: false,
+                runBtnIsDisabled: true,
+                oneTestBtnIsDisabled: true,
+                goBtnIsDisabled: true,
+              }));
+            } else {
+              //命令单步
+              setState((prev: any) => ({
+                ...prev,
+                currentStatus: "STEP",
+                stopBtnIsDisabled: false,
+                pauseBtnIsDisabled: true,
+                runBtnIsDisabled: true,
+                oneTestBtnIsDisabled: true,
+                goBtnIsDisabled: false,
+              }));
+            }
+          } else {
+            appendRunLog(`单步测试失败`, `FAIL`);
+          }
+
+          break;
+        case "BKPOINT":
+          // { type:'BKPOINT', data:{ code:1, message:'succeed' }, info:[...] }
+          const data = msg?.data || {};
+          const code = data.code;
+          const bkMsg = data.message;
+          const pending = breakpointActionRef.current;
+          if (code === 0 && pending) {
+            if (pending.type === "set" && pending.row) {
+              // 真正给当前行打红点
+              runLeftRef.current?.setBreakpoint?.(pending.row.key);
+              appendRunLog("设置断点成功", "SUCCESS");
+            } else if (pending.type === "cancel" && pending.row) {
+              // 真正取消当前行红点
+              runLeftRef.current?.cancelBreakpoint?.(pending.row.key);
+              appendRunLog("取消断点成功", "SUCCESS");
+            } else if (pending.type === "clearAll") {
+              // 清除所有断点
+              handleClearAllPoint(); // 内部会调用 runLeftRef.current.clearAllBreakpoints()
+              appendRunLog("取消所有断点成功", "SUCCESS");
+            }
+          } else {
+            appendRunLog(`断点操作失败：${bkMsg ?? ""}`, "FAIL");
+            message.error(bkMsg || "断点操作失败，请重试");
+          }
+
+          breakpointActionRef.current = null;
+          break;
           break;
         case "SelfTest":
         case "SelfTestAll":
@@ -343,7 +440,7 @@ const Page: React.FC = () => {
           setState((prev: any) => ({
             ...prev,
             isSelfChecking: isSelf ? true : false,
-            currentStatus: isSelf ? "TEST" : "PASS",
+            currentStatus: "",
           }));
           appendChecklog(
             `${t === "SelfTestAll" ? "自检完成 ： " : ""}${
@@ -363,9 +460,27 @@ const Page: React.FC = () => {
     reconnectInterval: 15000,
     heartbeatInterval: 15000,
   });
-  /** —— 基础交互 —— */
+  const handleRequestBreakpoint = (action: "set" | "cancel", row: any) => {
+    if (!row) return;
+    // 记录这次要做的动作，等 BKPOINT 回包时用
+    breakpointActionRef.current = { type: action, row };
+
+    const { itemindex, cmdindex } = row;
+    // 1 = 设置断点，2 = 取消断点
+    const method = action === "set" ? 1 : 2;
+    send({
+      type: "BKPOINT",
+      method,
+      StartItem: itemindex ?? 0,
+      StartCmd: cmdindex ?? 0,
+    } as UpMsg);
+  };
 
   const handleRun = () => {
+    if (state.isSelfChecking) {
+      message.warning("当前正在自检，请先点击“停止”后再进行继续操作。");
+      return;
+    }
     handleInitData();
     setState({
       btnType: "RUN",
@@ -382,10 +497,10 @@ const Page: React.FC = () => {
   };
 
   const handleStep = () => {
-    if (isRunning) {
-      message.warning(`当前有任务正在运行，请先点击“停止”后再进行该操作。`);
-      return;
-    }
+    // if (isRunning && btnTypeRef.current != "STEP") {
+    //   message.warning(`当前有任务正在运行，请先点击“停止”后再进行该操作。`);
+    //   return;
+    // }
 
     if (isEmptyObject(state.currentItemCmd)) {
       message.warning("请选择数据后进行测试");
@@ -412,16 +527,13 @@ const Page: React.FC = () => {
       itemResults: [],
       progress: 0,
       currentStatus: null,
-      runLogs: [],
+      // runLogs: [],
       checkSelfLogs: [],
     });
   };
-  // 3) 修改 handleGo：在继续前先拦截“其他任务正在运行”的情况
-  // 注意：“继续”一般用于 BREAK（暂停）状态，不应阻断 BREAK -> TEST 的恢复
   const handleGo = () => {
-    // 若此刻有“别的任务”在跑（TEST），不允许再继续
-    if (state.currentStatus === "TEST" || state.isSelfChecking) {
-      message.warning("当前有任务正在运行，请先点击“停止”后再进行继续操作。");
+    if (state.isSelfChecking) {
+      message.warning("当前正在自检，请先点击“停止”后再进行继续操作。");
       return;
     }
     setState({
@@ -430,6 +542,10 @@ const Page: React.FC = () => {
     send({ type: "GO" } as UpMsg);
   };
   const handlePause = () => {
+    if (state.isSelfChecking) {
+      message.warning("当前正在自检，请先点击“停止”后再进行继续操作。");
+      return;
+    }
     setState({
       btnType: "PAUSE",
     });
@@ -449,7 +565,7 @@ const Page: React.FC = () => {
         setState({ isVectorInfoModalOpen: true });
         break;
       case "4":
-        if (isRunning) {
+        if (currentStatusRef.current === "TEST") {
           message.warning(`当前有任务正在运行，请先点击“停止”后再进行该操作。`);
           return;
         }
@@ -467,7 +583,7 @@ const Page: React.FC = () => {
   };
 
   const handleRowSelect = (row: any) => {
-    console.log("values=========", row);
+    // console.log("values=========", row);
     if (row?.itemindex != null) {
       // 若需要，可切换到“测试结果”页签
       setState({ tabActiveKey: "2" });
@@ -481,10 +597,6 @@ const Page: React.FC = () => {
       },
     });
   };
-  const isRunning = currentStatusRef.current === "TEST"; //是否处于执行状态
-  const isPaused = currentStatusRef.current === "BREAK"; //是否处于暂停状态
-  const canRun = !isRunning && !isSelfChecking; //是否可以运行
-
   return (
     <PageContainer
       header={{
@@ -514,14 +626,14 @@ const Page: React.FC = () => {
             <Space className="operation-buttons">
               <Button
                 icon={<PlayCircleOutlined />}
-                disabled={!canRun}
+                disabled={runBtnIsDisabled}
                 onClick={handleRun}
               >
                 执行
               </Button>
 
               <Button
-                disabled={!isRunning}
+                disabled={stopBtnIsDisabled}
                 icon={<StopOutlined />}
                 onClick={handleStop}
               >
@@ -530,7 +642,7 @@ const Page: React.FC = () => {
 
               <Button
                 icon={<EnterOutlined />}
-                disabled={!canRun}
+                disabled={oneTestBtnIsDisabled}
                 onClick={handleStep}
               >
                 单项测试
@@ -541,12 +653,12 @@ const Page: React.FC = () => {
                   <Button
                     icon={<CaretRightOutlined />}
                     onClick={handleGo}
-                    disabled={!isPaused}
+                    disabled={goBtnIsDisabled}
                   >
                     继续
                   </Button>
                   <Button
-                    disabled={!isRunning}
+                    disabled={pauseBtnIsDisabled}
                     icon={<PauseOutlined />}
                     onClick={handlePause}
                   >
@@ -555,13 +667,13 @@ const Page: React.FC = () => {
                   <Button
                     disabled={!disableClearAll}
                     onClick={() => {
+                      breakpointActionRef.current = { type: "clearAll" };
                       send({
                         type: "BKPOINT",
-                        method: 0,
+                        method: 0, //取消所有断点
                         StartItem: 0,
                         StartCmd: 0,
                       } as UpMsg);
-                      handleClearAllPoint();
                     }}
                     icon={<CloseOutlined />}
                   >
@@ -616,13 +728,13 @@ const Page: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <RunLeftPage
-                btnType={btnTypeRef.current}
+                btnType={state.btnType}
                 ref={runLeftRef}
                 autoId={params.id}
                 currentItemCmd={currentItemCmd}
                 progress={progress}
                 logs={runLogs}
-                currentStatus={currentStatusRef.current}
+                currentStatus={state.currentStatus}
                 isSelfChecking={isSelfChecking}
                 selfCheckMessages={checkSelfLogs}
                 onRowSelect={handleRowSelect}
@@ -634,6 +746,7 @@ const Page: React.FC = () => {
                     disableClearAll: pointsSeq.length > 0,
                   }));
                 }}
+                onRequestBreakpoint={handleRequestBreakpoint}
               />
             </Col>
 
