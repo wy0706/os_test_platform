@@ -12,7 +12,7 @@ type Env = {
 };
 
 export const API_BASE_MAP: Env = {
-  dev: "http://218.247.161.72:8000",
+  dev: "http://218.247.161.72:8900",
   test: "http://127.0.0.1:8001",
   prod: "http://127.0.0.1:8002",
   pre: "http://127.0.0.1:8003",
