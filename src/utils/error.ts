@@ -17,7 +17,9 @@ export const enum NETWORK_ERROR_CODE {
   UNKNOWNERROR = 500,
   /** 服务不可用 */
   UNAVAILABLE = 503,
-
+  /** 服务器作为网关或代理时，从上游服务器收到无效响应*/
+  GATEWAY = 502,
+  /** 请求超时 */
   REQUESTTIMEOUT = 504,
 }
 
@@ -32,4 +34,5 @@ export const NETWORK_ERROR_TEXT = {
   UNKNOWNERROR: "服务器未知错误",
   UNAVAILABLE: "服务不可用",
   REQUESTTIMEOUT: "请求超时",
+  GATEWAY: "网关错误",
 };

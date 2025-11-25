@@ -114,6 +114,9 @@ export const errorConfig: RequestConfig = {
           case NETWORK_ERROR_CODE.REQUESTTIMEOUT:
             message.error(`${NETWORK_ERROR_TEXT.REQUESTTIMEOUT}`);
             return;
+          case NETWORK_ERROR_CODE.GATEWAY:
+            message.error(`${NETWORK_ERROR_TEXT.GATEWAY}`);
+            return;
           default:
             message.error(`${error.response.data?.message}` || "Error");
             return;
