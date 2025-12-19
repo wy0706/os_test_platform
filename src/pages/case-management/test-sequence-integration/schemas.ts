@@ -6,22 +6,21 @@ export const schemasTitle: any = {
 export const schemasColumns: any = [
   {
     title: "名称",
-    dataIndex: "title",
+    dataIndex: "tpf_file",
+    key: "tpfname",
     ellipsis: true,
-    sorter: true,
   },
   {
     title: "发布",
-    dataIndex: "status",
+    dataIndex: "is_published",
     ellipsis: true,
-    sorter: true,
     valueType: "select",
     valueEnum: {
-      success: {
+      1: {
         text: "✓",
         status: "success",
       },
-      error: {
+      0: {
         text: "✗",
         status: "error",
       },
@@ -30,7 +29,7 @@ export const schemasColumns: any = [
   },
   {
     title: "创建时间",
-    dataIndex: "createTime",
+    dataIndex: "time",
     ellipsis: true,
     hideInSearch: true,
     sorter: true,

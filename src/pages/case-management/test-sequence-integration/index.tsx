@@ -4,6 +4,7 @@ import {
 } from "@/services/case-management/test-sequence-integration.service";
 import { history, useAccess } from "@umijs/max";
 
+import { transformParams } from "@/utils/params";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   ActionType,
@@ -12,7 +13,7 @@ import {
   TableDropdown,
 } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Button, Form, Modal } from "antd";
+import { Button, Form, message, Modal } from "antd";
 import React, { useRef, useState } from "react";
 import RunModal from "../components/runModal";
 import DetailModal from "./components/detailModal";
@@ -20,7 +21,6 @@ import EditModal from "./components/editModal";
 import { schemasColumns, schemasTitle } from "./schemas";
 const Page: React.FC = () => {
   const access = useAccess();
-
   const actionRef = useRef<ActionType>();
   const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
@@ -55,7 +55,7 @@ const Page: React.FC = () => {
         icon={<EyeOutlined />}
         onClick={() => {
           setState({
-            detailsId: record.id,
+            detailsId: record.tpf_file_id,
             isPreviewModalOpen: true,
           });
         }}
@@ -68,7 +68,6 @@ const Page: React.FC = () => {
         color="primary"
         icon={<EditOutlined />}
         onClick={() => {
-          form.setFieldsValue(record);
           setState({
             updateValue: record,
             isUpdateModalOpen: true,
@@ -104,7 +103,7 @@ const Page: React.FC = () => {
                   </div>
                 ),
                 onOk: async () => {
-                  await deleteOne(record.id);
+                  await deleteOne(record.tpf_file_id);
                   if (actionRef.current) {
                     actionRef.current.reload();
                   }
@@ -120,40 +119,21 @@ const Page: React.FC = () => {
       />,
     ],
   };
+
   const requestData: any = async (...args: any) => {
-    try {
-      const res = await getList({ params: args[0], sort: args[1] });
-      return res;
-    } catch {
-      return {
-        data: [
-          {
-            id: 1,
-            title: "测试数据1",
-            createTime: "2025-08-15",
-            status: "success",
-            isExistAll: true,
-          },
-          {
-            id: 2,
-            title: "测试数据2",
-            createTime: "2025-08-25",
-            status: "success",
-            isExistAll: false,
-          },
-          {
-            id: 3,
-            title: "测试数据2",
-            createTime: "2025-08-25",
-            status: "error",
-            isExistAll: true,
-          },
-        ],
-        total: 3,
-        success: true,
-      };
+    let params = transformParams({ params: args[0], sort: args[1] });
+    const { code, data, message: msg } = await getList({ ...params });
+    if (code !== 0) {
+      message.error(msg);
+      return { data: [], total: 0, success: false };
     }
+    return {
+      data: data?.list_info || [],
+      total: data?.total_cnt,
+      success: true,
+    };
   };
+
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
   const handleRowClick = (record: any, index: number) => {
@@ -163,7 +143,7 @@ const Page: React.FC = () => {
     setSelectedRow(record);
     if (record.isExistAll) {
       history.push(
-        `/case-management/test-sequence-process/${record.id}?name=${record.title}&status=${record.status}`
+        `/case-management/test-sequence-process/${record.tpf_file_id}?name=${record.title}&status=${record.status}`
       );
     } else {
       let list = [
@@ -224,13 +204,13 @@ const Page: React.FC = () => {
             ? [...schemasColumns, operationColumn]
             : schemasColumns
         }
+        dateFormatter="string"
         actionRef={actionRef}
         cardBordered
         request={requestData}
-        rowKey="id"
+        rowKey="tpf_file_id"
         pagination={{
           pageSize: 10,
-          onChange: (page) => requestData,
         }}
         headerTitle={title.label}
         toolBarRender={() =>
@@ -275,7 +255,9 @@ const Page: React.FC = () => {
                 style: {
                   cursor: "pointer",
                   backgroundColor:
-                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+                    selectedRow?.tpf_file_id === record.tpf_file_id
+                      ? "#e6f7ff"
+                      : "transparent",
                 },
               }
             : {}
@@ -286,6 +268,7 @@ const Page: React.FC = () => {
         onCancel={() => {
           setState({ isPreviewModalOpen: false });
         }}
+        detailsId={detailsId}
         details={details}
       />
       <RunModal
@@ -293,8 +276,7 @@ const Page: React.FC = () => {
         onCancel={() => {
           setState({ isRunModalOpen: false });
         }}
-        onOk={(values) => {
-          console.log("values", values);
+        onOk={() => {
           history.push(`/case-management/test-sequence-process/add`);
         }}
       />
@@ -302,11 +284,13 @@ const Page: React.FC = () => {
         open={isUpdateModalOpen}
         updateValue={updateValue}
         onCancel={() => {
-          setState({ isUpdateModalOpen: false });
+          setState({ isUpdateModalOpen: false, updateValue: {} });
         }}
-        onOk={(value) => {
-          console.log("value", value);
-          setState({ isUpdateModalOpen: false });
+        onOk={() => {
+          setState({ isUpdateModalOpen: false, updateValue: {} });
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
         }}
       />
     </PageContainer>

@@ -20,20 +20,6 @@ export async function createOne(data: any) {
   return result;
 }
 
-// export async function getAll(params: any) {
-//   const result: any = await request<{}>(`${baseUrl}/getAll`, {
-//     method: "GET",
-//     params: params,
-//   });
-//   return result;
-// }
-
-// export async function getOne(id: any) {
-//   const result: any = await request<{}>(`${baseUrl}/getOne/${id}`, {
-//     method: "GET",
-//   });
-//   return result;
-// }
 // 编辑测试模块
 export async function updateOne(data: any) {
   const result: any = await request<{}>(`${baseUrl1}/edit`, {

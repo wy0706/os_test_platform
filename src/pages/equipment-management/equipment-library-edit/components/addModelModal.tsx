@@ -54,10 +54,6 @@ const AddModelModal: React.FC<SetMemberModalProps> = ({
 
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
-    console.log(values);
-  };
-
   const handleOk = async () => {
     const { instr_name } = await form.validateFields();
     setSubmitLoading(true);
@@ -93,7 +89,7 @@ const AddModelModal: React.FC<SetMemberModalProps> = ({
       confirmLoading={submitLoading}
       onOk={handleOk}
     >
-      <Form {...layout} form={form} onFinish={onFinish}>
+      <Form {...layout} form={form}>
         <Form.Item
           name="instr_name"
           label="设备型号"

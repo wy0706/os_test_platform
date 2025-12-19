@@ -35,27 +35,31 @@ const AddTypeModal: React.FC<SetMemberModalProps> = ({
   const [form] = Form.useForm();
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    console.log("Form values:", values);
-    if (type == "add") {
-      const { code, message: msg } = await updateTypeOne({ ...values });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
+    try {
+      const values = await form.validateFields();
+      setState({ confirmLoading: true });
+      if (type == "add") {
+        const { code, message: msg } = await updateTypeOne({ ...values });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      } else {
+        const { code, message: msg } = await updateTypeOne({
+          ...values,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
       }
-      message.success(msg || "操作成功");
-    } else {
-      const { code, message: msg } = await updateTypeOne({
-        ...values,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
+      if (onOk) {
+        onOk(values);
       }
-      message.success(msg || "操作成功");
-    }
-    if (onOk) {
-      onOk(values);
+    } finally {
+      setState({ confirmLoading: false });
     }
   };
   const initData = () => {

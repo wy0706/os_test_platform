@@ -1,6 +1,7 @@
-import { Form, Modal, Select } from "antd";
-import { useEffect, useState } from "react";
-
+import { updateOne } from "@/services/case-management/test-sequence-integration.service";
+import { useSetState } from "ahooks";
+import { Form, message, Modal, Select } from "antd";
+import { useEffect } from "react";
 interface SetMemberModalProps {
   open: boolean;
   onOk?: (values: any) => void;
@@ -8,7 +9,6 @@ interface SetMemberModalProps {
   updateValue?: any;
 }
 const { Option } = Select;
-
 const layout = {
   labelCol: { span: 24 },
 };
@@ -17,38 +17,49 @@ const EditModal: React.FC<SetMemberModalProps> = ({
   open,
   onOk,
   onCancel,
-
   updateValue,
 }) => {
-  const [title, setTitle] = useState("序列集成");
+  const [state, setState] = useSetState<any>({
+    title: "序列集成",
+    confirmLoading: false,
+  });
+  const { title, confirmLoading } = state;
 
   useEffect(() => {
     if (open) {
-      setTitle(`${updateValue?.title}`);
-      const name = updateValue.title;
       form?.resetFields();
-
+      setState({
+        title: `${updateValue?.tpf_file}`,
+      });
       form?.setFieldsValue(updateValue);
     }
   }, [open, updateValue]);
 
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
-    console.log(values);
-  };
-
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        if (onOk) {
-          onOk(values);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    try {
+      setState({ confirmLoading: true });
+      if (!updateValue?.tpf_file_id) {
+        message.error("缺少必要参数，操作失败");
+        return;
+      }
+      const { code, message: msg } = await updateOne({
+        id: updateValue?.tpf_file_id,
+        ...values,
       });
+      if (code !== 0) {
+        message.error(msg || "操作失败");
+        return;
+      }
+      if (onOk) {
+        onOk(values);
+      }
+    } catch (error) {
+    } finally {
+      setState({ confirmLoading: false });
+    }
   };
 
   return (
@@ -59,15 +70,20 @@ const EditModal: React.FC<SetMemberModalProps> = ({
       onCancel={() => {
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      confirmLoading={confirmLoading}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="status" label="发布" rules={[{ required: true }]}>
+        <Form.Item
+          name="is_published"
+          label="发布"
+          rules={[{ required: true }]}
+        >
           <Select placeholder="选择是否发布">
-            <Option value="success">✓</Option>
-            <Option value="error">✗</Option>
+            <Option value={1}>✓</Option>
+            <Option value={0}>✗</Option>
           </Select>
         </Form.Item>
       </Form>

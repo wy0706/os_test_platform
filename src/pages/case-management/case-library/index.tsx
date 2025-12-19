@@ -64,7 +64,9 @@ const Page: React.FC = () => {
                 style: {
                   cursor: "pointer",
                   backgroundColor:
-                    selectedRow?.id === record.id ? "#e6f7ff" : "transparent",
+                    selectedRow?.execution_file_id === record.execution_file_id
+                      ? "#e6f7ff"
+                      : "transparent",
                 },
               }
             : {}

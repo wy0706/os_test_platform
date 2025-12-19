@@ -157,40 +157,43 @@ const AddModal: React.FC<SetMemberModalProps> = ({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-
-    if (
-      typeof values.defaultparas === "string" &&
-      values.defaultparas.trim() !== ""
-    ) {
-      let str = values.defaultparas.replace(/，/g, ",").trim();
-      if (str.endsWith(",")) {
-        str = str.slice(0, -1);
+    try {
+      if (
+        typeof values.defaultparas === "string" &&
+        values.defaultparas.trim() !== ""
+      ) {
+        let str = values.defaultparas.replace(/，/g, ",").trim();
+        if (str.endsWith(",")) {
+          str = str.slice(0, -1);
+        }
+        values.defaultparas = str;
       }
-      values.defaultparas = str;
-    }
-
-    if (type == "add") {
-      const { code, message: msg } = await addModelOne(values);
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
+      setState({ confirmLoading: true });
+      if (type == "add") {
+        const { code, message: msg } = await addModelOne(values);
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
+      } else {
+        const { code, message: msg } = await updateModelOne({
+          instr_id: updateValue.instr_id,
+          apidll: updateValue?.apidll || "",
+          ...values,
+        });
+        if (code !== 0) {
+          message.error(msg || "操作失败");
+          return;
+        }
+        message.success(msg || "操作成功");
       }
-      message.success(msg || "操作成功");
-    } else {
-      const { code, message: msg } = await updateModelOne({
-        instr_id: updateValue.instr_id,
-        apidll: updateValue?.apidll || "",
-        ...values,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      message.success(msg || "操作成功");
-    }
 
-    if (onOk) {
-      onOk(values);
+      if (onOk) {
+        onOk(values);
+      }
+    } finally {
+      setState({ confirmLoading: false });
     }
   };
 
