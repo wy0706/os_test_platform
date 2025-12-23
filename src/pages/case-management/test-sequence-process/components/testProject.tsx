@@ -1,54 +1,97 @@
+import { getTpfTree } from "@/services/case-management/test-sequence-process.service";
 import { FileTextOutlined, FolderOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
-import { message, Tree } from "antd";
+import { Empty, message, Spin, Tree } from "antd";
 import React, { useEffect } from "react";
+import { transformToRightTree } from "../schemas";
 import "./index.less";
 interface ProjectProps {
   data: any[];
   onInsertTreeNode: (nodeKey: string, nodeTitle: string) => void;
   onSelect: (keys: React.Key[], info: any) => void;
+  leftTab: any;
 }
 const TestProject: React.FC<ProjectProps> = ({
   data,
   onInsertTreeNode,
   onSelect,
+  leftTab,
 }) => {
   const [state, setState] = useSetState<any>({
-    TreeDatas: data || [],
+    TreeDatas: [],
     selectedTreeKeys: [],
     selectedCommand: "",
     expandedKeys: [],
+    treeLoading: false,
   });
-  const { TreeDatas, expandedKeys, selectedCommand, selectedTreeKeys } = state;
+  const {
+    TreeDatas,
+    expandedKeys,
+    selectedCommand,
+    selectedTreeKeys,
+    treeLoading,
+  } = state;
 
-  // 处理树节点双击事件，在选中行下方插入新行
   const handleTreeDoubleClick = (keys: any[], info: any) => {
-    if (keys.length === 0) return;
+    if (!keys || keys.length === 0) return;
     const clickedNodeKey = keys[0];
-    const clickedNode = info.node;
-    // 检查是否为父节点（有子节点），父节点不允许双击插入
-    if (clickedNode.children && clickedNode.children.length > 0) {
-      // "${clickedNode.title}" 是父级节点，
-      message.warning(`请选择测试项目进行插入`);
+    const clickedNode = info?.node;
+
+    //只有 level=3 才允许插入
+    if (clickedNode?.level !== 3) {
+      message.warning("请选择测试项目进行插入");
       return;
     }
-    onInsertTreeNode && onInsertTreeNode(clickedNodeKey, clickedNode.title);
-    // 调用通用插入函数
-    // insertTreeNode(clickedNodeKey, clickedNode.title);
+
+    //  必须是叶子节点（防止后端数据异常）
+    if (clickedNode?.children && clickedNode.children.length > 0) {
+      message.warning("请选择测试项目进行插入");
+      return;
+    }
+    onInsertTreeNode?.(clickedNodeKey, clickedNode.title);
   };
 
-  useEffect(() => {
-    const safeData = Array.isArray(data) ? data : [];
-    // 为mockTreeData添加图标
-    const dataWithIcons = addIconsToTreeData(safeData);
-    // 默认展开所有节点
-    const allKeys = getAllTreeKeys(dataWithIcons);
-    setState({
-      TreeDatas: dataWithIcons,
-      expandedKeys: allKeys,
-    });
-  }, [data]);
+  const getTreeData = async (type: string) => {
+    try {
+      setState({ treeLoading: true });
+      const { code, data } = await getTpfTree({ TST: type });
+      if (code === 0) {
+        const safeData = Array.isArray(data) ? data : [];
+        let newData = transformToRightTree(safeData);
+        // 为mockTreeData添加图标
+        const dataWithIcons = addIconsToTreeData(newData);
+        console.log("dataWithIcons", dataWithIcons);
 
+        // 默认展开所有节点
+        const allKeys = getAllTreeKeys(dataWithIcons);
+        setState({
+          TreeDatas: dataWithIcons,
+          expandedKeys: allKeys,
+        });
+      } else {
+        setState({
+          TreeDatas: [],
+        });
+      }
+    } catch (e) {
+      setState({
+        TreeDatas: [],
+      });
+    } finally {
+      setState({ treeLoading: false });
+    }
+  };
+  useEffect(() => {
+    setState({
+      selectedTreeKeys: [],
+      selectedCommand: "",
+      expandedKeys: [],
+      TreeDatas: [],
+    });
+    if (leftTab) {
+      getTreeData(leftTab);
+    }
+  }, [leftTab]);
   // 获取所有树节点的keys用于默认展开
   const getAllTreeKeys = (treeData: any[] = []): string[] => {
     const keys: string[] = [];
@@ -99,21 +142,34 @@ const TestProject: React.FC<ProjectProps> = ({
   };
   return (
     <div>
-      {" "}
-      <Tree
-        treeData={TreeDatas}
-        expandedKeys={expandedKeys}
-        onExpand={(keys) => {
-          setState({ expandedKeys: keys as string[] });
-        }}
-        selectedKeys={selectedTreeKeys}
-        onSelect={handleSelect}
-        onDoubleClick={(e, node) => {
-          handleTreeDoubleClick([node.key], { node });
-        }}
-        showIcon={true}
-        className="command-tree"
-      />
+      {treeLoading ? (
+        <div style={{ textAlign: "center", padding: "100px" }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        <>
+          {TreeDatas.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "100px" }}>
+              <Empty />
+            </div>
+          ) : (
+            <Tree
+              treeData={TreeDatas}
+              expandedKeys={expandedKeys}
+              onExpand={(keys) => {
+                setState({ expandedKeys: keys as string[] });
+              }}
+              selectedKeys={selectedTreeKeys}
+              onSelect={handleSelect}
+              onDoubleClick={(e, node) => {
+                handleTreeDoubleClick([node.key], { node });
+              }}
+              showIcon={true}
+              className="command-tree"
+            />
+          )}
+        </>
+      )}
     </div>
   );
 };

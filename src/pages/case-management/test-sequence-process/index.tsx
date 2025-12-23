@@ -21,57 +21,45 @@ import TestResult from "./components/testResult";
 import UutPage from "./components/uutPage";
 import "./index.less";
 import { mockTreeData, preTable } from "./schemas";
+
+type LeftTabKey = "Pre" | "UUT" | "Post";
+type RightTabKey = "project" | "condition" | "result";
+
 const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
-    leftTabActiveKey: "2",
+    leftTabActiveKey: "UUT" as LeftTabKey,
     editValue: {},
     tabLeftItems: [
-      {
-        key: "1",
-        label: "Pre测试",
-      },
-      {
-        key: "2",
-        label: "UUT测试",
-      },
-      {
-        key: "3",
-        label: "Post测试",
-      },
+      { key: "Pre", label: "Pre测试" },
+      { key: "UUT", label: "UUT测试" },
+      { key: "Post", label: "Post测试" },
     ],
     tabRightItems: [
-      {
-        key: "1",
-        label: "测试序列",
-      },
-      {
-        key: "2",
-        label: "测试条件",
-      },
-      {
-        key: "3",
-        label: "测试结果",
-      },
+      { key: "project", label: "测试序列" },
+      { key: "condition", label: "测试条件" },
+      { key: "result", label: "测试结果" },
     ],
-    rightTabActiveKey: 1,
+    rightTabActiveKey: "project" as RightTabKey,
     isEditAll: false, //是否编辑所有测试条件，用于请求右侧测试条件测试结果数据
+
     tabData: {
-      tab1: [],
-      tab2: [],
-      tab3: [],
+      Pre: [],
+      UUT: [],
+      Post: [],
     },
     // 判断tab数据是否已经请求过数据
     loaded: {
-      tab1: false,
-      tab2: false,
-      tab3: false,
+      Pre: false,
+      UUT: false,
+      Post: false,
     },
     selectedRowKeys: {
-      tab1: -1,
-      tab2: -1,
-      tab3: -1,
+      Pre: -1,
+      UUT: -1,
+      Post: -1,
     },
+
     isDirty: false,
     projectTreeData: [],
     projectExpandedKeys: [],
@@ -87,6 +75,7 @@ const Page: React.FC = () => {
     isSaveModalOpen: false,
     saveModalType: "", //保存和另存为  save saveAs
   });
+
   const {
     title,
     tabLeftItems,
@@ -112,58 +101,62 @@ const Page: React.FC = () => {
     isSaveModalOpen,
     saveModalType,
   } = state;
-  const tabDataMap: Record<string, any> = {
-    tab1: cloneDeep(preTable),
-    tab2: cloneDeep(preTable),
-    tab3: cloneDeep(preTable),
+
+  const tabDataMap: Record<LeftTabKey, any> = {
+    Pre: cloneDeep(preTable),
+    UUT: cloneDeep(preTable),
+    Post: cloneDeep(preTable),
   };
+
   const [searchParams] = useSearchParams();
   const params = useParams();
-  // 初始化：只加载 tab2
+
+  // 初始化：只加载 UUT
   useEffect(() => {
     if (params.id !== "add") {
-      handleTabChange("2");
+      handleTabChange("UUT");
     }
-    let release =
-      params.id === "add"
-        ? false
-        : searchParams.get("status") === "success"
-        ? true
-        : false;
-    console.log("release", release);
+
+    const release =
+      params.id === "add" ? false : searchParams.get("status") === "success";
 
     setState({
       title: params.id === "add" ? "" : searchParams.get("name") || "",
       isRelease: release,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
-  const handleTabChange = async (key: string) => {
+
+  const handleTabChange = async (key: LeftTabKey) => {
     setState({ leftTabActiveKey: key });
-    if (params.id !== "add" && !state.loaded[`tab${key}`]) {
+
+    if (params.id !== "add" && !loaded[key]) {
       try {
-        // 假设 getList 接口可以根据 key 获取不同数据
+        // 后端接受 Pre / UUT / Post
         await getList({ tab: key });
+
         setState((prev) => ({
           tabData: {
             ...prev.tabData,
-            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+            [key]: tabDataMap[key] || [],
           },
-          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          loaded: { ...prev.loaded, [key]: true },
           selectedRowKeys: {
             ...prev.selectedRowKeys,
-            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
+            [key]: tabDataMap[key]?.length ? 0 : -1, // 默认选第一条
           },
         }));
       } catch (e) {
+        // 失败也保证本地结构一致
         setState((prev) => ({
           tabData: {
             ...prev.tabData,
-            [`tab${key}`]: tabDataMap[`tab${key}`] || [],
+            [key]: tabDataMap[key] || [],
           },
-          loaded: { ...prev.loaded, [`tab${key}`]: true },
+          loaded: { ...prev.loaded, [key]: true },
           selectedRowKeys: {
             ...prev.selectedRowKeys,
-            [`tab${key}`]: tabDataMap[`tab${key}`]?.length ? 0 : -1, // 默认选第一条
+            [key]: tabDataMap[key]?.length ? 0 : -1,
           },
         }));
       }
@@ -171,12 +164,11 @@ const Page: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    console.log(isDirty, isRelease);
     if (isRelease) {
       //如果已发布 不做任何操作直接返回
       history.push("/case-management/test-sequence-integration");
     } else {
-      //r如果未发布
+      //如果未发布
       if (isDirty) {
         setState({
           isPromptModalOpen: true,
@@ -199,7 +191,7 @@ const Page: React.FC = () => {
         isRunModalOpen: true,
       });
     } else {
-      //r如果未发布
+      //如果未发布
       if (isDirty) {
         setState({
           isPromptModalOpen: true,
@@ -234,13 +226,11 @@ const Page: React.FC = () => {
     history.push("/case-management/test-sequence-process/add");
     window.location.reload();
   };
+
   // 通用插入函数，供双击和按钮点击使用
   const insertTreeNode = (nodeKey: string, nodeTitle: string) => {
-    console.log(nodeKey, nodeTitle);
-    // if (tableData.length > 299) {
-    //   message.warning("表格中的命令数量已达到最大限度，不可插入");
-    //   return;
-    // }
+    const activeKey: LeftTabKey = leftTabActiveKey;
+
     // 创建新的行数据
     const newRowData = {
       id: Date.now(), // 使用时间戳作为唯一ID
@@ -249,19 +239,11 @@ const Page: React.FC = () => {
       extention: "测试数据",
       title: ` ${nodeTitle}`,
     };
+
     // 在选中行下方插入新行
-    const insertIndex =
-      leftTabActiveKey == 1
-        ? selectedRowKeys.tab1 + 1
-        : leftTabActiveKey == 2
-        ? selectedRowKeys.tab2 + 1
-        : selectedRowKeys.tab3 + 1;
-    const newTableData =
-      leftTabActiveKey == 1
-        ? [...tabData.tab1]
-        : leftTabActiveKey == 2
-        ? [...tabData.tab2]
-        : [...tabData.tab3];
+    const insertIndex = (selectedRowKeys?.[activeKey] ?? -1) + 1;
+    const newTableData = [...(tabData?.[activeKey] || [])];
+
     newTableData.splice(insertIndex, 0, newRowData);
 
     // 更新序号
@@ -269,52 +251,31 @@ const Page: React.FC = () => {
       item.sequence = index + 1;
     });
 
-    let obj = {
-      [leftTabActiveKey == 1
-        ? "tab1"
-        : leftTabActiveKey == 2
-        ? "tab2"
-        : "tab3"]: newTableData,
-    };
-    console.log("obj", obj);
-
     setState((prev) => ({
       tabData: {
         ...prev.tabData,
-        [leftTabActiveKey == 1
-          ? "tab1"
-          : leftTabActiveKey == 2
-          ? "tab2"
-          : "tab3"]: newTableData,
+        [activeKey]: newTableData,
       },
       isDirty: true,
-    }));
-    // 选中新插入的行
-    console.log("insertIndex", insertIndex);
-
-    setState((prev) => ({
       selectedRowKeys: {
         ...prev.selectedRowKeys,
-        [leftTabActiveKey == 1
-          ? "tab1"
-          : leftTabActiveKey == 2
-          ? "tab2"
-          : "tab3"]: insertIndex,
+        [activeKey]: insertIndex,
       },
     }));
-    // message.success(`已在第${insertIndex + 1}行插入: ${nodeTitle}`);
+
     message.success("插入成功");
   };
 
   const handleRun = () => {
     if (isRelease) {
-      // 已发布可以直接跳转运行界面/case-management/case-run/2?status=all&name=123
+      // 已发布可以直接跳转运行界面
       history.push("/case-management/case-run/add?status=all");
     } else {
       // 判断是否为空，为空提示数据为空
-      const isAllEmpty = [tabData.tab1, tabData.tab2, tabData.tab3].every(
+      const isAllEmpty = [tabData.Pre, tabData.UUT, tabData.Post].every(
         (tab) => tab.length === 0
       );
+
       if (isAllEmpty) {
         message.info("新建文件为空，无法运行");
         return;
@@ -322,7 +283,6 @@ const Page: React.FC = () => {
         if (isDirty) {
           // 不为空 如果是新建，保存数据后拿到id name等信息 跳转run页面
           if (params.id === "add") {
-            //
             history.push(
               "/case-management/case-run/1?status=all&name=os测试.tpf"
             );
@@ -342,6 +302,7 @@ const Page: React.FC = () => {
       }
     }
   };
+
   return (
     <PageContainer
       header={{
@@ -388,15 +349,13 @@ const Page: React.FC = () => {
               >
                 另存为
               </Button>
-              {/* 复制   粘贴    剪切  */}
+
               <Button icon={<CheckCircleOutlined />} onClick={handleRun}>
                 运行
               </Button>
             </Space>
-            {/* checked={isEditAll} */}
             <Checkbox
               onChange={(e) => {
-                console.log(e.target.checked);
                 setState({ isEditAll: e.target.checked });
               }}
             >
@@ -409,61 +368,65 @@ const Page: React.FC = () => {
         <div className="main-content">
           <div className="table-panel">
             <div className="table-card">
+              {/* 用 activeKey 受控，避免 defaultActiveKey 不跟随 state */}
               <Tabs
-                defaultActiveKey={leftTabActiveKey}
+                activeKey={leftTabActiveKey}
                 items={tabLeftItems}
-                onChange={handleTabChange}
+                onChange={(k) => handleTabChange(k as LeftTabKey)}
               />
+
               <div style={{ padding: "10px" }}>
-                {leftTabActiveKey == 1 && (
+                {leftTabActiveKey === "Pre" && (
                   <PrePage
-                    selectedRowIndex={selectedRowKeys.tab1}
+                    selectedRowIndex={selectedRowKeys.Pre}
                     treeSelectData={treeSelectedKeys}
                     onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
-                        tabData: { ...prev.tabData, tab1: newData },
+                        tabData: { ...prev.tabData, Pre: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab1: newSelectedIndex,
+                          Pre: newSelectedIndex,
                         },
                         isDirty: true,
                       }));
                     }}
-                    data={tabData.tab1}
+                    data={tabData.Pre}
                   />
                 )}
-                {leftTabActiveKey == 2 && (
+
+                {leftTabActiveKey === "UUT" && (
                   <UutPage
-                    selectedRowIndex={selectedRowKeys.tab2}
+                    selectedRowIndex={selectedRowKeys.UUT}
                     treeSelectData={treeSelectedKeys}
                     onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
-                        tabData: { ...prev.tabData, tab2: newData },
+                        tabData: { ...prev.tabData, UUT: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab2: newSelectedIndex,
+                          UUT: newSelectedIndex,
                         },
                         isDirty: true,
                       }));
                     }}
-                    data={tabData.tab2}
+                    data={tabData.UUT}
                   />
                 )}
-                {leftTabActiveKey == 3 && (
+
+                {leftTabActiveKey === "Post" && (
                   <PostPage
-                    selectedRowIndex={selectedRowKeys.tab3}
+                    selectedRowIndex={selectedRowKeys.Post}
                     treeSelectData={treeSelectedKeys}
                     onChange={(newData, newSelectedIndex) => {
                       setState((prev) => ({
-                        tabData: { ...prev.tabData, tab3: newData },
+                        tabData: { ...prev.tabData, Post: newData },
                         selectedRowKeys: {
                           ...prev.selectedRowKeys,
-                          tab3: newSelectedIndex,
+                          Post: newSelectedIndex,
                         },
                         isDirty: true,
                       }));
                     }}
-                    data={tabData.tab3}
+                    data={tabData.Post}
                   />
                 )}
               </div>
@@ -472,21 +435,20 @@ const Page: React.FC = () => {
 
           <div className="tree-panel">
             <Tabs
-              defaultActiveKey={rightTabActiveKey}
+              activeKey={rightTabActiveKey}
               items={tabRightItems}
-              onChange={(key: any) => {
-                setState({ rightTabActiveKey: key });
+              onChange={(key) => {
+                setState({ rightTabActiveKey: key as RightTabKey });
               }}
-              // tabBarExtraContent={<Checkbox>编辑所有测试条件</Checkbox>}
             />
 
             <div className="tree-panel-content">
-              {rightTabActiveKey == 1 && (
+              {rightTabActiveKey === "project" && (
                 <TestProject
+                  leftTab={leftTabActiveKey}
                   data={mockTreeData}
                   onInsertTreeNode={insertTreeNode}
                   onSelect={(keys, info) => {
-                    console.log(keys, info);
                     setState({
                       treeSelectedKeys: keys as string[],
                       treeSelectedCommand: info.node.command,
@@ -495,19 +457,20 @@ const Page: React.FC = () => {
                   }}
                 />
               )}
-              {rightTabActiveKey == 2 && <TestCondition />}
-              {rightTabActiveKey == 3 && <TestResult />}
+
+              {rightTabActiveKey === "condition" && <TestCondition />}
+              {rightTabActiveKey === "result" && <TestResult />}
             </div>
           </div>
         </div>
       </div>
+
       <RunModal
         open={isRunModalOpen}
         onCancel={() => {
           setState({ isRunModalOpen: false });
         }}
         onOk={(values) => {
-          console.log(values);
           setState({ isRunModalOpen: false });
           goAdd();
         }}
@@ -523,8 +486,6 @@ const Page: React.FC = () => {
             type="primary"
             style={{ marginRight: "10px" }}
             onClick={() => {
-              console.log("保存");
-              // 保存数据后再跳转新建页面
               message.success("保存成功");
               switch (promptModalType) {
                 case "back":
@@ -532,6 +493,7 @@ const Page: React.FC = () => {
                   return;
                 case "add":
                   goAdd();
+                // ⚠️ 原代码这里缺少 break，会继续落到 run。这里保持你原逻辑不动，但建议你确认是否需要 break。
                 case "run":
                   history.push(
                     "/case-management/case-run/1?status=all&name=os测试.tpf"
@@ -548,7 +510,6 @@ const Page: React.FC = () => {
             key="nosave"
             danger
             onClick={() => {
-              console.log("不保存");
               switch (promptModalType) {
                 case "back":
                   history.push("/case-management/test-sequence-integration");
@@ -576,11 +537,11 @@ const Page: React.FC = () => {
           </Button>,
         ]}
       ></Modal>
+
       <SaveModal
         open={isSaveModalOpen}
         type={saveModalType}
         onOk={(values) => {
-          console.log("values", values);
           setState({ isSaveModalOpen: false });
           // 保存成功后跳转到列表
           history.push("/case-management/test-sequence-integration");

@@ -2,8 +2,6 @@ import {
   deleteOne,
   getList,
 } from "@/services/case-management/test-sequence-integration.service";
-import { history, useAccess } from "@umijs/max";
-
 import { transformParams } from "@/utils/params";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import {
@@ -12,17 +10,18 @@ import {
   ProTable,
   TableDropdown,
 } from "@ant-design/pro-components";
+import { history, useAccess } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Form, message, Modal } from "antd";
+import { Button, message, Modal } from "antd";
 import React, { useRef, useState } from "react";
-import RunModal from "../components/runModal";
 import DetailModal from "./components/detailModal";
 import EditModal from "./components/editModal";
 import { schemasColumns, schemasTitle } from "./schemas";
+
+import RunSequenceModal from "./components/runSequenceModal";
 const Page: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();
-  const form: any = Form.useForm()[0];
   const [state, setState] = useSetState<any>({
     title: schemasTitle,
     isUpdateModalOpen: false,
@@ -31,6 +30,7 @@ const Page: React.FC = () => {
     detailsId: null,
     details: {},
     isRunModalOpen: false,
+    runType: null,
   });
   const {
     title,
@@ -40,6 +40,7 @@ const Page: React.FC = () => {
     detailsId,
     details,
     isRunModalOpen,
+    runType,
   } = state;
 
   const operationColumn = {
@@ -220,7 +221,7 @@ const Page: React.FC = () => {
                   key="button"
                   icon={<PlusOutlined />}
                   onClick={() => {
-                    setState({ isRunModalOpen: true });
+                    setState({ isRunModalOpen: true, runType: "add" });
                   }}
                   type="primary"
                 >
@@ -271,11 +272,13 @@ const Page: React.FC = () => {
         detailsId={detailsId}
         details={details}
       />
-      <RunModal
+
+      <RunSequenceModal
         open={isRunModalOpen}
         onCancel={() => {
           setState({ isRunModalOpen: false });
         }}
+        type={runType}
         onOk={() => {
           history.push(`/case-management/test-sequence-process/add`);
         }}

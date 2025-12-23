@@ -68,7 +68,7 @@ const DetailModal: React.FC<SetMemberModalProps> = ({
         </div>
         <div className={s.items}>
           <div className={s.name}>创建人:</div>
-          <div>{data?.username || "-"}</div>
+          <div>{data?.Auther || "-"}</div>
         </div>
       </div>
     </Modal>

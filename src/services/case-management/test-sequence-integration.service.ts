@@ -54,27 +54,23 @@ export async function deleteOne(id: any) {
   });
   return result;
 }
-// ============
+/**
+ * 新建测试程序
+ * tpf_file_id  测试程序的ID
+ * model 测试程序型号
+ * user_id 作者id
+ * username 测试程序的作者
+ * edittime 测试程序的编辑时间
+ * comments 测试程序的说明
+ * configfile 测试程序对应的配置文件
+
+ * @param data
+ * @returns
+ */
 export async function createOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/createOne`, {
+  const result: any = await request<{}>(`${baseUrl}/tpfcreate`, {
     method: "POST",
     data: data,
-  });
-  return result;
-}
-
-export async function getAll(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getAll`, {
-    method: "GET",
-    params: params,
-  });
-  return result;
-}
-
-export async function deleteBatch(ids: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-    method: "DELETE",
-    data: ids,
   });
   return result;
 }

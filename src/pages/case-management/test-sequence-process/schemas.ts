@@ -195,3 +195,29 @@ export const mockTreeData = [
     ],
   },
 ];
+
+export function transformToRightTree(data?: any[]) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return [];
+  }
+  return data.map((item: any) => ({
+    title: item?.SysOrUser ?? "",
+    key: item?.SysOrUser ?? "",
+    level: 1,
+    children: Array.isArray(item?.TIList)
+      ? item.TIList.map((group: any) => ({
+          title: group?.GroupName ?? "",
+          key: `group-${group?.GroupID ?? ""}`,
+          level: 2,
+          children: Array.isArray(group?.TIListInfo)
+            ? group.TIListInfo.map((ti: any) => ({
+                title: ti?.TIName ?? "",
+                key: `ti-${ti?.TIID ?? ""}`,
+                level: 3,
+                isLeaf: true,
+              }))
+            : [],
+        }))
+      : [],
+  }));
+}

@@ -1,20 +1,39 @@
-
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/caseManagement/testSequenceProcess";
+const baseUrl = "/tpfedit";
 
-export async function getList(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: 'GET',
+/**
+ *TST：测试项目的类型是Pre,UUT,还是POST
+ * @param params
+ * @returns
+ */
+export async function getTpfTree(params: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpfgettitree`, {
+    method: "GET",
     params: params,
   });
   return result;
 }
-
+/**
+ * 向测试程序中，插入测试项目
+ * id ：待插入测试项目的ID
+ * TST: Pre,UUT,POST
+ *Seq ：插入测试项目的位置
+ * @param data
+ * @returns
+ */
 export async function createOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/createOne`, {
+  const result: any = await request<{}>(`${baseUrl}/InsertTi`, {
     method: "POST",
     data: data,
+  });
+  return result;
+}
+// =========================================
+export async function getList(params: any) {
+  const result: any = await request<{}>(`${baseUrl}/getList`, {
+    method: "GET",
+    params: params,
   });
   return result;
 }
