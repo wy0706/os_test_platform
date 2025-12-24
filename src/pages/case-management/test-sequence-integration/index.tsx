@@ -104,7 +104,14 @@ const Page: React.FC = () => {
                   </div>
                 ),
                 onOk: async () => {
-                  await deleteOne(record.tpf_file_id);
+                  const { code, message: msg } = await deleteOne(
+                    record.tpf_file_id
+                  );
+                  if (code !== 0) {
+                    message.error(msg);
+                    return;
+                  }
+                  message.success(msg || "操作成功");
                   if (actionRef.current) {
                     actionRef.current.reload();
                   }

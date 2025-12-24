@@ -209,12 +209,14 @@ export function transformToRightTree(data?: any[]) {
           title: group?.GroupName ?? "",
           key: `group-${group?.GroupID ?? ""}`,
           level: 2,
+          ids: group?.GroupID ?? "",
           children: Array.isArray(group?.TIListInfo)
             ? group.TIListInfo.map((ti: any) => ({
                 title: ti?.TIName ?? "",
                 key: `ti-${ti?.TIID ?? ""}`,
                 level: 3,
                 isLeaf: true,
+                ids: ti?.TIID ?? "",
               }))
             : [],
         }))
