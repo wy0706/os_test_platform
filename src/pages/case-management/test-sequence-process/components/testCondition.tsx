@@ -25,15 +25,16 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
   const [state, setState] = useSetState<any>({
     tableData: [] as any[],
     isOpen: false,
-    editId: null as number | string | null,
+
     loading: false,
+    editValue: null as any | null,
   });
 
   const layout = {
     labelCol: { span: 24 },
   };
 
-  const { tableData, isOpen, editId, loading } = state;
+  const { tableData, isOpen, editValue, loading } = state;
   const [form] = Form.useForm();
 
   // ✅ 选中行的 id + seq（兼容命名：seq/Seq/sequence）
@@ -107,7 +108,7 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
               return;
             }
 
-            setState({ isOpen: true, editId: record.id });
+            setState({ isOpen: true, editValue: record });
 
             // ✅ 回填当前行数据（你原来只 set variable，这里按实际字段回填 val）
             form.setFieldsValue({
@@ -128,7 +129,7 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
         search={false}
         options={false}
         dataSource={tableData}
-        rowKey="id"
+        rowKey="Para_ID"
         pagination={false}
         size="small"
         loading={loading}
@@ -138,46 +139,36 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
         title="测试条件"
         open={isOpen}
         onCancel={() => {
-          setState({ isOpen: false, editId: null });
+          setState({ isOpen: false, editValue: null });
           form.resetFields();
         }}
         onOk={async () => {
-          if (!rowId || !rowSeq) {
+          if (!rowId) {
             message.warning("请先在左侧选择一条测试序列");
-            return;
-          }
-          if (!editId) {
-            message.warning("未找到要编辑的行");
             return;
           }
 
           try {
             const values = await form.validateFields();
-
             const res = await updateConditionOne({
               TST,
               id: rowId,
-              Seq: rowSeq,
-              isAll,
-              condId: editId,
+              CallName: editValue?.VariableName,
               ...values,
             });
 
             if (!res || res.code !== 0) {
-              message.error(res?.msg || "操作失败");
+              message.error(res?.message || "操作失败");
               return;
             }
 
-            message.success("操作成功");
-            setState({ isOpen: false, editId: null });
+            message.success(res?.message || "操作成功");
+            setState({ isOpen: false, editValue: null });
             form.resetFields();
-
-            // ✅ 成功后重新获取（后端重排/落库权威）
             await fetchList();
           } catch (e: any) {
             // validateFields 抛错不提示“异常”
             if (e?.errorFields) return;
-            message.error(e?.message || "操作异常");
           }
         }}
       >

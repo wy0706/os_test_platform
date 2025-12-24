@@ -130,6 +130,7 @@ export default [
         component: "./case-management/test-sequence-process",
         hideInMenu: true,
         hideInBreadcrumb: true,
+        footerRender: false,
         parentKeys: ["/case-management/test-sequence-integration"],
       },
       {

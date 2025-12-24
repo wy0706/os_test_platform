@@ -1,7 +1,7 @@
 import { EditOutlined } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
 import { useSetState } from "ahooks";
-import { Form, Input, InputNumber, message, Modal } from "antd";
+import { Form, Input, message, Modal } from "antd";
 import React, { useEffect, useMemo } from "react";
 
 // ✅ 按你项目真实接口修改这里的导入与函数名
@@ -29,10 +29,11 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
     isOpen: false,
     editId: null as number | string | null,
     loading: false,
+    editValue: null as any | null,
   });
 
   const layout = useMemo(() => ({ labelCol: { span: 24 } }), []);
-  const { tableData, isOpen, editId, loading } = state;
+  const { tableData, isOpen, editId, loading, editValue } = state;
 
   const [form] = Form.useForm();
 
@@ -55,7 +56,7 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
 
   const fetchList = async () => {
     // 没选中：清空
-    if (!rowId || !rowSeq || !TST) {
+    if (!rowId || !TST) {
       setState({ tableData: [] });
       return;
     }
@@ -65,8 +66,7 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
 
       const resp = await getResultList({
         TST,
-        id: rowSeq,
-        // Seq: rowSeq,
+        id: rowId,
       });
 
       // 非 0：清空
@@ -89,8 +89,7 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
   // ✅ TST 或选中行变化：自动获取
   useEffect(() => {
     fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [TST, rowId, rowSeq]);
+  }, [TST, rowId]);
 
   const columns = [
     {
@@ -133,19 +132,16 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
           key="editable"
           onClick={(e) => {
             e.stopPropagation();
-
-            if (!rowId || !rowSeq) {
+            if (!rowId) {
               message.warning("请先在左侧选择一条测试序列");
               return;
             }
 
-            setState({ isOpen: true, editId: record.id });
-
-            // ✅ 把当前行数据回填到表单（你原来只回填 variable，这里完善）
+            setState({ isOpen: true, editValue: record });
             form.setFieldsValue({
-              minVal: record.minVal,
-              maxVal: record.maxVal,
-              annotation: record.annotation,
+              MinValue: record.MinValue,
+              MaxValue: record.MaxValue,
+              Comments: record.Comments,
             });
           }}
         >
@@ -172,16 +168,12 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
         title="测试结果"
         open={isOpen}
         onCancel={() => {
-          setState({ isOpen: false, editId: null });
-          form.resetFields();
+          setState({ isOpen: false, editValue: null });
+          form?.resetFields();
         }}
         onOk={async () => {
-          if (!rowId || !rowSeq) {
+          if (!rowId) {
             message.warning("请先在左侧选择一条测试序列");
-            return;
-          }
-          if (!editId) {
-            message.warning("未找到要编辑的行");
             return;
           }
 
@@ -192,47 +184,36 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
             const res = await updateResultOne({
               TST,
               id: rowId,
-              Seq: rowSeq,
-              resultId: editId, // ⚠️ 如果后端字段不是 resultId，请改成它要求的字段名
+              CallName: editValue?.VariableName,
               ...values,
             });
 
             if (!res || res.code !== 0) {
-              message.error(res?.msg || "操作失败");
+              message.error(res?.message || "操作失败");
               return;
             }
 
-            message.success("操作成功");
-            setState({ isOpen: false, editId: null });
+            message.success(res?.message || "操作成功");
+            setState({ isOpen: false, editValue: null });
             form.resetFields();
 
-            // ✅ 后端重排/落库后重新获取
             await fetchList();
           } catch (e: any) {
             // validateFields 抛错不提示“异常”
             if (e?.errorFields) return;
-            message.error(e?.message || "操作异常");
           }
         }}
       >
         <Form {...layout} form={form}>
-          <Form.Item name="minVal" label="最小值">
-            <InputNumber
-              style={{ width: "100%" }}
-              min={0}
-              placeholder="输入最小值"
-            />
+          <Form.Item name="MinValue" label="最小值">
+            <Input style={{ width: "100%" }} placeholder="输入最小值" />
           </Form.Item>
 
-          <Form.Item name="maxVal" label="最大值">
-            <InputNumber
-              style={{ width: "100%" }}
-              min={0}
-              placeholder="输入最大值"
-            />
+          <Form.Item name="MaxValue" label="最大值">
+            <Input style={{ width: "100%" }} placeholder="输入最大值" />
           </Form.Item>
 
-          <Form.Item name="annotation" label="注释">
+          <Form.Item name="Comments" label="注释">
             <Input placeholder="输入注释" allowClear />
           </Form.Item>
         </Form>
