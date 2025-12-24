@@ -85,7 +85,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: "OS 测试平台",
+  title: "自动化测试平台",
   layout: {
     // locale: true,
     locale: false,
