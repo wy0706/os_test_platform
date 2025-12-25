@@ -179,12 +179,13 @@ const TestResult: React.FC<Props> = ({ TST, selectedRow }) => {
 
           try {
             const values = await form.validateFields();
+            console.log(editValue);
 
             // ✅ 调真实编辑接口（成功后 fetchList）
             const res = await updateResultOne({
               TST,
-              id: rowId,
-              CallName: editValue?.VariableName,
+              id: editValue.Para_ID,
+              // CallName: editValue?.VariableName,
               ...values,
             });
 

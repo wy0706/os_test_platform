@@ -110,9 +110,8 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
 
             setState({ isOpen: true, editValue: record });
 
-            // ✅ 回填当前行数据（你原来只 set variable，这里按实际字段回填 val）
             form.setFieldsValue({
-              val: record.val,
+              Value: record.Value,
             });
           }}
         >
@@ -143,17 +142,11 @@ const TestCondition: React.FC<Props> = ({ TST, selectedRow, isAll }) => {
           form.resetFields();
         }}
         onOk={async () => {
-          if (!rowId) {
-            message.warning("请先在左侧选择一条测试序列");
-            return;
-          }
-
           try {
             const values = await form.validateFields();
             const res = await updateConditionOne({
               TST,
-              id: rowId,
-              CallName: editValue?.VariableName,
+              id: editValue.Para_ID,
               ...values,
             });
 

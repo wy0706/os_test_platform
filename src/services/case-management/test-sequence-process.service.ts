@@ -127,7 +127,7 @@ export async function updateConditionOne(data: any) {
  * @returns
  */
 export async function updateResultOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/tpresultedit`, {
+  const result: any = await request<{}>(`${baseUrl}/tpfresultedit`, {
     method: "POST",
     data: data,
   });
