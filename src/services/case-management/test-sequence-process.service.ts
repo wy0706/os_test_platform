@@ -58,23 +58,89 @@ export async function updateOne(data: any) {
 }
 /**
  * 删除某条数据
+ * id待删除项目的id
+ * TST: Pre,UUT,POST
  * @param id
  * @returns
  */
-export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
+export async function deleteOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpftidelete`, {
     method: "DELETE",
+    data,
   });
   return result;
 }
 
 /**
- * 上移下移某条数据
+ * 复制某条数据
+ * id 测试项目的id
+ * TST: Pre,UUT,POST
  * @param data
  * @returns
  */
-export async function moveOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
+
+export async function copyOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpfticopy`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+/**
+ * 粘贴某条数据
+ * Seq粘贴的位置
+ * TST: Pre,UUT,POST
+ * method:0-复制粘贴，1-剪切粘贴
+ * @param data
+ * @returns
+ */
+export async function pasteOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpftipaste`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+/**
+ * 剪切某条数据
+ * Seq 粘贴的位置
+ * TST: Pre,UUT,POST
+ * @param data
+ * @returns
+ */
+export async function cutOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpfticut`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+
+/**
+ * 上移某条数据
+ * id 测试项目的id
+ * TST: Pre,UUT,POST
+ * Seq 测试项目的排序
+ * @param data
+ * @returns
+ */
+export async function moveUpOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpftiMoveUp`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}
+/**
+ * 下移某条数据
+ * id 测试项目的id
+ * TST: Pre,UUT,POST
+ * Seq 测试项目的排序
+ * @param data
+ * @returns
+ */
+export async function moveDownOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpftiMoveDown`, {
     method: "POST",
     data: data,
   });

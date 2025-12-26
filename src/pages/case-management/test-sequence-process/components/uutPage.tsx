@@ -1,8 +1,12 @@
 import {
+  copyOne,
+  cutOne,
   deleteOne,
   getList,
   insertOne,
-  moveOne,
+  moveDownOne,
+  moveUpOne,
+  pasteOne,
   updateOne,
 } from "@/services/case-management/test-sequence-process.service";
 
@@ -55,14 +59,21 @@ const UutPage = forwardRef<TablePageRef, Props>(
     ref
   ) => {
     const [state, setState] = useSetState<any>({
-      loading: false, // fetchList loading
-      opLoading: false, // ✅ 所有操作锁（插入/删除/移动/编辑/剪切/粘贴）
+      loading: false,
+      opLoading: false,
       tableData: [] as any[],
+
+      // ✅ 用 id 控制高亮
+      selectedRowId: null as string | number | null,
       selectedRowIndex: -1,
+
       isDirty: false,
       updateValue: {},
       isEditModalOpen: false,
-      copyValue: {}, // ✅ 剪贴板（复制/剪切）
+
+      // ✅ 后端剪贴板状态（tab 内不共享）
+      clipboardReady: false,
+      clipboardMethod: 0, // 0=复制粘贴  1=剪切粘贴
     });
 
     const {
@@ -70,21 +81,17 @@ const UutPage = forwardRef<TablePageRef, Props>(
       opLoading,
       tableData,
       selectedRowIndex,
+      selectedRowId,
       updateValue,
       isEditModalOpen,
-      copyValue,
+      clipboardReady,
+      clipboardMethod,
     } = state;
 
-    // ✅ 是否选中有效行
-    const hasSelectedRow = selectedRowIndex !== -1 && tableData.length > 0;
+    const hasSelectedRow =
+      selectedRowIndex !== -1 && tableData.length > 0 && selectedRowId != null;
 
-    // ✅ 是否有复制/剪切缓存
-    const hasClipboard = copyValue && Object.keys(copyValue).length > 0;
-
-    // ✅ 是否允许编辑操作（发布态禁止 + 操作中锁定）
     const canEdit = !isRelease && !opLoading;
-
-    // ✅ 插入只允许：右侧树选中 level=3（selectedProject.id存在）+ 可编辑 + 非操作中
     const canInsert = canEdit && !!selectedProject?.id;
 
     const emitMeta = (nextDirty: boolean, nextData: any[]) => {
@@ -94,12 +101,11 @@ const UutPage = forwardRef<TablePageRef, Props>(
       });
     };
 
-    const emitSelection = (data: any[], index: number) => {
-      const row = index >= 0 && index < data.length ? data[index] : null;
+    const emitSelection = (data: any[], id: any) => {
+      const row = data?.find((x: any) => String(x?.id) === String(id)) || null;
       onSelectionChange?.(tab, row);
     };
 
-    // ✅ 统一解析 resp.data
     const normalizeList = (resp: any) => {
       if (!resp || resp.code !== 0) return [];
       const data = resp.data;
@@ -109,52 +115,88 @@ const UutPage = forwardRef<TablePageRef, Props>(
       return [];
     };
 
-    const fetchList = async (preferSelectedIndex?: number) => {
+    /**
+     * ✅ fetchList：
+     * - 默认：优先按 selectedRowId 恢复选中（不丢高亮）
+     * - forceSelectIndex=true：强制选中 preferSelectedIndex（插入/粘贴/移动后选中新行）
+     */
+    const fetchList = async (
+      preferSelectedIndex?: number,
+      forceSelectIndex: boolean = false
+    ) => {
       try {
         setState({ loading: true });
 
-        // ✅ getList 参数正确：getList({ TST: tab })
         const resp = await getList({ TST: tab });
 
-        // ✅ 只有 code===0 才能用 data，否则清空
         if (!resp || resp.code !== 0) {
           setState({
             tableData: [],
             selectedRowIndex: -1,
+            selectedRowId: null,
             isDirty: false,
-            copyValue: {},
           });
           emitMeta(false, []);
-          emitSelection([], -1);
-          message.error(resp?.msg || "获取列表失败");
+          emitSelection([], null);
+          message.error(resp?.message || "获取列表失败");
           return;
         }
 
         const list = normalizeList(resp);
 
-        const nextSelected =
-          list.length === 0
-            ? -1
-            : typeof preferSelectedIndex === "number"
-            ? Math.min(Math.max(preferSelectedIndex, 0), list.length - 1)
-            : 0;
+        let nextIndex = -1;
+
+        if (forceSelectIndex) {
+          if (list.length === 0) nextIndex = -1;
+          else if (typeof preferSelectedIndex === "number") {
+            nextIndex = Math.min(
+              Math.max(preferSelectedIndex, 0),
+              list.length - 1
+            );
+          } else {
+            nextIndex = 0;
+          }
+        } else {
+          if (list.length === 0) {
+            nextIndex = -1;
+          } else if (selectedRowId != null) {
+            const idx = list.findIndex(
+              (x: any) => String(x?.id) === String(selectedRowId)
+            );
+            nextIndex = idx >= 0 ? idx : -1;
+          }
+
+          if (nextIndex === -1 && list.length > 0) {
+            if (typeof preferSelectedIndex === "number") {
+              nextIndex = Math.min(
+                Math.max(preferSelectedIndex, 0),
+                list.length - 1
+              );
+            } else {
+              nextIndex = 0;
+            }
+          }
+        }
+
+        const nextId = nextIndex >= 0 ? list[nextIndex]?.id : null;
 
         setState({
           tableData: list,
-          selectedRowIndex: nextSelected,
+          selectedRowIndex: nextIndex,
+          selectedRowId: nextId,
           isDirty: false,
         });
 
-        emitSelection(list, nextSelected);
+        emitSelection(list, nextId);
         emitMeta(false, list);
       } catch (e: any) {
         setState({
           tableData: [],
           selectedRowIndex: -1,
+          selectedRowId: null,
           isDirty: false,
-          copyValue: {},
         });
-        emitSelection([], -1);
+        emitSelection([], null);
         emitMeta(false, []);
         message.error(e?.message || "获取列表异常");
       } finally {
@@ -167,16 +209,8 @@ const UutPage = forwardRef<TablePageRef, Props>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, recordId]);
 
-    // ✅ 任何 tableData/selectedRowIndex 变化，都同步给 index（保证右侧切换也能请求）
-    useEffect(() => {
-      emitSelection(tableData, selectedRowIndex);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tableData, selectedRowIndex]);
-
     /**
-     * ✅ 操作互斥锁：所有后端操作都用它包起来
-     * - 防止用户在接口未返回时继续点移动/删除等
-     * - 操作期间 table loading + 按钮 disabled + 行操作 disabled
+     * ✅ 操作互斥锁：防止接口未返回继续操作
      */
     const runWithLock = async (fn: () => Promise<void>) => {
       if (isRelease) {
@@ -194,7 +228,30 @@ const UutPage = forwardRef<TablePageRef, Props>(
     };
 
     /**
-     * ✅ 插入：后端成功后 fetchList（后端重排Seq）
+     * ✅ 新增：操作按钮点击时也要把这一行设为选中行（高亮跟随）
+     */
+    const setSelectedRowByRecord = (record: any, index?: number) => {
+      if (!record?.id) return;
+
+      // 用 index 快速设置，如果 index 不可信再用 id 查
+      let idx = typeof index === "number" && index >= 0 ? index : -1;
+
+      if (idx === -1) {
+        idx = tableData.findIndex(
+          (x: any) => String(x?.id) === String(record.id)
+        );
+      }
+
+      setState({
+        selectedRowId: record.id,
+        selectedRowIndex: idx >= 0 ? idx : selectedRowIndex,
+      });
+
+      onSelectionChange?.(tab, record);
+    };
+
+    /**
+     * ✅ 插入：成功后强制选中新行
      */
     const insertTreeNode = async (nodeTitle?: string) => {
       if (!nodeTitle) {
@@ -202,7 +259,6 @@ const UutPage = forwardRef<TablePageRef, Props>(
         return;
       }
 
-      // 插入位置：选中行之后，否则末尾
       const insertIndex =
         selectedRowIndex >= 0 ? selectedRowIndex + 1 : tableData.length;
 
@@ -210,7 +266,7 @@ const UutPage = forwardRef<TablePageRef, Props>(
         const res = await insertOne({
           TST: tab,
           TIName: nodeTitle,
-          Seq: insertIndex + 1, // ✅ 插入位置
+          Seq: insertIndex + 1,
         });
 
         if (!res || res.code !== 0) {
@@ -219,7 +275,7 @@ const UutPage = forwardRef<TablePageRef, Props>(
         }
 
         message.success(res?.message || "插入成功");
-        await fetchList(insertIndex);
+        await fetchList(insertIndex, true);
 
         setState({ isDirty: true });
         onMetaChange?.(tab, { isDirty: true, isEmpty: false });
@@ -230,10 +286,6 @@ const UutPage = forwardRef<TablePageRef, Props>(
       insertFromTree: ({ title }) => insertTreeNode(title),
     }));
 
-    /**
-     * ✅ 上移/下移：成功后 fetchList
-     * ⚠️ moveOne 参数请按你后端实际需要补齐（你之前说需要 id/Seq）
-     */
     const moveRow = async (index: number, direction: "up" | "down") => {
       const row = tableData[index];
       if (!row) return;
@@ -242,50 +294,49 @@ const UutPage = forwardRef<TablePageRef, Props>(
       if (targetIndex < 0 || targetIndex >= tableData.length) return;
 
       await runWithLock(async () => {
-        const res = await moveOne({
+        const api = direction === "up" ? moveUpOne : moveDownOne;
+
+        const res = await api({
           TST: tab,
           id: row.id,
           Seq: row.Seq,
-          Move: direction, // ⚠️ 如果后端不是 Move 字段，按实际修改
         });
 
         if (!res || res.code !== 0) {
-          message.error(res?.msg || "移动失败");
+          message.error(res?.message || "移动失败");
           return;
         }
 
-        message.success(direction === "up" ? "上移成功" : "下移成功");
-        await fetchList(targetIndex);
+        message.success(
+          res?.message || (direction === "up" ? "上移成功" : "下移成功")
+        );
+
+        setState({ selectedRowId: row.id });
+        await fetchList(targetIndex, true);
 
         setState({ isDirty: true });
         onMetaChange?.(tab, { isDirty: true, isEmpty: false });
       });
     };
 
-    /**
-     * ✅ 删除：成功后 fetchList
-     */
     const deleteRow = (index: number) => {
+      const row = tableData[index];
+      if (!row?.id) return;
+
       Modal.confirm({
         title: "确认删除吗？",
         onOk: async () => {
-          const row = tableData[index];
-          if (!row) return;
-
           await runWithLock(async () => {
-            const res = await deleteOne({
-              TST: tab,
-              id: row.id,
-              Seq: row.Seq,
-            });
+            const res = await deleteOne({ id: row.id, TST: tab });
 
             if (!res || res.code !== 0) {
-              message.error(res?.msg || "删除失败");
+              message.error(res?.message || "删除失败");
               return;
             }
 
-            message.success("删除成功");
-            await fetchList(Math.max(index - 1, 0));
+            message.success(res?.message || "删除成功");
+
+            await fetchList(Math.max(index - 1, 0), true);
 
             setState({ isDirty: true });
             onMetaChange?.(tab, { isDirty: true, isEmpty: false });
@@ -294,15 +345,22 @@ const UutPage = forwardRef<TablePageRef, Props>(
       });
     };
 
-    const handleRowClick = (record: any, index: number) => {
-      if (opLoading) return; // ✅ 操作期间不允许切换行，避免混乱
-      setState({ selectedRowIndex: index });
+    const handleRowClick = (record: any) => {
+      if (opLoading) return;
+      if (!record?.id) return;
+
+      const idx = tableData.findIndex(
+        (x: any) => String(x?.id) === String(record.id)
+      );
+
+      setState({
+        selectedRowId: record.id,
+        selectedRowIndex: idx >= 0 ? idx : selectedRowIndex,
+      });
+
       onSelectionChange?.(tab, record);
     };
 
-    /**
-     * ✅ 插入按钮
-     */
     const handleInsertBtn = () => {
       if (!selectedProject?.id) {
         message.warning("请先选择右侧测试项目（第3级节点）");
@@ -311,72 +369,80 @@ const UutPage = forwardRef<TablePageRef, Props>(
       insertTreeNode(selectedProject.title);
     };
 
-    /**
-     * ✅ 复制：仅缓存，不调后端
-     */
     const handleCopy = () => {
       if (!hasSelectedRow) return;
-      setState({ copyValue: tableData[selectedRowIndex] });
-      message.success("复制成功");
-    };
-
-    /**
-     * ✅ 粘贴：走 insertOne + fetchList
-     * - 插入内容来自 copyValue 的 TIName
-     * - 插入位置：当前选中行后
-     */
-    const handlePaste = async () => {
-      if (!hasClipboard) return;
-
-      const title =
-        copyValue?.TIName || copyValue?.title || copyValue?.command || "";
-
-      if (!title) {
-        message.warning("复制内容无效，无法粘贴");
-        return;
-      }
-
-      // 粘贴本质就是插入（会自动走 runWithLock + fetchList）
-      await insertTreeNode(title);
-    };
-
-    /**
-     * ✅ 剪切：走 deleteOne + fetchList
-     * - 先缓存到 copyValue
-     * - 再调用删除接口
-     */
-    const handleCut = () => {
-      if (!hasSelectedRow) return;
       const row = tableData[selectedRowIndex];
-      if (!row) return message.warning("无效的行数据");
+      if (!row?.id) return;
 
-      // ✅ 先缓存
-      setState({ copyValue: row });
-
-      // ✅ 再后端删除 + fetchList
       runWithLock(async () => {
-        const res = await deleteOne({
-          TST: tab,
-          id: row.id,
-          Seq: row.Seq,
-        });
+        const res = await copyOne({ TST: tab, id: row.id });
 
         if (!res || res.code !== 0) {
-          message.error(res?.msg || "剪切失败");
+          message.error(res?.message || "复制失败");
           return;
         }
 
-        message.success("剪切成功");
-        await fetchList(Math.max(selectedRowIndex - 1, 0));
+        message.success(res?.message || "复制成功");
+        setState({
+          clipboardReady: true,
+          clipboardMethod: 0,
+        });
+      });
+    };
+
+    const handleCut = () => {
+      if (!hasSelectedRow) return;
+      const row = tableData[selectedRowIndex];
+      if (!row?.id) return;
+
+      runWithLock(async () => {
+        const res = await cutOne({ TST: tab, id: row.id });
+
+        if (!res || res.code !== 0) {
+          message.error(res?.message || "剪切失败");
+          return;
+        }
+
+        message.success(res?.message || "剪切成功");
+        setState({
+          clipboardReady: true,
+          clipboardMethod: 1,
+        });
+
+        await fetchList(Math.max(selectedRowIndex - 1, 0), true);
 
         setState({ isDirty: true });
         onMetaChange?.(tab, { isDirty: true, isEmpty: false });
       });
     };
 
-    /**
-     * ✅ columns：行操作在 opLoading / release 时禁用
-     */
+    const handlePaste = async () => {
+      if (!clipboardReady) return;
+
+      const insertIndex =
+        selectedRowIndex >= 0 ? selectedRowIndex + 1 : tableData.length;
+
+      runWithLock(async () => {
+        const res = await pasteOne({
+          TST: tab,
+          Seq: insertIndex + 1,
+          method: clipboardMethod,
+        });
+
+        if (!res || res.code !== 0) {
+          message.error(res?.message || "粘贴失败");
+          return;
+        }
+
+        message.success(res?.message || "粘贴成功");
+
+        await fetchList(insertIndex, true);
+
+        setState({ isDirty: true });
+        onMetaChange?.(tab, { isDirty: true, isEmpty: false });
+      });
+    };
+
     const columns: any = useMemo(
       () => [
         {
@@ -408,7 +474,6 @@ const UutPage = forwardRef<TablePageRef, Props>(
           render: (_: any, record: any, index: number) => {
             const isFirst = index === 0;
             const isLast = index === tableData.length - 1;
-
             const disabled = isRelease || opLoading;
 
             const linkStyle = (extra?: any) => ({
@@ -422,8 +487,11 @@ const UutPage = forwardRef<TablePageRef, Props>(
             return [
               <a
                 key="editable"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (disabled) return;
+                  // ✅ 关键：点击编辑先选中当前行
+                  setSelectedRowByRecord(record, index);
                   setState({ isEditModalOpen: true, updateValue: record });
                 }}
                 style={linkStyle()}
@@ -435,6 +503,8 @@ const UutPage = forwardRef<TablePageRef, Props>(
                 onClick={(e) => {
                   e.stopPropagation();
                   if (disabled || isFirst) return;
+                  // ✅ 点击上移先选中当前行
+                  setSelectedRowByRecord(record, index);
                   moveRow(index, "up");
                 }}
                 style={linkStyle({
@@ -450,6 +520,8 @@ const UutPage = forwardRef<TablePageRef, Props>(
                 onClick={(e) => {
                   e.stopPropagation();
                   if (disabled || isLast) return;
+                  // ✅ 点击下移先选中当前行
+                  setSelectedRowByRecord(record, index);
                   moveRow(index, "down");
                 }}
                 style={linkStyle({
@@ -465,6 +537,8 @@ const UutPage = forwardRef<TablePageRef, Props>(
                 onClick={(e) => {
                   e.stopPropagation();
                   if (disabled) return;
+                  // ✅ 点击删除先选中当前行
+                  setSelectedRowByRecord(record, index);
                   deleteRow(index);
                 }}
                 style={{
@@ -491,54 +565,40 @@ const UutPage = forwardRef<TablePageRef, Props>(
           dataSource={tableData}
           rowKey="id"
           pagination={false}
-          loading={loading || opLoading} // ✅ fetchList/操作中都显示loading
+          loading={loading || opLoading}
           toolBarRender={() => [
             <Button
               key="insert"
               icon={<PlusOutlined />}
               onClick={handleInsertBtn}
               disabled={!canInsert}
-              title={
-                !selectedProject?.id
-                  ? "请先选择右侧测试项目（第3级节点）"
-                  : !canEdit
-                  ? "文件已发布或操作中，不可更改"
-                  : ""
-              }
             >
               插入
             </Button>,
-
             <Button
               key="copy"
               icon={<CopyFilled />}
               onClick={handleCopy}
               disabled={!canEdit || !hasSelectedRow}
-              title={!hasSelectedRow ? "请先选中要复制的行" : ""}
             >
               复制
             </Button>,
-
             <Button
               key="paste"
               icon={<CopyOutlined />}
               onClick={handlePaste}
-              disabled={!canEdit || !hasClipboard}
-              title={!hasClipboard ? "请先复制或剪切一条数据" : ""}
+              disabled={!canEdit || !clipboardReady}
             >
               粘贴
             </Button>,
-
             <Button
               key="cut"
               icon={<CiOutlined />}
               onClick={handleCut}
               disabled={!canEdit || !hasSelectedRow}
-              title={!hasSelectedRow ? "请先选中要剪切的行" : ""}
             >
               剪切
             </Button>,
-
             <Button
               key="refresh"
               icon={<ReloadOutlined />}
@@ -549,11 +609,11 @@ const UutPage = forwardRef<TablePageRef, Props>(
             </Button>,
           ]}
           size="small"
-          onRow={(record, index) => ({
-            onClick: () => handleRowClick(record, index || 0),
+          onRow={(record) => ({
+            onClick: () => handleRowClick(record),
           })}
-          rowClassName={(_, index) =>
-            selectedRowIndex === index ? "selected-row" : ""
+          rowClassName={(record) =>
+            String(record?.id) === String(selectedRowId) ? "selected-row" : ""
           }
         />
 
@@ -572,11 +632,11 @@ const UutPage = forwardRef<TablePageRef, Props>(
               });
 
               if (!res || res.code !== 0) {
-                message.error(res?.msg || "编辑失败");
+                message.error(res?.message || "编辑失败");
                 return;
               }
 
-              message.success("编辑成功");
+              message.success(res?.message || "编辑成功");
               await fetchList(selectedRowIndex);
 
               setState({ isDirty: true });
