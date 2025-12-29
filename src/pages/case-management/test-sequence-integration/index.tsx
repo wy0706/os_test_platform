@@ -1,6 +1,7 @@
 import {
   deleteOne,
   getList,
+  openOne,
 } from "@/services/case-management/test-sequence-integration.service";
 import { transformParams } from "@/utils/params";
 import { EditOutlined, EyeOutlined, PlusOutlined } from "@ant-design/icons";
@@ -144,33 +145,18 @@ const Page: React.FC = () => {
 
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
 
-  const handleRowClick = (record: any, index: number) => {
+  const handleRowClick = async (record: any, index: number) => {
     console.log("点击的行数据:", record);
     // 如果打开项目中测试项目全部存在 跳转编辑页，如果有项目不存在，弹出提示界面
-
     setSelectedRow(record);
-    if (record.isExistAll) {
+    const res = await openOne({ tpf_file_id: record.tpf_file_id });
+
+    if (res?.code === 0) {
       history.push(
-        `/case-management/test-sequence-process/${record.tpf_file_id}?name=${record.title}&status=${record.status}`
+        `/case-management/test-sequence-process/${record.tpf_file_id}?name=${record.tpf_file}&status=${record.is_published}`
       );
-    } else {
-      let list = [
-        "KD6630_DSM_DPP_2",
-        "KD6630_DSM_DPP_PARITY_3",
-        "KD6630_EQM_DPP_21KD6630",
-        "ESCH_DPP_6",
-        "KD6630_IQM_DPP_8",
-        "KD6630_ISCH_DPP_10",
-        "KD6630_ISCH_DPP_PARITY_11",
-        "KD6630_LIN_DPP_26",
-        "KD6630_LIN_DPP_PARITY_27",
-        "KD6630_LIN_ONE_HOT_28",
-        "KD6630_PES_DPP_22",
-        "KD6630_PFS_CL_DPP_13",
-        "KD6630_PFS_L3_DPP_16",
-        "KD6630_PFS_PS_POL_DPP_18",
-        "KD6630_PFS_PS_POL_DPP_PARITY_19",
-      ];
+    } else if (res?.code === 1) {
+      let list = res?.data || [];
       Modal.error({
         title: "错误",
         content: (
@@ -179,7 +165,7 @@ const Page: React.FC = () => {
           >
             <h3>以下测试项目不存在</h3>
             {list.length > 0 &&
-              list.map((item, index) => (
+              list.map((item: any, index: number) => (
                 <div
                   style={{
                     whiteSpace: "nowrap",
@@ -200,9 +186,11 @@ const Page: React.FC = () => {
           console.log("确认操作");
         },
       });
+      return;
+    } else {
+      message.error(res?.message || "操作失败");
+      return;
     }
-
-    // message.success(`已选择: ${record.title}`);
   };
   return (
     <PageContainer>

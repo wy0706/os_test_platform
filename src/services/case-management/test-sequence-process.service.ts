@@ -43,14 +43,20 @@ export async function getList(params: any) {
   });
   return result;
 }
-// =================
+
 /**
  * 编辑某条数据
+ * id 项目id
+ * TST 测试项目的类别，Pre,UUT,Post
+ * Active 是否激活
+ * RPTFlag 是否生成报告
+ * Comments 备注
+ * TIName 测试项目名称
  * @param data
  * @returns
  */
 export async function updateOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
+  const result: any = await request<{}>(`${baseUrl}/tpftiedit`, {
     method: "POST",
     data: data,
   });

@@ -74,3 +74,16 @@ export async function createOne(data: any) {
   });
   return result;
 }
+/**
+ * 打开测试程序，清空临时表，将测试程序文件tpf文件的内容存放至临时表中
+ * tpf_file_id 测试程序的ID
+ * @param data
+ * @returns
+ */
+export async function openOne(data: any) {
+  const result: any = await request<{}>(`${baseUrl}/tpfopen`, {
+    method: "POST",
+    data: data,
+  });
+  return result;
+}

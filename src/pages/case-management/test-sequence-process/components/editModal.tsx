@@ -1,5 +1,7 @@
-import { Form, Input, Modal, Select } from "antd";
-import { useEffect, useState } from "react";
+import { updateOne } from "@/services/case-management/test-sequence-process.service";
+import { useSetState } from "ahooks";
+import { Form, Input, message, Modal, Select } from "antd";
+import { useEffect } from "react";
 
 interface SetMemberModalProps {
   open: boolean;
@@ -21,8 +23,10 @@ const EditModal: React.FC<SetMemberModalProps> = ({
   type,
   updateValue,
 }) => {
-  const [title, setTitle] = useState<any>(null);
-
+  const [state, setState] = useSetState<any>({
+    confirmLoading: false,
+  });
+  const { confirmLoading } = state;
   useEffect(() => {
     if (open) {
       form?.setFieldsValue(updateValue);
@@ -31,17 +35,28 @@ const EditModal: React.FC<SetMemberModalProps> = ({
 
   const [form] = Form.useForm();
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        if (onOk) {
-          onOk({ ...updateValue, ...values }, type);
-        }
-      })
-      .catch((errorInfo) => {
-        console.error("Validation failed:", errorInfo);
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    try {
+      setState({ confirmLoading: true });
+      delete values.TIName; // TIName 不允许修改
+      const res = await updateOne({
+        id: updateValue?.id,
+        TST: type,
+        ...values, // Active / RPTFlag / Comments
       });
+      if (res?.code !== 0) {
+        message.error(res?.message || "操作失败");
+        return;
+      }
+      message.success(res?.message || "操作成功");
+      if (onOk) {
+        onOk(values, type);
+      }
+    } catch (error) {
+    } finally {
+      setState({ confirmLoading: false });
+    }
   };
 
   return (
@@ -49,30 +64,32 @@ const EditModal: React.FC<SetMemberModalProps> = ({
       title={`${type}编辑`}
       maskClosable={false}
       open={open}
+      confirmLoading={confirmLoading}
       onCancel={() => {
+        form?.resetFields();
         onCancel && onCancel();
       }}
-      styles={{ body: { minHeight: 200, padding: 20 } }}
+      styles={{ body: { padding: 20 } }}
       width={"50%"}
       onOk={handleOk}
     >
       <Form {...layout} form={form} name="control-hooks">
-        <Form.Item name="status" label="激活">
-          <Select placeholder="选择是否发布">
-            <Option value="success">✓</Option>
-            <Option value="error">✗</Option>
+        <Form.Item name="Active" label="激活">
+          <Select placeholder="选择是否发布" allowClear>
+            <Option value={1}>✓</Option>
+            <Option value={0}>✗</Option>
           </Select>
-        </Form.Item>{" "}
-        <Form.Item name="title" label="测试项目">
+        </Form.Item>
+        <Form.Item name="TIName" label="测试序列">
+          <Input disabled />
+        </Form.Item>
+        <Form.Item name="Comments" label="备注">
           <Input />
-        </Form.Item>{" "}
-        <Form.Item name="extension" label="扩展名">
-          <Input />
-        </Form.Item>{" "}
-        <Form.Item name="report" label="报告">
-          <Select placeholder="选择报告">
-            <Option value="success">✓</Option>
-            <Option value="error">✗</Option>
+        </Form.Item>
+        <Form.Item name="RPTFlag" label="报告">
+          <Select placeholder="选择报告" allowClear>
+            <Option value={1}>✓</Option>
+            <Option value={0}>✗</Option>
           </Select>
         </Form.Item>
       </Form>

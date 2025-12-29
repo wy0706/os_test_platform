@@ -7,7 +7,6 @@ import {
   moveDownOne,
   moveUpOne,
   pasteOne,
-  updateOne,
 } from "@/services/case-management/test-sequence-process.service";
 
 import {
@@ -446,6 +445,11 @@ const UutPage = forwardRef<TablePageRef, Props>(
     const columns: any = useMemo(
       () => [
         {
+          title: "序号",
+          dataIndex: "Seq",
+          ellipsis: true,
+        },
+        {
           title: "激活",
           dataIndex: "Active",
           ellipsis: true,
@@ -455,8 +459,8 @@ const UutPage = forwardRef<TablePageRef, Props>(
             0: { text: "✗", status: "Error" },
           },
         },
-        { title: "测试序列", dataIndex: "Seq", ellipsis: true },
-        { title: "扩展名", dataIndex: "TIName", ellipsis: true },
+        { title: "测试序列", dataIndex: "TIName", ellipsis: true },
+        { title: "备注", dataIndex: "Comments", ellipsis: true },
         {
           title: "报告",
           dataIndex: "RPTFlag",
@@ -490,8 +494,7 @@ const UutPage = forwardRef<TablePageRef, Props>(
                 onClick={(e) => {
                   e.stopPropagation();
                   if (disabled) return;
-                  // ✅ 关键：点击编辑先选中当前行
-                  setSelectedRowByRecord(record, index);
+                  setSelectedRowByRecord(record, index); // ✅ 让当前行立即选中高亮
                   setState({ isEditModalOpen: true, updateValue: record });
                 }}
                 style={linkStyle()}
@@ -620,28 +623,15 @@ const UutPage = forwardRef<TablePageRef, Props>(
         <EditModal
           open={isEditModalOpen}
           updateValue={updateValue}
-          type="UUT"
+          type={tab}
           onCancel={() => setState({ isEditModalOpen: false })}
-          onOk={async (values: any) => {
+          onOk={async () => {
+            // ✅ EditModal 内部已完成 updateOne，这里只刷新
             setState({ isEditModalOpen: false });
 
-            await runWithLock(async () => {
-              const res = await updateOne({
-                TST: tab,
-                ...values,
-              });
-
-              if (!res || res.code !== 0) {
-                message.error(res?.message || "编辑失败");
-                return;
-              }
-
-              message.success(res?.message || "编辑成功");
-              await fetchList(selectedRowIndex);
-
-              setState({ isDirty: true });
-              onMetaChange?.(tab, { isDirty: true, isEmpty: false });
-            });
+            await fetchList(selectedRowIndex); // ✅ 保持当前选中
+            setState({ isDirty: true });
+            onMetaChange?.(tab, { isDirty: true, isEmpty: false });
           }}
         />
       </div>
