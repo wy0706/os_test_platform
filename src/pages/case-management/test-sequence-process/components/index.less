@@ -1,19 +1,15 @@
-.ant-pro-table {
-  .ant-table-tbody > tr {
-    cursor: pointer;
-    transition: all 0.2s;
+.ant-table-wrapper {
+  .ant-table-tbody > tr.ant-table-row-selected > td {
+    background: #f0f9ff !important;
+  }
 
-    &:hover {
-      background-color: #f5f5f5 !important;
-    }
-
-    &.selected-row {
-      background-color: #f0f9ff !important;
-      border-left: 3px solid #69b1ff;
-      td {
-        // color: #1677ff;
-        font-weight: 500;
-      }
-    }
+  /* 鼠标悬浮在已选中行时，也保持同样颜色（防止 hover 变深） */
+  .ant-table-tbody > tr.ant-table-row-selected:hover > td {
+    background: #f0f9ff !important;
+  }
+}
+.ant-table-wrapper {
+  .ant-table-tbody > tr:hover > td {
+    background: #f7fcff;
   }
 }

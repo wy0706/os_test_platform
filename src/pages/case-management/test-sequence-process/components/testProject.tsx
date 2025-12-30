@@ -7,7 +7,6 @@ import { transformToRightTree } from "../schemas";
 import "./index.less";
 
 interface ProjectProps {
-  data: any[];
   selectedKeys: React.Key[];
   onInsertTreeNode: (
     nodeKey: string,

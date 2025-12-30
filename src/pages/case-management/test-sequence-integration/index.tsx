@@ -19,7 +19,7 @@ import DetailModal from "./components/detailModal";
 import EditModal from "./components/editModal";
 import { schemasColumns, schemasTitle } from "./schemas";
 
-import RunSequenceModal from "./components/runSequenceModal";
+import RunSequenceModal from "../components/runSequenceModal";
 const Page: React.FC = () => {
   const access = useAccess();
   const actionRef = useRef<ActionType>();

@@ -10,12 +10,12 @@ import {
   PlusOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
+
 import { PageContainer } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Checkbox, message, Modal, Space, Tabs } from "antd";
-import React, { useEffect, useRef } from "react";
-
+import React, { useEffect, useMemo, useRef } from "react";
 import RunModal from "../components/runModal";
 import RunSequenceModal from "../components/runSequenceModal";
 import SaveModal from "./components/saveModal";
@@ -31,7 +31,7 @@ import "./index.less";
 
 type LeftTabKey = "Pre" | "UUT" | "Post";
 type RightTabKey = "project" | "condition" | "result";
-type PromptSource = "back" | "add" | "run" | null;
+type TabMeta = { isDirty: boolean; isEmpty: boolean };
 
 const LEFT_TABS = [
   { key: "Pre", label: "Pre测试" },
@@ -48,7 +48,6 @@ const RIGHT_TABS = [
 const Page: React.FC = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const recordId = params.id as string;
 
   const preRef = useRef<PreRef>(null);
   const uutRef = useRef<UutRef>(null);
@@ -59,45 +58,45 @@ const Page: React.FC = () => {
     leftTabActiveKey: "UUT" as LeftTabKey,
     rightTabActiveKey: "project" as RightTabKey,
     isEditAll: false,
+    isRelease: false,
 
-    // 右侧树：每个左侧Tab单独保存选中keys（切换右侧tab回来可恢复高亮）
+    // ✅ 右侧树：每个左侧Tab单独保存选中keys（切换右侧tab回来可恢复高亮）
     rightTreeSelectedKeys: {
       Pre: [],
       UUT: [],
       Post: [],
     } as Record<LeftTabKey, React.Key[]>,
 
-    // 当前左侧tab选中的树节点（只在测试序列tab用，插入依赖它）
+    // ✅ 当前左侧tab选中的树节点（只在测试序列tab用，插入依赖它）
     selectedProject: null as null | { key: string; title: string; id: string },
 
-    // 每个左侧tab表格选中的行（TestCondition/TestResult 依赖）
+    // ✅ 每个左侧tab表格选中的行（TestCondition/TestResult 依赖）
     selectedRowByTab: {
       Pre: null,
       UUT: null,
       Post: null,
     } as Record<LeftTabKey, any>,
 
-    // Prompt（是否保存）
+    // ✅ 三页是否dirty/empty（用于返回/新建/运行提示）
+    tabMeta: {
+      Pre: { isDirty: false, isEmpty: true },
+      UUT: { isDirty: false, isEmpty: true },
+      Post: { isDirty: false, isEmpty: true },
+    } as Record<LeftTabKey, TabMeta>,
+
+    // 弹窗
+    isRunModalOpen: false,
     isPromptModalOpen: false,
     promptModalTitle: "",
-    promptSource: null as PromptSource,
-
-    // SaveModal（保存/另存为）
+    promptModalType: "back", // back | add | run
     isSaveModalOpen: false,
-    saveModalType: "" as "save" | "saveAs" | "",
-    saveModalSource: null as Exclude<PromptSource, "run"> | null,
-
-    // 运行弹窗
-    isRunModalOpen: false,
-
-    // loading
+    saveModalType: "",
     addLoading: false,
     saveLoading: false,
     saveAsLoading: false,
-    backLoading: false,
-
-    // 新建弹窗
+    filename: "",
     addModalOpen: false,
+    btnType: null,
   });
 
   const {
@@ -105,27 +104,34 @@ const Page: React.FC = () => {
     leftTabActiveKey,
     rightTabActiveKey,
     isEditAll,
+    isRelease,
     selectedProject,
     rightTreeSelectedKeys,
     selectedRowByTab,
-
-    isPromptModalOpen,
-    promptModalTitle,
-    promptSource,
-
-    isSaveModalOpen,
-    saveModalType,
-    saveModalSource,
-
-    isRunModalOpen,
-
+    tabMeta,
     addLoading,
     saveLoading,
     saveAsLoading,
-    backLoading,
-
+    isRunModalOpen,
+    isPromptModalOpen,
+    promptModalTitle,
+    promptModalType,
+    isSaveModalOpen,
+    saveModalType,
+    filename,
     addModalOpen,
+    btnType,
   } = state;
+
+  const recordId = params.id as string;
+
+  const anyDirty = useMemo(() => {
+    return tabMeta.Pre.isDirty || tabMeta.UUT.isDirty || tabMeta.Post.isDirty;
+  }, [tabMeta]);
+
+  const allEmpty = useMemo(() => {
+    return tabMeta.Pre.isEmpty && tabMeta.UUT.isEmpty && tabMeta.Post.isEmpty;
+  }, [tabMeta]);
 
   const activeSelectedRow = selectedRowByTab[leftTabActiveKey];
   const activeTreeKeys = rightTreeSelectedKeys[leftTabActiveKey] || [];
@@ -135,58 +141,52 @@ const Page: React.FC = () => {
     if (leftTabActiveKey === "UUT") return uutRef;
     return postRef;
   };
-
-  const goList = () =>
-    history.push("/case-management/test-sequence-integration");
-
-  const goAdd = () => {
-    history.push("/case-management/test-sequence-process/add");
-    window.location.reload();
-  };
-
-  // 只读取文件名（不再处理 isRelease）
+  // 最终需要删除release
   useEffect(() => {
+    const release =
+      recordId === "add" ? false : searchParams.get("status") == "success";
+
     setState({
       title: recordId === "add" ? "" : searchParams.get("name") || "",
+      isRelease: release,
     });
-  }, [recordId, searchParams, setState]);
+  }, [recordId]);
 
-  /** 关闭提示保存弹窗（防止 source 残留） */
-  const closePrompt = () => {
-    setState({
-      isPromptModalOpen: false,
-      promptSource: null,
-      promptModalTitle: "",
-    });
-  };
-
-  /** 关闭保存弹窗（统一清理状态） */
-  const closeSaveModal = () => {
-    setState({
-      isSaveModalOpen: false,
-      saveModalType: "",
-      saveModalSource: null,
-    });
-  };
-
-  /** 左侧 tab 切换 */
+  /** ✅ 左侧 tab 切换 */
   const handleLeftTabChange = (key: LeftTabKey) => {
-    setState({ leftTabActiveKey: key });
+    setState({
+      leftTabActiveKey: key,
+      // ✅ 切换左侧tab时，保留右侧树选中keys（每tab独立存储）
+      // ✅ selectedProject 也会由 TestProject onSelect 再次更新
+    });
   };
 
-  /** 右侧 tab 切换 */
+  /** ✅ 右侧 tab 切换 */
   const handleRightTabChange = (key: RightTabKey) => {
     setState({ rightTabActiveKey: key });
   };
 
-  /** 子页面选中行回传 */
+  /** ✅ UUT/Pre/Post 页面选中行回传 */
   const handleSelectionChange = (tab: LeftTabKey, row: any | null) => {
     setState((prev: any) => ({
-      selectedRowByTab: { ...prev.selectedRowByTab, [tab]: row },
+      selectedRowByTab: {
+        ...prev.selectedRowByTab,
+        [tab]: row,
+      },
     }));
   };
 
-  /** 插入：把树节点传给当前 tab 页面 */
+  /** ✅ 子页面 meta 回传 */
+  const handleTabMetaChange = (tab: LeftTabKey, meta: TabMeta) => {
+    setState((prev: any) => ({
+      tabMeta: {
+        ...prev.tabMeta,
+        [tab]: meta,
+      },
+    }));
+  };
+
+  /** ✅ 插入：把树节点传给当前 tab 页面 */
   const handleInsertFromTree = (
     nodeKey: string,
     nodeTitle: string,
@@ -199,200 +199,126 @@ const Page: React.FC = () => {
     });
   };
 
-  /** 打开“是否保存”提示框 */
-  const openPrompt = (source: Exclude<PromptSource, null>, msg?: string) => {
-    setState({
-      isPromptModalOpen: true,
-      promptSource: source,
-      promptModalTitle: msg || "文件已经改动，需要保存吗？",
-    });
+  const goList = () =>
+    history.push("/case-management/test-sequence-integration");
+
+  const goAdd = () => {
+    history.push(`/case-management/test-sequence-process/add`);
+    window.location.reload();
   };
 
-  /**
-   * 保存（保存 / 另存为）
-   * - 新建：beforeSave 决定是否弹 SaveModal
-   * - 编辑：save 直接调用 saveData，saveAs 弹 SaveModal
-   */
-  const handleSave = async (type: "save" | "saveAs") => {
+  const handleGoBack = async () => {
     try {
-      if (type === "save") setState({ saveLoading: true });
-      else setState({ saveAsLoading: true });
-
-      // 新建文件：beforeSave 判断
+      setState({ saveLoading: true });
+      const { code, message: msg } = await beforeBack();
+      if (code === 0) {
+        goList();
+        return;
+      } else if (code === 1) {
+        setState({
+          isPromptModalOpen: true,
+          promptModalType: "back",
+          promptModalTitle: msg || "文件已经改动，需要保存吗？",
+        });
+      } else {
+        message.error(msg || "操作失败");
+        return;
+      }
+    } finally {
+      setState({ saveLoading: false });
+    }
+  };
+  // 新建
+  const handleAdd = async () => {
+    try {
+      setState({ addLoading: true });
+      const { code, message: msg } = await beforeAdd();
+      if (code === 0) {
+        // 可以新建
+        setState({ addModalOpen: true });
+        return;
+      } else if (code === 1) {
+        setState({
+          isPromptModalOpen: true,
+          promptModalType: "add",
+          promptModalTitle: msg || "文件已经改动，需要保存吗？",
+        });
+      } else {
+        message.error(msg || "操作失败");
+        return;
+      }
+    } finally {
+      setState({ addLoading: false });
+    }
+  };
+  // 保存/另存为
+  const handleSave = async (type: string) => {
+    try {
+      if (type === "save") {
+        setState({ saveLoading: true });
+      } else {
+        setState({ saveAsLoading: true });
+      }
+      // 如果是新建保存
       if (recordId === "add") {
         const { code, data, message: msg } = await beforeSave();
         if (code !== 0) {
           message.error(msg || "操作失败");
           return;
         }
-
         const { tpfname, method } = data || {};
-
-        // method == -1：后端要求弹保存框
-        if (String(method) === "-1") {
+        if (method == "-1") {
           if (type === "save") {
             setState({
               isSaveModalOpen: true,
-              saveModalType: "save",
-              saveModalSource: null,
+              saveModalType: type,
             });
           } else {
             message.info("请先保存文件，再进行另存为操作！");
           }
-          return;
+        } else {
+          if (type === "save") {
+            const { code, message: msg } = await saveData({
+              method: 1,
+              filename: tpfname,
+            });
+            if (code !== 0) {
+              message.error(msg || "操作失败");
+              return;
+            }
+            message.success(msg || "操作成功");
+          } else {
+            setState({
+              isSaveModalOpen: true,
+              saveModalType: type,
+            });
+          }
         }
-
-        // 可直接保存
-        if (type === "save") {
-          const { code: c2, message: m2 } = await saveData({
-            method: 1,
-            filename: tpfname,
+      } else {
+        if (type === "saveAs") {
+          setState({
+            isSaveModalOpen: true,
+            saveModalType: type,
           });
-          if (c2 !== 0) {
-            message.error(m2 || "操作失败");
+        } else {
+          const { code, message: msg } = await saveData({
+            method: 1, // 编辑保存 method=1
+            filename: title,
+          });
+          if (code !== 0) {
+            message.error(msg || "操作失败");
             return;
           }
-          message.success(m2 || "操作成功");
-          return;
+          message.success(msg || "操作成功");
         }
-
-        // saveAs：弹另存为
-        setState({
-          isSaveModalOpen: true,
-          saveModalType: "saveAs",
-          saveModalSource: null,
-        });
-        return;
       }
-
-      // 编辑文件：saveAs 弹框；save 直接保存
-      if (type === "saveAs") {
-        setState({
-          isSaveModalOpen: true,
-          saveModalType: "saveAs",
-          saveModalSource: null,
-        });
-        return;
-      }
-
-      const { code, message: msg } = await saveData({
-        method: 1,
-        filename: title,
-      });
-      if (code !== 0) {
-        message.error(msg || "操作失败");
-        return;
-      }
-      message.success(msg || "操作成功");
     } finally {
       setState({ saveLoading: false, saveAsLoading: false });
     }
   };
 
-  /**
-   * 返回：后端判断是否需要提示保存
-   */
-  const handleGoBack = async () => {
-    try {
-      setState({ backLoading: true });
-      const { code, message: msg } = await beforeBack();
-
-      if (code === 0) {
-        goList();
-        return;
-      }
-      // ✅ 防止后端返回 number/string 混用
-      if (String(code) === "-1") {
-        openPrompt("back", msg);
-        return;
-      }
-      message.error(msg || "操作失败");
-    } finally {
-      setState({ backLoading: false });
-    }
-  };
-
-  /**
-   * 新建：后端判断是否需要提示保存
-   */
-  const handleAdd = async () => {
-    try {
-      setState({ addLoading: true });
-      const { code, message: msg } = await beforeAdd();
-
-      if (code === 0) {
-        setState({ addModalOpen: true });
-        return;
-      }
-      if (code === 1) {
-        openPrompt("add", msg);
-        return;
-      }
-      message.error(msg || "操作失败");
-    } finally {
-      setState({ addLoading: false });
-    }
-  };
-
   const handleRun = () => {
     setState({ isRunModalOpen: true });
-  };
-
-  /**
-   * PromptModal 点“是”：执行保存，再根据 source 继续动作
-   * - 新建：method==-1 则打开 SaveModal，并把 saveModalSource 记录下来
-   */
-  const handlePromptSaveAndNext = async () => {
-    const source = promptSource;
-    closePrompt();
-
-    const { code, data, message: msg } = await beforeSave();
-    if (code !== 0) {
-      message.error(msg || "操作失败");
-      return;
-    }
-
-    const { method, tpfname } = data || {};
-
-    // 新建：可能需要弹保存框
-    if (recordId === "add") {
-      if (String(method) === "-1") {
-        setState({
-          isSaveModalOpen: true,
-          saveModalType: "save",
-          saveModalSource: source === "run" ? null : source,
-        });
-        return;
-      }
-
-      const { code: c2, message: m2 } = await saveData({
-        method: 1,
-        filename: tpfname,
-      });
-      if (c2 !== 0) {
-        message.error(m2 || "操作失败");
-        return;
-      }
-
-      message.success(m2 || "操作成功");
-      if (source === "add") setState({ addModalOpen: true });
-      if (source === "back") goList();
-      return;
-    }
-
-    // 编辑保存
-    const { code: c3, message: m3 } = await saveData({
-      method: 1,
-      filename: title,
-    });
-    if (c3 !== 0) {
-      message.error(m3 || "操作失败");
-      return;
-    }
-
-    message.success(m3 || "操作成功");
-    if (source === "add") setState({ addModalOpen: true });
-    if (source === "back") goList();
   };
 
   return (
@@ -406,7 +332,7 @@ const Page: React.FC = () => {
         ),
         ghost: true,
         extra: [
-          <Button key="back" onClick={handleGoBack} loading={backLoading}>
+          <Button key="back" onClick={handleGoBack}>
             返回
           </Button>,
         ],
@@ -431,7 +357,6 @@ const Page: React.FC = () => {
               >
                 新建
               </Button>
-
               <Button
                 icon={<SaveOutlined />}
                 onClick={() => handleSave("save")}
@@ -439,7 +364,6 @@ const Page: React.FC = () => {
               >
                 保存
               </Button>
-
               <Button
                 icon={<FileAddOutlined />}
                 loading={saveAsLoading}
@@ -447,7 +371,6 @@ const Page: React.FC = () => {
               >
                 另存为
               </Button>
-
               <Button icon={<CheckCircleOutlined />} onClick={handleRun}>
                 运行
               </Button>
@@ -476,26 +399,33 @@ const Page: React.FC = () => {
                 {leftTabActiveKey === "Pre" && (
                   <PrePage
                     ref={preRef}
+                    tab="Pre"
                     recordId={recordId}
+                    isRelease={!!isRelease}
                     selectedProject={selectedProject}
+                    onMetaChange={handleTabMetaChange}
                     onSelectionChange={handleSelectionChange}
                   />
                 )}
-
                 {leftTabActiveKey === "UUT" && (
                   <UutPage
                     ref={uutRef}
+                    tab="UUT"
                     recordId={recordId}
+                    isRelease={!!isRelease}
                     selectedProject={selectedProject}
+                    onMetaChange={handleTabMetaChange}
                     onSelectionChange={handleSelectionChange}
                   />
                 )}
-
                 {leftTabActiveKey === "Post" && (
                   <PostPage
                     ref={postRef}
+                    tab="Post"
                     recordId={recordId}
+                    isRelease={!!isRelease}
                     selectedProject={selectedProject}
+                    onMetaChange={handleTabMetaChange}
                     onSelectionChange={handleSelectionChange}
                   />
                 )}
@@ -520,8 +450,6 @@ const Page: React.FC = () => {
                   onSelect={(keys, info) => {
                     const node: any = info?.node;
                     const nextKeys = (keys || []).map((k: any) => String(k));
-
-                    // 保存每个左侧tab的树选中 keys
                     setState((prev: any) => ({
                       rightTreeSelectedKeys: {
                         ...prev.rightTreeSelectedKeys,
@@ -529,7 +457,7 @@ const Page: React.FC = () => {
                       },
                     }));
 
-                    // 非 level=3 视为无效选中：清空 selectedProject（插入按钮置灰）
+                    // ✅ 只有 level=3 才算有效选中，否则清空 selectedProject（插入按钮置灰）
                     if (!node || nextKeys.length === 0 || node.level !== 3) {
                       setState({ selectedProject: null });
                       return;
@@ -565,7 +493,7 @@ const Page: React.FC = () => {
         </div>
       </div>
 
-      {/* 运行弹窗 */}
+      {/* 弹窗：发布状态新建 */}
       <RunModal
         open={isRunModalOpen}
         id="-1"
@@ -576,17 +504,68 @@ const Page: React.FC = () => {
         }}
       />
 
-      {/* 返回/新建提示保存 */}
+      {/* 弹窗：返回/新建提示保存 */}
       <Modal
         title={promptModalTitle}
         open={isPromptModalOpen}
-        onCancel={closePrompt}
+        onCancel={() =>
+          setState({ isPromptModalOpen: false, promptModalType: null })
+        }
         footer={[
           <Button
             key="save"
             type="primary"
             style={{ marginRight: 10 }}
-            onClick={handlePromptSaveAndNext}
+            onClick={async () => {
+              setState({ isPromptModalOpen: false });
+              // 判断是新建保存还是编辑保存， 如果是新建保存 ，需要弹出保存弹框，如果是编辑保存直接保存
+              const { code, data, message: msg } = await beforeSave();
+              if (code !== 0) {
+                message.error(msg || "操作失败");
+                return;
+              }
+              const { method, tpfname } = data || {};
+              if (recordId == "add") {
+                if (method == "-1") {
+                  setState({
+                    isSaveModalOpen: true,
+                    saveModalType: "save",
+                    btnType: "add",
+                  });
+                } else {
+                  const { code, message: msg } = await saveData({
+                    method: 1, // 编辑保存 method=1
+                    filename: tpfname,
+                  });
+                  if (code !== 0) {
+                    message.error(msg || "操作失败");
+                    return;
+                  }
+                  if (promptModalType === "add") {
+                    // 成功后弹出新建弹窗
+                    setState({ addModalOpen: true });
+                  } else if (promptModalType === "back") {
+                    goList();
+                  }
+                }
+              } else {
+                // 调用保存接口
+                const { code, message: msg } = await saveData({
+                  method: 1, // 编辑保存 method=1
+                  filename: title,
+                });
+                if (code !== 0) {
+                  message.error(msg || "操作失败");
+                  return;
+                }
+                if (promptModalType === "add") {
+                  // 成功后弹出新建弹窗
+                  setState({ addModalOpen: true });
+                } else if (promptModalType === "back") {
+                  goList();
+                }
+              }
+            }}
           >
             是
           </Button>,
@@ -595,54 +574,65 @@ const Page: React.FC = () => {
             danger
             style={{ marginRight: 10 }}
             onClick={() => {
-              const source = promptSource;
-              closePrompt();
-              if (source === "add") setState({ addModalOpen: true });
-              if (source === "back") goList();
+              setState({ isPromptModalOpen: false });
+              if (promptModalType === "add") {
+                //点击否，弹出新建框
+                setState({ addModalOpen: true });
+              } else if (promptModalType === "back") {
+                goList();
+              }
             }}
           >
             否
           </Button>,
-          <Button key="cancel" onClick={closePrompt}>
+          <Button
+            key="cancel"
+            onClick={() =>
+              setState({
+                isPromptModalOpen: false,
+                promptModalType: null,
+                btnType: null,
+              })
+            }
+          >
             取消
           </Button>,
         ]}
       />
 
-      {/* 保存/另存为弹窗 */}
+      {/* 保存弹窗 */}
       <SaveModal
         open={isSaveModalOpen}
         type={saveModalType}
         id={recordId}
         onOk={() => {
-          const source = saveModalSource;
-          const type = saveModalType;
-          closeSaveModal();
-
-          // 保存弹窗来源只处理 back/add（run 不走这里）
-          if (source === "add") {
+          setState({ isSaveModalOpen: false });
+          if (btnType === "add") {
+            //表示点新建 提醒保存数据，保存成功后跳转新建
+            setState({ btnType: null });
             goAdd();
             return;
           }
-          if (source === "back") {
+          if (saveModalType === "saveAs") {
+            // 另存为成功后返回列表
             goList();
             return;
           }
-
-          // 独立另存为：完成后回列表
-          if (type === "saveAs") {
-            goList();
-          }
         }}
-        onCancel={closeSaveModal}
+        onCancel={() =>
+          setState({ isSaveModalOpen: false, btnType: null, saveModalType: "" })
+        }
       />
-
-      {/* 新建弹窗 */}
+      {/* 新建 */}
       <RunSequenceModal
         open={addModalOpen}
-        onCancel={() => setState({ addModalOpen: false })}
-        type="add"
-        onOk={() => goAdd()}
+        onCancel={() => {
+          setState({ addModalOpen: false });
+        }}
+        type={"add"}
+        onOk={() => {
+          goAdd();
+        }}
       />
     </PageContainer>
   );

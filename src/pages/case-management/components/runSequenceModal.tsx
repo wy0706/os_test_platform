@@ -20,7 +20,7 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   id?: string | number;
-  type: string; //add 新建 edit编辑
+  type?: string; //add 新建 edit编辑
 }
 const { Option } = Select;
 
@@ -33,7 +33,6 @@ const runSequenceModal: React.FC<SetMemberModalProps> = ({
   onOk,
   onCancel,
   id,
-  type,
 }) => {
   const [form] = Form.useForm();
   const { initialState } = useModel("@@initialState");
@@ -129,10 +128,6 @@ const runSequenceModal: React.FC<SetMemberModalProps> = ({
     values["username"] = users?.label;
     values["user_id"] = users?.value;
 
-    // if (!autoId) {
-    //   message.error("缺少执行文件ID");
-    //   return;
-    // }
     try {
       setState({
         confirmLoading: false,
