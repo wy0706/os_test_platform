@@ -328,12 +328,16 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
   /** 结果状态配置 */
   const getStatusConfig = (status: string) => {
     const map = {
-      PASS: { color: "green", text: "PASS", description: "测试成功" },
+      PASS: { color: "#52c41a", text: "PASS", description: "测试成功" },
       FAIL: { color: "red", text: "FAIL", description: "测试失败" },
-      BREAK: { color: "orange", text: "BREAK", description: "处于暂停状态" },
-      TEST: { color: "blue", text: "TEST", description: "正在运行测试" },
-      ERROR: { color: "red", text: "ERROR", description: "设备通信DLL错误" },
-      STOP: { color: "red", text: "STOP", description: "停止测试" },
+      BREAK: { color: "#0b0b0b", text: "BREAK", description: "处于暂停状态" },
+      TEST: { color: "#f9ed4f", text: "TEST", description: "正在运行测试" },
+      ERROR: {
+        color: "red",
+        text: "ERROR",
+        description: "设备通信DLL错误",
+      },
+      STOP: { color: "#8356e8", text: "STOP", description: "停止测试" },
     } as const;
     return (map as any)[status] || map.TEST;
   };
