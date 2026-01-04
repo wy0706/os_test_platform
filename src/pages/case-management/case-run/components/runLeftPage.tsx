@@ -1,7 +1,7 @@
 import { getList } from "@/services/case-management/case-run.service";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
-import { Card, Checkbox, message, Progress, Space, Table, Tag } from "antd";
+import { Card, Checkbox, message, Progress, Space, Table } from "antd";
 import React, {
   forwardRef,
   useEffect,
@@ -620,24 +620,23 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                 }
                 bordered
               >
-                <div style={{ textAlign: "center", padding: "8px 0" }}>
-                  <Tag
-                    color={getStatusConfig(currentStatus).color}
-                    style={{ fontSize: 14, padding: "4px 12px" }}
-                  >
-                    {getStatusConfig(currentStatus).text}
-                  </Tag>
-                </div>
-                {/* <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 12,
-                    color: "#666",
-                    textAlign: "center",
-                  }}
-                >
-                  {getStatusConfig(currentStatus).description}
-                </div> */}
+                {(() => {
+                  const status = getStatusConfig(currentStatus);
+                  return (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "8px 0",
+                        fontSize: 48,
+                        fontWeight: 800,
+                        letterSpacing: 3,
+                        color: status.color,
+                      }}
+                    >
+                      {status.text}
+                    </div>
+                  );
+                })()}
               </Card>
             )}
           </>

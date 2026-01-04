@@ -256,7 +256,7 @@ const Page: React.FC = () => {
     appendRunLog(`未处理的 TestProcess code：${String(n?.code)}`, "INFO");
   }
   const { send, close } = useWebSocket({
-    url: "ws://218.247.161.72:8900/ws/",
+    url: "ws://218.247.161.69:8900/ws/",
     onOpen: () => {
       appendAllLog("🔗 WebSocket 连接已建立");
     },
