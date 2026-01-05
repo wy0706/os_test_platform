@@ -21,6 +21,7 @@ interface SetMemberModalProps {
   onOk?: (values: any) => void;
   onCancel?: () => void;
   id?: string | number;
+  sequence_name?: string;
 }
 const { Option } = Select;
 
@@ -33,6 +34,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
   onOk,
   onCancel,
   id,
+  sequence_name,
 }) => {
   const [form] = Form.useForm();
   const { initialState } = useModel("@@initialState");
@@ -127,6 +129,10 @@ const RunModal: React.FC<SetMemberModalProps> = ({
     let users = values.user_id;
     values["username"] = users?.label;
     values["user_id"] = users?.value;
+    // 只有序列编辑需要加 sequence_name
+    if (sequence_name) {
+      values["sequence_name"] = sequence_name;
+    }
     if (!autoId) {
       message.error("缺少执行文件ID");
       return;
@@ -136,7 +142,7 @@ const RunModal: React.FC<SetMemberModalProps> = ({
         confirmLoading: false,
       });
       const { code, message: msg } = await editRunFileForm({
-        execution_file_id: autoId,
+        execution_file_id: autoId, // 执行文件ID
         ...values,
       });
       if (code !== 0) {

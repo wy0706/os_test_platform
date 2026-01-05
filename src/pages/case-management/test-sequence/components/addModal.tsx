@@ -97,47 +97,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
     }
   };
 
-  // const initData = async () => {
-  //   if (!open) return;
-  //   const name = type === "add" ? "新建" : type === "edit" ? "编辑" : "另存为";
-  //   setState({ title: name });
-  //   form.resetFields();
-  //   const list = await loadTreeData(); // 用返回的“新鲜”list
-  //   // 新建/另存为时，若有 currentNode，默认选中该类型
-  //   if (type !== "edit" && currentNode) {
-  //     console.log("currentNode", currentNode);
-
-  //     // label 可以等加载完后从 treeData 查一次
-  //     const findLabel = (nodes: any[]): any => {
-  //       for (const n of nodes) {
-  //         if (String(n.key) === String(currentNode)) return n.title;
-  //         if (n.children) {
-  //           const got = findLabel(n.children);
-  //           if (got) return got;
-  //         }
-  //       }
-  //     };
-  //     const label = findLabel(treeData) || "";
-  //     form.setFieldsValue({ tigroup: { value: currentNode, label } });
-  //   }
-
-  //   if (type === "edit" && updateValue) {
-  //     form.setFieldsValue({ ...updateValue });
-  //     if (updateValue?.tc_title && !isArray(updateValue?.tc_title)) {
-  //       setState({
-  //         selectTestData: [],
-  //       });
-  //       return;
-  //     }
-  //     let list = (updateValue?.tc_title || []).map((row: any) => ({
-  //       ...row,
-  //       id: Number(row.id),
-  //     }));
-  //     setState({
-  //       selectTestData: list,
-  //     });
-  //   }
-  // };
   const initData = async () => {
     if (!open) return;
     const name = type === "add" ? "新建" : type === "edit" ? "编辑" : "另存为";
@@ -206,6 +165,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         tigroup: label ?? "",
         sequence_id: updateValue?.sequence_id,
       };
+
       if (type === "edit" && !params?.sequence_id) {
         message.error("缺少必要的参数 sequence_id");
         return;
@@ -227,7 +187,7 @@ const AddModal: React.FC<SetMemberModalProps> = ({
         return;
       }
       message.success(msg || "操作成功");
-      onOk && onOk(values);
+      onOk && onOk(params);
     } finally {
       setState({
         confirmLoading: false,

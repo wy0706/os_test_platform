@@ -469,6 +469,7 @@ const Page: React.FC = () => {
           setState({ isRunModalOpen: false });
         }}
         id="-1"
+        sequence_name={sequenceName}
         onOk={() => {
           setState({
             isRunModalOpen: false,
