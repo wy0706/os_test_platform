@@ -11,6 +11,7 @@ interface BackendResultItem {
     name: string; // 子级变量名
     Value: any; // 测试值
     result?: "PASS" | "FAIL" | ""; // 结果
+    resultarray?: Array<"PASS" | "FAIL" | "">;
   }>;
 }
 
@@ -119,14 +120,15 @@ const TestResult = React.forwardRef<any, ResultProps>(
       const rows = items.map((it, parentIdx) => {
         const children =
           it.resultinfo?.map((ri, idx) => {
-            const { MinValue, MaxValue, Value } = ri as any;
+            const { MinValue, MaxValue, Value, resultarray } = ri as any;
 
             return {
               id: `${it.itemindex ?? parentIdx + 1}-${ri.resultid ?? idx + 1}`,
               varname: ri.name,
               testValue: Value ?? "",
-              range: buildRange(MinValue, MaxValue, Value), // ⭐ 关键：数组时保留为数组
+              range: buildRange(MinValue, MaxValue, Value),
               result: ri.result ?? "",
+              resultarray: Array.isArray(resultarray) ? resultarray : undefined, // ⭐新增
             };
           }) ?? [];
 
@@ -254,15 +256,23 @@ const TestResult = React.forwardRef<any, ResultProps>(
         if (item.children) {
           return { ...item, children: expandArrayItems(item.children) };
         } else if (Array.isArray(item.testValue)) {
-          const children = item.testValue.map((value: any, index: number) => ({
-            id: `${item.id}_${index}`,
-            varname: index,
-            testValue: value,
-            isArrayItem: true,
-            range: Array.isArray(item.range)
-              ? item.range[index]
-              : item.range || "",
-          }));
+          const children = item.testValue.map((value: any, index: number) => {
+            const arrResult = Array.isArray(item.resultarray)
+              ? item.resultarray[index]
+              : "";
+
+            return {
+              id: `${item.id}_${index}`,
+              varname: index,
+              testValue: value,
+              isArrayItem: true,
+              range: Array.isArray(item.range)
+                ? item.range[index]
+                : item.range || "",
+              // 展示规则：PASS → 空，FAIL → FAIL
+              result: arrResult === "FAIL" ? "FAIL" : "",
+            };
+          });
           return { ...item, children };
         }
         return item;
