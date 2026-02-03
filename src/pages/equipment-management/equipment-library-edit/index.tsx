@@ -10,6 +10,8 @@ import {
 } from "@/services/equipment-management/equipment-library-edit.service";
 import { createOne } from "@/services/equipment-management/equipment-library.service";
 import { addPrefixToLevelKey } from "@/utils";
+import { useWebSocket } from "@/utils/useWebSockt";
+import type { UpMsg } from "@/utils/ws/protocol";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -53,11 +55,10 @@ interface TreeNode {
 }
 
 interface SelfCheckMessage {
-  id: number;
-  deviceType: string;
-  serialNumber: string;
-  errorCode: string;
-  message: string;
+  seq: number;
+  code: number; // 0-合格，1-不合格
+  SelfTestResult: string;
+  type: string; // "SelfTest" 或 "SelfTestAll"
   timestamp: Date;
 }
 
@@ -118,6 +119,65 @@ const PeripheralImport: React.FC = () => {
   } = state;
   const params = useParams();
   const [searchParams] = useSearchParams();
+
+  // WebSocket 连接
+  const { send, close } = useWebSocket({
+    url: "ws://218.247.161.69:8900/ws/",
+    onOpen: () => {
+      console.log("WebSocket 连接已建立");
+    },
+    onMessage: (msg) => {
+      console.log("收到自检消息:", msg);
+      const msgType = msg?.type ?? "";
+
+      if (msgType === "SelfTest" || msgType === "SelfTestAll") {
+        // 单条自检消息或全部自检结果
+        const data = msg?.data || {};
+
+        // 解析自检结果并添加到列表
+        const newMessage: SelfCheckMessage = {
+          seq: data.Seq || 0,
+          code: data.code !== undefined ? data.code : 0,
+          SelfTestResult:
+            msgType === "SelfTestAll"
+              ? `自检完成： ${data.SelfTestResult}` || ""
+              : data.SelfTestResult || "",
+          type: msgType,
+          timestamp: new Date(),
+        };
+
+        setState((prevState) => ({
+          ...prevState,
+          selfCheckMessages: [
+            ...(prevState.selfCheckMessages || []),
+            newMessage,
+          ],
+          // 如果是 SelfTestAll，表示自检完成
+          isSelfChecking:
+            msgType === "SelfTestAll" ? false : prevState.isSelfChecking,
+        }));
+
+        // // 如果是最终结果，显示提示
+        // if (msgType === "SelfTestAll") {
+        //   const resultText = data.SelfTestResult || "自检完成";
+        //   if (data.code === 0) {
+        //     message.success(resultText);
+        //   } else {
+        //     message.error(resultText);
+        //   }
+        // }
+      }
+    },
+    onClose: () => {
+      console.log("WebSocket 连接已关闭");
+    },
+    onError: (ev) => {
+      console.error("WebSocket 错误:", ev);
+      message.error("WebSocket 连接错误");
+    },
+    autoConnect: true,
+  });
+
   useEffect(() => {
     setState({
       id: params.id !== "add" ? params.id : null,
@@ -165,6 +225,14 @@ const PeripheralImport: React.FC = () => {
   };
 
   const actionRef = useRef<ActionType>();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 自动滚动到最新消息
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selfCheckMessages]);
   // 设备配置表格列定义 1
   const deviceConfigColumns: ProColumns<any>[] = [
     {
@@ -849,248 +917,26 @@ const PeripheralImport: React.FC = () => {
       message.warning("文件为空，请添加设备配置！");
       return;
     }
-    //
+
+    // 清空之前的自检消息
     setState({
       isSelfCheck: true,
       isSelfChecking: true,
       selfCheckMessages: [],
     });
 
-    // 模拟自检信息
-    const mockSelfCheckMessages: SelfCheckMessage[] = [
-      {
-        id: 1,
-        deviceType: "直流源",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 2,
-        deviceType: "直流源",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 3,
-        deviceType: "开关继电器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 4,
-        deviceType: "开关继电器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 5,
-        deviceType: "开关继电器",
-        serialNumber: "序号3",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 6,
-        deviceType: "开关继电器",
-        serialNumber: "序号4",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 7,
-        deviceType: "数字多用表",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 8,
-        deviceType: "CAN设备",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 9,
-        deviceType: "交流源",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 10,
-        deviceType: "交流源",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 11,
-        deviceType: "负载箱",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 12,
-        deviceType: "负载箱",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 13,
-        deviceType: "温度传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 14,
-        deviceType: "温度传感器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 15,
-        deviceType: "压力传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 16,
-        deviceType: "压力传感器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 17,
-        deviceType: "流量计",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 18,
-        deviceType: "流量计",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 19,
-        deviceType: "振动传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 20,
-        deviceType: "振动传感器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 21,
-        deviceType: "湿度传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 22,
-        deviceType: "湿度传感器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 23,
-        deviceType: "光电传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 24,
-        deviceType: "光电传感器",
-        serialNumber: "序号2",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-      {
-        id: 25,
-        deviceType: "超声波传感器",
-        serialNumber: "序号1",
-        errorCode: "-9970",
-        message: "自检发生错误:错误代码-9970,命令在对应设备的通信DLL中不存在",
-        timestamp: new Date(),
-      },
-    ];
+    // 通过 WebSocket 发送自检命令
+    const selfTestMsg: UpMsg = { type: "SelfTest" };
+    const success = send(selfTestMsg);
 
-    // 模拟后端分批返回数据
-    setTimeout(() => {
-      // 第一批数据（8条）
-      setState((prevState) => ({
-        ...prevState,
-        selfCheckMessages: mockSelfCheckMessages.slice(0, 8),
-      }));
-    }, 1000);
-
-    setTimeout(() => {
-      // 第二批数据（8条）
-      setState((prevState) => ({
-        ...prevState,
-        selfCheckMessages: [
-          ...(prevState.selfCheckMessages || []),
-          ...mockSelfCheckMessages.slice(8, 16),
-        ],
-      }));
-    }, 2000);
-
-    setTimeout(() => {
-      // 第三批数据（9条）
-      setState((prevState) => ({
-        ...prevState,
-        selfCheckMessages: [
-          ...(prevState.selfCheckMessages || []),
-          ...mockSelfCheckMessages.slice(16, 25),
-        ],
+    if (!success) {
+      message.error("发送自检命令失败，请检查 WebSocket 连接");
+      setState({
         isSelfChecking: false,
-      }));
-    }, 3000);
+      });
+    } else {
+      console.log("已发送自检命令");
+    }
   };
 
   const handleParasOk = (values: any) => {
@@ -1137,7 +983,11 @@ const PeripheralImport: React.FC = () => {
             >
               另存为
             </Button>
-            <Button icon={<CheckCircleOutlined />} onClick={handleSelfCheck}>
+            <Button
+              icon={<CheckCircleOutlined />}
+              onClick={handleSelfCheck}
+              disabled={isSelfChecking}
+            >
               自检
             </Button>
           </Space>
@@ -1191,34 +1041,35 @@ const PeripheralImport: React.FC = () => {
                       <div
                         className="messages-list"
                         style={{
-                          // height: "120px",
                           height: "100%",
                           overflowY: "auto",
                           backgroundColor: "#f8f9fa",
-                          // border: "1px solid #e9ecef",
-                          borderRadius: "4px",
-                          padding: "8px",
+                          borderRadius: 4,
+                          border: "1px solid #e9ecef",
+                          padding: 8,
                           fontFamily:
                             'Monaco, Consolas, "Courier New", monospace',
-                          fontSize: "11px",
-                          lineHeight: "1.4",
+                          fontSize: 11,
+                          lineHeight: 1.4,
                         }}
                       >
                         {selfCheckMessages
                           .filter(
                             (message: SelfCheckMessage) =>
-                              message && message.deviceType
+                              message && message.SelfTestResult
                           )
-                          .map((message: SelfCheckMessage) => (
-                            <div key={message.id} className="message-line">
-                              <span className="device-name">
-                                {message.deviceType} {message.serialNumber}
-                              </span>
-                              <span className="error-message">
-                                {message.message}
-                              </span>
+                          .map((message: SelfCheckMessage, index: number) => (
+                            <div
+                              key={`${message.seq}-${index}`}
+                              style={{
+                                color: message.code === 0 ? "#666" : "#cf1322",
+                                marginBottom: 2,
+                              }}
+                            >
+                              [{message.seq}] {message.SelfTestResult}
                             </div>
                           ))}
+                        <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>

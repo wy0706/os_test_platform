@@ -404,10 +404,10 @@ const Page: React.FC = () => {
             currentStatus: "",
           }));
           appendChecklog(
-            `${t === "SelfTestAll" ? "自检完成 ： " : ""}${
+            `[${n.Seq}] ${t === "SelfTestAll" ? "自检完成 ： " : ""}${
               n?.SelfTestResult ?? "_"
             }`,
-            statusFromNumber(msg?.code) as StatusCheck
+            statusFromNumber(n?.code) as StatusCheck
           );
 
           break;
