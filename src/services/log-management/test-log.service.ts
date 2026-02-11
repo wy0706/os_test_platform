@@ -1,26 +1,9 @@
-
 import { request } from "@umijs/max";
 
-const baseUrl = "/api/logManagement/testLog";
+const baseUrl = "/testlog";
 
 export async function getList(params: any) {
   const result: any = await request<{}>(`${baseUrl}/getList`, {
-    method: 'GET',
-    params: params,
-  });
-  return result;
-}
-
-export async function createOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/createOne`, {
-    method: "POST",
-    data: data,
-  });
-  return result;
-}
-
-export async function getAll(params: any) {
-  const result: any = await request<{}>(`${baseUrl}/getAll`, {
     method: "GET",
     params: params,
   });
@@ -28,31 +11,17 @@ export async function getAll(params: any) {
 }
 
 export async function getOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/getOne/${id}`, {
+  const result: any = await request<{}>(`${baseUrl}/getinfo`, {
     method: "GET",
-  });
-  return result;
-}
-
-export async function updateOne(data: any) {
-  const result: any = await request<{}>(`${baseUrl}/updateOne`, {
-    method: "POST",
-    data: data,
+    params: { id },
   });
   return result;
 }
 
 export async function deleteOne(id: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteOne/${id}`, {
+  const result: any = await request<{}>(`${baseUrl}/delete`, {
     method: "DELETE",
-  });
-  return result;
-}
-
-export async function deleteBatch(ids: any) {
-  const result: any = await request<{}>(`${baseUrl}/deleteBatch`, {
-    method: "DELETE",
-    data: ids,
+    data: { id },
   });
   return result;
 }

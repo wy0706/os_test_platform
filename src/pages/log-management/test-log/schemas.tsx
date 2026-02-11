@@ -5,30 +5,22 @@ export const schemasTitle: any = {
 
 export const schemasColumns: any = [
   {
-    title: "日志名称",
-    dataIndex: "title",
+    title: "序列名称",
+    dataIndex: "SerialNo",
     ellipsis: true,
-
-    render: (value: any, record: any) => {
-      return (
-        <span>
-          {record?.title}
-          {record?.code}
-        </span>
-      );
-    },
+    key: "logname",
   },
   {
     title: "生成日期",
-    dataIndex: "createTime",
+    dataIndex: "CreateTime",
     ellipsis: true,
     sorter: true,
     hideInSearch: true,
   },
   {
     title: "生成日期",
-    dataIndex: "createTime",
-    key: "createTime",
+    dataIndex: "CreateTime",
+    key: "create_time",
     valueType: "date",
     hideInTable: true,
   },
