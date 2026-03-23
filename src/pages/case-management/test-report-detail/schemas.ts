@@ -4,11 +4,15 @@ export const reportDetail: any = [
     key: "title",
     dataIndex: "title",
     ellipsis: true,
+    fieldProps: {
+      editing: false,
+    },
   },
   {
     title: "样品名称",
     key: "sampleName",
     dataIndex: "sampleName",
+    editing: false,
     // copyable: true,
     ellipsis: true,
   },

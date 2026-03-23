@@ -12,8 +12,8 @@ import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Col, Empty, Row } from "antd";
 import React, { useEffect, useRef } from "react";
+import ControlModal from "./components/controlModal";
 import { reportDetail, schemasTable } from "./schemas";
-
 const Page: React.FC = () => {
   const actionRef = useRef<any>();
   const actionInfoRef = useRef<ProDescriptionsActionType>();
@@ -37,7 +37,14 @@ const Page: React.FC = () => {
     reportInfo: {}, // 右侧报告详情
   });
 
-  const { entry, columns, selectedRowKeys, selectedRow, reportInfo } = state;
+  const {
+    entry,
+    columns,
+    selectedRowKeys,
+    selectedRow,
+    reportInfo,
+    reportModalOpen,
+  } = state;
 
   useEffect(() => {
     if (selectedRow?.id) {
@@ -144,8 +151,10 @@ const Page: React.FC = () => {
               marginBottom: 10,
               width: "100%",
             }}
-            bodyStyle={{
-              height: "100%",
+            styles={{
+              body: {
+                height: "100%",
+              },
             }}
             variant="outlined"
           >
@@ -211,13 +220,33 @@ const Page: React.FC = () => {
             variant="outlined"
           >
             {reportInfo.id ? (
-              <ProDescriptions
-                column={2}
-                bordered
-                columns={reportDetail}
-                actionRef={actionInfoRef}
-                dataSource={reportInfo}
-              />
+              <>
+                <ProDescriptions
+                  column={2}
+                  bordered
+                  columns={reportDetail}
+                  actionRef={actionInfoRef}
+                  dataSource={reportInfo}
+                />
+                <div
+                  style={{
+                    padding: 20,
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      setState({
+                        reportModalOpen: true,
+                      });
+                    }}
+                  >
+                    生成报告控件
+                  </Button>
+                </div>
+              </>
             ) : (
               <div
                 style={{
@@ -234,6 +263,20 @@ const Page: React.FC = () => {
           </Card>
         </Col>
       </Row>
+      <ControlModal
+        open={reportModalOpen}
+        onCancel={() => {
+          setState({
+            reportModalOpen: false,
+          });
+        }}
+        updateValue={selectedRow}
+        onOk={(values: any) => {
+          setState({
+            reportModalOpen: false,
+          });
+        }}
+      />
     </PageContainer>
   );
 };

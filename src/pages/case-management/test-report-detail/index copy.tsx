@@ -8,27 +8,22 @@ import { Pie } from "@ant-design/plots";
 import {
   PageContainer,
   ProDescriptions,
-  ProForm,
-  ProFormText,
-  ProFormTextArea,
+  ProDescriptionsActionType,
 } from "@ant-design/pro-components";
 import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
-import { Button, Card, Col, Form, Row, message } from "antd";
-import React, { useEffect } from "react";
+import { Button, Card, Col, Row } from "antd";
+import React, { useEffect, useRef } from "react";
 import ReportModal from "./components/reportModal";
 import { reportDetail } from "./schemas";
-
 const Page: React.FC = () => {
-  const [form] = Form.useForm();
+  const actionRef = useRef<ProDescriptionsActionType>();
   const [searchParams] = useSearchParams();
   const params = useParams();
-
   const [state, setState] = useSetState<any>({
     title: "",
     reportModalOpen: false,
-    entry: "",
-    editing: false,
+    entry: "", //从工作台进入还是从测试报告列表进入
     data: [
       { type: "成功", value: 25 },
       { type: "失败", value: 12 },
@@ -36,121 +31,9 @@ const Page: React.FC = () => {
     ],
     total: 0,
     successValue: 0,
-    detailData: {},
-    originDetailData: {},
   });
-
-  const {
-    reportModalOpen,
-    entry,
-    data,
-    total,
-    successValue,
-    editing,
-    detailData,
-    originDetailData,
-  } = state;
-
-  const getDetail = async () => {
-    // 这里换成你的真实详情接口
-    const res = await Promise.resolve({
-      success: true,
-      data: {
-        id: 1,
-        title: "项目名称",
-        unity: "测试单位",
-        sampleName: "样品名称",
-        version: "V1.0",
-        staff: "张九九",
-        testDate: "2025-08-13",
-        environment: "测试环境",
-        basis: "测试依据",
-        conclusion: "测试结论",
-        reportDate: "2025-08-20",
-      },
-    });
-
-    if (res.success) {
-      setState({
-        detailData: res.data,
-        originDetailData: res.data,
-      });
-    }
-  };
-
-  useEffect(() => {
-    console.log(params, searchParams.get("entry"));
-
-    const tol = data.reduce((a: any, b: any) => a + (b?.value || 0), 0);
-    const succ = data.find((item: any) => item.type === "成功")?.value || 0;
-    const successPercent = tol ? ((succ / tol) * 100).toFixed(2) : "0.00";
-
-    setState({
-      entry: searchParams.get("entry"),
-      total: tol,
-      successValue: successPercent,
-    });
-
-    getDetail();
-  }, []);
-
-  const handleEdit = () => {
-    form.setFieldsValue(detailData);
-    setState({
-      editing: true,
-      originDetailData: { ...detailData },
-    });
-  };
-
-  const handleCancel = () => {
-    form.resetFields();
-    setState({
-      editing: false,
-      detailData: { ...originDetailData },
-    });
-  };
-
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-
-      const saveParams = {
-        id: detailData.id,
-        version: values.version,
-        sampleName: values.sampleName,
-        unity: values.unity,
-        basis: values.basis,
-      };
-
-      // 这里替换成真实保存接口
-      const res = await Promise.resolve({
-        success: true,
-        data: {
-          ...detailData,
-          ...saveParams,
-        },
-      });
-
-      if (res.success) {
-        const newData = {
-          ...detailData,
-          ...saveParams,
-        };
-
-        setState({
-          editing: false,
-          detailData: newData,
-          originDetailData: newData,
-        });
-        message.success("保存成功");
-      } else {
-        message.error("保存失败");
-      }
-    } catch (error) {
-      console.log("保存失败", error);
-    }
-  };
-
+  const { title, reportModalOpen, entry, data, total, successValue } = state;
+  // const total = data.reduce((a, b) => a + (b?.value || 0), 0);
   const config = {
     data,
     scale: {
@@ -170,10 +53,22 @@ const Page: React.FC = () => {
       style: {
         fontWeight: "bold",
       },
-      formatter: (text: any, item: any) => {
-        return total ? `${((item.value / total) * 100).toFixed(2)}%` : "0%";
+
+      formatter: (text: any, item: any, index: number, data: any[]) => {
+        return `${((item.value / total) * 100).toFixed(2)}%`;
       },
     },
+    // tooltip: {
+    //   formatter: (datum: any) => {
+    //     console.log("datum", datum);
+
+    //     const percent = ((datum.value / total) * 100).toFixed(2);
+    //     return {
+    //       name: datum.type,
+    //       value: `${datum.value} (${percent}%)`,
+    //     };
+    //   },
+    // },
     legend: {
       color: {
         title: false,
@@ -234,7 +129,6 @@ const Page: React.FC = () => {
       id: 4,
     },
   ];
-
   const iconBoxStyle = (bg: string) => ({
     width: 30,
     height: 30,
@@ -246,6 +140,17 @@ const Page: React.FC = () => {
     marginRight: 20,
     boxShadow: "0 2px 8px rgba(24,144,255,0.08)",
   });
+  useEffect(() => {
+    console.log(params, searchParams.get("entry"));
+    const tol = data.reduce((a: any, b: any) => a + (b?.value || 0), 0);
+    const succ = data.find((item: any) => item.type === "成功")?.value || 0;
+    const successPercent = ((succ / tol) * 100).toFixed(2);
+    setState({
+      entry: searchParams.get("entry"),
+      total: tol,
+      successValue: successPercent,
+    });
+  }, []);
 
   return (
     <PageContainer
@@ -268,108 +173,41 @@ const Page: React.FC = () => {
         style={{ marginBottom: "10px" }}
         variant="outlined"
       >
-        {!editing ? (
-          <ProDescriptions
-            column={2}
-            bordered
-            columns={reportDetail}
-            dataSource={detailData}
-          />
-        ) : (
-          <ProForm
-            form={form}
-            submitter={false}
-            initialValues={detailData}
-            grid
-            rowProps={{ gutter: 16 }}
-          >
-            <ProFormText
-              name="title"
-              label="项目名称"
-              disabled
-              colProps={{ span: 12 }}
-            />
-            <ProFormText
-              name="sampleName"
-              label="样品名称"
-              colProps={{ span: 12 }}
-              rules={[{ required: true, message: "请输入样品名称" }]}
-            />
-            <ProFormText
-              name="version"
-              label="版本"
-              colProps={{ span: 12 }}
-              rules={[{ required: true, message: "请输入版本" }]}
-            />
-            <ProFormText
-              name="staff"
-              label="测试员"
-              disabled
-              colProps={{ span: 12 }}
-            />
-            <ProFormText
-              name="unity"
-              label="测试单位"
-              colProps={{ span: 12 }}
-              rules={[{ required: true, message: "请输入测试单位" }]}
-            />
-            <ProFormText
-              name="environment"
-              label="测试环境"
-              disabled
-              colProps={{ span: 12 }}
-            />
-            <ProFormText
-              name="testDate"
-              label="测试日期"
-              disabled
-              colProps={{ span: 12 }}
-            />
-            <ProFormText
-              name="reportDate"
-              label="报告日期"
-              disabled
-              colProps={{ span: 12 }}
-            />
-            <ProFormTextArea
-              name="basis"
-              label="测试依据"
-              colProps={{ span: 24 }}
-              fieldProps={{ rows: 3 }}
-            />
-            <ProFormTextArea
-              name="conclusion"
-              label="测试结论"
-              disabled
-              colProps={{ span: 24 }}
-              fieldProps={{ rows: 3 }}
-            />
-          </ProForm>
-        )}
+        <ProDescriptions
+          column={2}
+          bordered
+          columns={reportDetail}
+          actionRef={actionRef}
+          request={async () => {
+            return Promise.resolve({
+              success: true,
+              data: {
+                id: 1,
+                title: "项目名称 ",
+                unity: "测试单位",
+                sampleName: "样品名称",
+                version: "V1.0",
+                staff: "张九九",
+                testDate: "2025-08-13",
+                environment: "测试环境",
+                basis: "测试依据",
+                conclusion: "测试结论",
+                reportDate: "2025-08-20",
+              },
+            });
+          }}
+        ></ProDescriptions>
 
-        <div
-          style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}
-        >
-          <Button
-            type={editing ? "default" : "primary"}
-            onClick={editing ? handleCancel : handleEdit}
-          >
-            {editing ? "取消" : "编辑"}
-          </Button>
-          <Button
-            type="primary"
-            style={{ marginLeft: 8 }}
-            disabled={!editing}
-            onClick={handleSave}
-          >
-            保存
-          </Button>
+        <div>
+          {" "}
+          <Button>编辑</Button>
+          <Button>保存</Button>
         </div>
       </Card>
-
       <div>
         <Row gutter={16}>
           <Col span={12}>
+            {" "}
             <Card title="测试结果统计">
               <div style={{ width: "100%", height: "310px" }}>
                 <Pie {...config} />
@@ -377,6 +215,7 @@ const Page: React.FC = () => {
             </Card>
           </Col>
           <Col span={12}>
+            {" "}
             <Card title="测试结果详情" style={{ height: "100%" }}>
               <Row gutter={[16, 8]}>
                 {cardData.map((item) => (
@@ -436,7 +275,6 @@ const Page: React.FC = () => {
           </Col>
         </Row>
       </div>
-
       <ReportModal
         open={reportModalOpen}
         onCancel={() => {
