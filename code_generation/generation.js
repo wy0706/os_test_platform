@@ -166,6 +166,20 @@ let source = [
           },
         ],
       },
+      {
+        pageName: "test-report",
+        label: "测试报告",
+        fileds: [
+          {
+            title: "名称",
+            dataIndex: "title",
+          },
+          {
+            title: "创建时间",
+            dataIndex: "createTime",
+          },
+        ],
+      },
     ],
   },
   {

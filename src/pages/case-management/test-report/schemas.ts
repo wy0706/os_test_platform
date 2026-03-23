@@ -1,29 +1,38 @@
 export const schemasTitle: any = {
-  label: "测试日志",
-  value: "testLog",
+  label: "测试报告",
+  value: "testReport",
 };
 
 export const schemasColumns: any = [
   {
-    title: "序列名称",
-    dataIndex: "SerialNo",
-    ellipsis: true,
-    key: "logname",
+    title: "序号",
+    dataIndex: "index",
+    valueType: "index",
+    width: 100,
   },
   {
+    title: "报告名称",
+    dataIndex: "title",
+    ellipsis: true,
+  },
+
+  {
     title: "生成日期",
-    dataIndex: "CreateTime",
-    key: "create_time",
+    dataIndex: "createTime",
+    hideInSearch: true,
     ellipsis: true,
     sorter: true,
-    hideInSearch: true,
   },
   {
-    title: "生成日期",
-    dataIndex: "CreateTime",
-    key: "create_time",
-    valueType: "date",
-    hideInTable: true,
+    title: "状态",
+    hideInSearch: true,
+    dataIndex: "status",
+    ellipsis: true,
+    valueEnum: {
+      1: { text: "完成", status: "Success", disabled: true },
+      2: { text: "进行中", status: "Processing", disabled: true },
+      3: { text: "失败", status: "Error", disabled: true },
+    },
   },
 ];
 

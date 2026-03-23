@@ -62,9 +62,10 @@ const Welcome: React.FC = () => {
         history.push("/case-management/case-library");
         return;
       case "testReport":
-        setState({
-          isTaskListModalOPen: true,
-        });
+        // setState({
+        //   isTaskListModalOPen: true,
+        // });
+        history.push("/case-management/test-report");
         return;
       case "log":
         history.push("/log-management/test-log");

@@ -14,9 +14,8 @@ import { history, useParams, useSearchParams } from "@umijs/max";
 import { useSetState } from "ahooks";
 import { Button, Card, Col, Row } from "antd";
 import React, { useEffect, useRef } from "react";
-import ReportModal from "../components/reportModal";
+import ReportModal from "./components/reportModal";
 import { reportDetail } from "./schemas";
-
 const Page: React.FC = () => {
   const actionRef = useRef<ProDescriptionsActionType>();
   const [searchParams] = useSearchParams();
@@ -24,7 +23,7 @@ const Page: React.FC = () => {
   const [state, setState] = useSetState<any>({
     title: "",
     reportModalOpen: false,
-    entry: "", //从工作台进入还是从任务列表的测试报告列表进入
+    entry: "", //从工作台进入还是从测试报告列表进入
     data: [
       { type: "成功", value: 25 },
       { type: "失败", value: 12 },
@@ -161,12 +160,7 @@ const Page: React.FC = () => {
           <Button
             key="1"
             onClick={() => {
-              console.log("entry", entry);
-              if (entry == "home") {
-                history.back();
-              } else {
-                history.push("/task-management/test-task-one/1?tab=2");
-              }
+              history.back();
             }}
           >
             返回

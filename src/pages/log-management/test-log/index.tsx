@@ -118,7 +118,6 @@ const Page: React.FC = () => {
           columns={[...schemasColumns, operationColumn]}
           actionRef={actionRef}
           cardBordered
-          dateFormatter="string"
           request={requestData}
           rowSelection={{}} // 多选
           tableAlertRender={({ selectedRowKeys }) => (
@@ -126,6 +125,7 @@ const Page: React.FC = () => {
               <span>已选 {selectedRowKeys.length} 项</span>
             </Space>
           )}
+          dateFormatter="string"
           tableAlertOptionRender={({
             selectedRowKeys,
             selectedRows,
@@ -133,7 +133,7 @@ const Page: React.FC = () => {
           }) => (
             <Space size={16}>
               <Button
-                type="primary"
+                danger
                 onClick={() =>
                   handleDeleteAll(
                     selectedRowKeys,

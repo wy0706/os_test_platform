@@ -48,6 +48,19 @@ export const reportDetail: any = [
     dataIndex: "reportDate",
     ellipsis: true,
   },
+
+  {
+    title: "报告路径",
+    key: "basis1",
+    dataIndex: "basis1",
+    ellipsis: true,
+  },
+  {
+    title: "测试序列号",
+    key: "basis",
+    dataIndex: "basis",
+    ellipsis: true,
+  },
   {
     title: "测试依据",
     key: "basis",
