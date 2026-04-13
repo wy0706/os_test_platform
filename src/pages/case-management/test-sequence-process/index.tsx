@@ -568,11 +568,11 @@ const Page: React.FC = () => {
       {/* 运行弹窗 */}
       <RunModal
         open={isRunModalOpen}
-        id="-1"
+        id="-2"
         onCancel={() => setState({ isRunModalOpen: false })}
         onOk={() => {
           setState({ isRunModalOpen: false });
-          history.push(`/case-management/case-run/-1?status=all&name=${title}`);
+          history.push(`/case-management/case-run/-2?status=all&name=${title}`);
         }}
       />
 
