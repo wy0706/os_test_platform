@@ -558,6 +558,60 @@ const Page: React.FC = () => {
       },
     });
   };
+  /** 结果状态配置 */
+  const getStatusConfig = (status: string) => {
+    const map = {
+      PASS: { color: "#52c41a", text: "PASS", description: "测试成功" },
+      FAIL: { color: "red", text: "FAIL", description: "测试失败" },
+      BREAK: { color: "#0b0b0b", text: "BREAK", description: "处于暂停状态" },
+      TEST: { color: "#f9ed4f", text: "TEST", description: "正在运行测试" },
+      ERROR: {
+        color: "red",
+        text: "ERROR",
+        description: "设备通信DLL错误",
+      },
+      STOP: { color: "#8356e8", text: "STOP", description: "停止测试" },
+    } as const;
+    return (map as any)[status] || map.TEST;
+  };
+
+  const tabActionSlot = !!state.currentStatus ? (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        marginRight: 8,
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: 16,
+          color: "#999",
+        }}
+      >
+        Result:
+      </span>
+
+      {(() => {
+        const status = getStatusConfig(state.currentStatus);
+
+        return (
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: status.color,
+              letterSpacing: 2,
+            }}
+          >
+            {status.text}
+          </span>
+        );
+      })()}
+    </div>
+  ) : null;
   return (
     <PageContainer
       header={{
@@ -716,6 +770,7 @@ const Page: React.FC = () => {
                 <Tabs
                   items={tabItems}
                   activeKey={tabActiveKey}
+                  tabBarExtraContent={tabActionSlot}
                   onChange={(key: any) => setState({ tabActiveKey: key })}
                 />
                 {tabActiveKey === "1" && <TestInfo autoId={params.id} />}

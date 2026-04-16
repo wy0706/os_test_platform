@@ -47,9 +47,9 @@ export const schemasColumns: any = [
     valueType: "select",
     fieldProps: {
       options: [
-        { label: "Pre", value: "Pre测试" },
-        { label: "UUT", value: "UUT测试" },
-        { label: "Post", value: "Post测试" },
+        { label: "Pre", value: "Pre" },
+        { label: "UUT", value: "UUT" },
+        { label: "Post", value: "Post" },
       ],
     },
   },

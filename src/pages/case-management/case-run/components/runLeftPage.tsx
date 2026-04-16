@@ -612,7 +612,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
               </Card>
             )}
             {/* 结果  {!!currentStatus && btnType !== "STEP"   */}
-            {!!currentStatus && (
+            {/* {!!currentStatus && (
               <Card
                 size="small"
                 style={{ marginTop: 12 }}
@@ -642,7 +642,7 @@ const RunLeftPage = forwardRef((props: RunProps, ref) => {
                   );
                 })()}
               </Card>
-            )}
+            )} */}
           </>
         )}
       </div>

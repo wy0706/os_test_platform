@@ -49,7 +49,7 @@ const TempModal: React.FC<SetMemberModalProps> = ({
     if (updateValue) {
       form?.setFieldsValue({ ...updateValue });
 
-      setState({ selectedDataType: updateValue.dataType || "" });
+      setState({ selectedDataType: updateValue.data_type || "" });
     } else {
       setState({ selectedDataType: "" });
     }
