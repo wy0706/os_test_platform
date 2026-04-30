@@ -36,8 +36,8 @@ export const outAndInParams = [
   //   label: "44:Operator",
   //   value: "44",
   // },
-  // {
-  //   label: "99:Label",
-  //   value: "99",
-  // },
+  {
+    label: "99:Label",
+    value: "99",
+  },
 ];

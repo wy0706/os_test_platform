@@ -424,10 +424,6 @@ const AddModal: React.FC<SetMemberModalProps> = ({
                                 label: "44:Operator",
                                 value: "44",
                               },
-                              {
-                                label: "99:Label",
-                                value: "99",
-                              },
                             ]}
                           />
                         </Form.Item>
